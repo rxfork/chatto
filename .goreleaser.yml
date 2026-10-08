@@ -7,19 +7,15 @@ builds:
     dir: ./cli
     goos:
       - linux
-      - freebsd
-      - darwin
-      - windows
     goarch:
       - amd64
-      - arm64
     ignore:
       - goos: darwin
         goarch: amd64
     flags:
       - -trimpath
     ldflags:
-      - -s -w
+      - -s -w -X main.Version={{ .Version }}
 
 archives:
   - formats: [tar.gz]
@@ -133,14 +129,11 @@ docker_manifests:
 
 release:
   github:
-    owner: chattocorp
+    owner: rxfork
     name: chatto
-  # release-please creates a draft GitHub Release with its changelog body.
-  # GoReleaser must NOT overwrite it: it should attach artifacts to that
-  # draft and leave publication to the workflow step that runs after release
-  # artifacts and container images have been pushed.
-  draft: true
-  use_existing_draft: true
+  # The fork publishes server archives on revision tags without release-please.
+  draft: false
+  use_existing_draft: false
   replace_existing_artifacts: true
   mode: keep-existing
   # `auto` marks the GitHub Release as prerelease when the tag carries

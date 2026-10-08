@@ -42,6 +42,7 @@ permissions:
 
 jobs:
   build-docs-image:
+    if: github.repository == 'chattocorp/chatto'
     # runs-on: ubicloud-standard-4
     runs-on: ubuntu-latest
     steps:
