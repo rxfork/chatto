@@ -82,6 +82,17 @@ describe('Account settings page', () => {
     vi.restoreAllMocks();
   });
 
+  it('keeps password settings without requesting emails in email-free mode', async () => {
+    server.scope.store.serverInfo.emailDisabled = true;
+    const page = render(AccountPage);
+    await settle();
+    await expect
+      .element(page.getByText('Email addresses', { exact: true }))
+      .not.toBeInTheDocument();
+    expect(mocks.listVerifiedEmails).not.toHaveBeenCalled();
+    await expect.element(page.getByLabelText('Current Password')).toBeVisible();
+  });
+
   it('shows the current user ID in account information', async () => {
     const { container, getByText } = render(AccountPage);
     await settle();

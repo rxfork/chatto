@@ -20,6 +20,12 @@
   let { member, roles, canViewMemberEmails }: Props = $props();
 
   const serverScope = useServerScope();
+  // Wait for discovery before rendering stored email data or email controls.
+  const emailEnabled = $derived(
+    !serverScope.store.serverInfo.loading &&
+      !serverScope.store.serverInfo.error &&
+      !serverScope.store.serverInfo.emailDisabled
+  );
   const userSettings = $derived(
     timeFormatSettingsFor(serverScope.store.currentUser.user?.settings)
   );
@@ -96,14 +102,16 @@
             <Pill tone="success">{m('admin.members.member')}</Pill>
           {/if}
           {#if !isBot}
-            {#if canViewMemberEmails}
-              <Pill tone={member.hasVerifiedEmail ? 'success' : 'muted'}>
-                {member.hasVerifiedEmail
-                  ? m('admin.members.email_verified')
-                  : m('admin.members.email_not_verified')}
-              </Pill>
-            {:else}
-              <Pill tone="muted">{m('admin.members.email_hidden')}</Pill>
+            {#if emailEnabled}
+              {#if canViewMemberEmails}
+                <Pill tone={member.hasVerifiedEmail ? 'success' : 'muted'}>
+                  {member.hasVerifiedEmail
+                    ? m('admin.members.email_verified')
+                    : m('admin.members.email_not_verified')}
+                </Pill>
+              {:else}
+                <Pill tone="muted">{m('admin.members.email_hidden')}</Pill>
+              {/if}
             {/if}
             <Pill tone={serverRoleCount > 0 ? 'neutral' : 'muted'}>
               {serverRoleCount === 1
@@ -137,12 +145,14 @@
         <div class="mt-1">{formatOptionalDate(member.createdAt)}</div>
       </div>
       {#if !isBot}
-        <div class="min-w-0">
-          <div class="text-sm text-muted">{m('admin.members.verified_email')}</div>
-          <div class="mt-1 truncate" title={emailSummary()}>
-            {emailSummary()}
+        {#if emailEnabled}
+          <div class="min-w-0">
+            <div class="text-sm text-muted">{m('admin.members.verified_email')}</div>
+            <div class="mt-1 truncate" title={emailSummary()}>
+              {emailSummary()}
+            </div>
           </div>
-        </div>
+        {/if}
         <div>
           <div class="text-sm text-muted">{m('admin.members.username_changes')}</div>
           <div class="mt-1">{cooldownSummary}</div>

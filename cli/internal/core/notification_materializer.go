@@ -370,7 +370,7 @@ func (m *NotificationMaterializer) materializeEvent(ctx context.Context, event *
 // the same durable RBAC fact used by current notification visibility. The
 // source email fact remains pending and is redelivered until this converges.
 func (m *NotificationMaterializer) materializeConfiguredOwner(ctx context.Context, userID string) error {
-	if userID == "" || len(m.core.config.Owners.Emails) == 0 {
+	if m.core.config.EmailDisabled || userID == "" || len(m.core.config.Owners.Emails) == 0 {
 		return nil
 	}
 	emails, err := m.core.userModel.verifiedEmails(ctx, userID)

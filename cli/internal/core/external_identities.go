@@ -153,6 +153,9 @@ func (c *ChattoCore) CreatePendingExternalIdentityLinkFlow(ctx context.Context, 
 }
 
 func (c *ChattoCore) storePendingExternalIdentityFlow(ctx context.Context, token string, flow PendingExternalIdentityFlow) error {
+	if c.config.EmailDisabled {
+		flow.VerifiedEmail = ""
+	}
 	flow.ProviderID = strings.TrimSpace(flow.ProviderID)
 	flow.ProviderType = strings.TrimSpace(flow.ProviderType)
 	flow.Issuer = strings.TrimSpace(flow.Issuer)
@@ -241,6 +244,9 @@ func (c *ChattoCore) getPendingExternalIdentityFlowByKey(ctx context.Context, ke
 		_ = c.storage.runtimeStateKV.Delete(ctx, key)
 		return nil, ErrExternalIdentityFlowExpired
 	}
+	if c.config.EmailDisabled {
+		flow.VerifiedEmail = ""
+	}
 	return &flow, nil
 }
 
@@ -261,6 +267,11 @@ func (c *ChattoCore) DeletePendingExternalIdentityFlow(ctx context.Context, toke
 func (c *ChattoCore) CreateUserForExternalIdentity(ctx context.Context, login, displayName string, flow *PendingExternalIdentityFlow) (*evtv1.User, error) {
 	if flow == nil || flow.Kind != ExternalIdentityFlowKindCreate {
 		return nil, ErrExternalIdentityFlowWrongKind
+	}
+	if c.config.EmailDisabled {
+		copy := *flow
+		copy.VerifiedEmail = ""
+		flow = &copy
 	}
 	if displayName == "" {
 		displayName = login

@@ -119,7 +119,7 @@ func (c *ChattoCore) readContentDecision(ctx context.Context, read func(context.
 }
 
 func (c *ChattoCore) isConfiguredOwner(ctx context.Context, userID string) (bool, error) {
-	if len(c.config.Owners.Emails) == 0 {
+	if c.config.EmailDisabled || len(c.config.Owners.Emails) == 0 {
 		return false, nil
 	}
 	emails, err := c.userModel.verifiedEmails(ctx, userID)

@@ -20,6 +20,8 @@ export type PublicServerInfo = {
   authorizeUrl: string;
   directRegistrationEnabled: boolean;
   directLoginEnabled: boolean;
+  /** Email operations are unavailable on this server. Absent means enabled. */
+  emailDisabled?: boolean;
   accountCreationPolicy: 'open' | 'invite_only';
   welcomeMessage: string | null;
   description: string | null;
@@ -50,6 +52,7 @@ export async function getPublicServerInfo(
     authorizeUrl: response.login?.authorizeUrl ?? '',
     directRegistrationEnabled: response.login?.directRegistrationEnabled ?? false,
     directLoginEnabled: response.login?.directLoginEnabled ?? true,
+    emailDisabled: response.login?.emailDisabled ?? false,
     accountCreationPolicy:
       response.login?.accountCreationPolicy === AccountCreationPolicy.INVITE_ONLY
         ? 'invite_only'

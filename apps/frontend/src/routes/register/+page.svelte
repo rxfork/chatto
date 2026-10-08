@@ -27,7 +27,9 @@
   const inviteAccepted = $derived(data.inviteAccepted ?? false);
   const inviteError = $derived(data.inviteError ?? false);
 
+  const emailDisabled = $derived(data.serverInfo?.emailDisabled ?? false);
   let step = $state<Step>('email');
+  const activeStep = $derived(emailDisabled ? 'details' : step);
   let email = $state('');
   let code = $state('');
   let completionToken = $state('');
@@ -68,7 +70,7 @@
   );
   const canSubmitEmail = $derived(normalizedEmail && !emailError);
   const canSubmitDetails = $derived(
-    completionToken &&
+    (emailDisabled || completionToken) &&
       login &&
       password &&
       confirmPassword &&
@@ -190,7 +192,7 @@
 
   async function handleDetailsSubmit(e: Event) {
     e.preventDefault();
-    if (!completionToken || loginError || passwordError || confirmError) {
+    if ((!emailDisabled && !completionToken) || loginError || passwordError || confirmError) {
       error = loginError || passwordError || confirmError || m('common.validation.fix_errors');
       return;
     }
@@ -205,7 +207,7 @@
           ...browserCookieAuthenticationHeaders
         },
         body: JSON.stringify({
-          token: completionToken,
+          ...(emailDisabled ? {} : { token: completionToken }),
           login,
           password,
           passwordConfirmation: confirmPassword
@@ -234,9 +236,9 @@
 <PageTitle title={m('auth.register.title')} />
 
 <AuthLayout
-  title={step === 'code'
+  title={activeStep === 'code'
     ? m('auth.register.code.title')
-    : step === 'details'
+    : activeStep === 'details'
       ? m('auth.register.complete_title')
       : m('auth.register.title')}
 >
@@ -249,7 +251,7 @@
         <FormError error={m('auth.register.invitation.invalid')} />
       {/if}
     </div>
-  {:else if step === 'email'}
+  {:else if activeStep === 'email'}
     {#if registrationEnabled}
       <form onsubmit={handleEmailSubmit} class="flex flex-col gap-4">
         <TextInput
@@ -279,32 +281,7 @@
         </Button>
       </form>
     {/if}
-
-    {#if registrationEnabled && registrationProviders.length > 0}
-      <Divider label={m('common.or')} />
-    {/if}
-
-    {#if registrationProviders.length > 0}
-      <div class="flex flex-col gap-3">
-        {#each registrationProviders as provider (provider.id)}
-          <Button
-            href={providerLoginHref(provider)}
-            variant="secondary"
-            size="lg"
-            fullWidth
-            disabled={selectedProviderId !== null && selectedProviderId !== provider.id}
-            loading={selectedProviderId === provider.id}
-            loadingText={m('auth.login.connecting_provider', { provider: provider.label })}
-            onclick={(event) => handleProviderClick(event, provider)}
-          >
-            <span aria-hidden="true" class={['iconify', providerIcon(provider.type)]}></span>
-            {m('auth.login.continue_with_provider', { provider: provider.label })}
-          </Button>
-        {/each}
-        <FormError error={providerError} />
-      </div>
-    {/if}
-  {:else if step === 'code'}
+  {:else if activeStep === 'code'}
     <form onsubmit={handleCodeSubmit} class="flex flex-col gap-5">
       <div class="text-center">
         <p class="text-muted">{m('auth.register.code.sent_to')}</p>
@@ -343,7 +320,7 @@
         {m('common.submit')}
       </Button>
     </form>
-  {:else}
+  {:else if registrationEnabled}
     <form onsubmit={handleDetailsSubmit} class="flex flex-col gap-4">
       <TextInput
         id="login"
@@ -394,6 +371,33 @@
         {m('common.create_account')}
       </Button>
     </form>
+  {/if}
+
+  {#if selfServiceAvailable && (!invitationRequired || inviteAccepted) && (activeStep === 'email' || emailDisabled)}
+    {#if registrationEnabled && registrationProviders.length > 0}
+      <Divider label={m('common.or')} />
+    {/if}
+
+    {#if registrationProviders.length > 0}
+      <div class="flex flex-col gap-3">
+        {#each registrationProviders as provider (provider.id)}
+          <Button
+            href={providerLoginHref(provider)}
+            variant="secondary"
+            size="lg"
+            fullWidth
+            disabled={selectedProviderId !== null && selectedProviderId !== provider.id}
+            loading={selectedProviderId === provider.id}
+            loadingText={m('auth.login.connecting_provider', { provider: provider.label })}
+            onclick={(event) => handleProviderClick(event, provider)}
+          >
+            <span aria-hidden="true" class={['iconify', providerIcon(provider.type)]}></span>
+            {m('auth.login.continue_with_provider', { provider: provider.label })}
+          </Button>
+        {/each}
+        <FormError error={providerError} />
+      </div>
+    {/if}
   {/if}
 
   <Divider label={m('common.or')} />

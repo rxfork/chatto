@@ -62,7 +62,8 @@ Use the [Quick Start](/getting-started/quick-start/) guide to generate
 Before you use the configuration in production, do these steps:
 
 - Set `webserver.url` to the public URL.
-- Add at least one verified email address to `owners.emails`.
+- Create the first owner through the setup wizard or the Operator CLI. You can
+  also use `owners.emails` when email is enabled.
 - Configure SMTP (the default transport) or JMAP if Chatto must send
   registration or verification email.
 - Select automatic Chatto TLS or TLS in a reverse proxy.
@@ -90,6 +91,93 @@ sync_interval = 'always'
 This setting syncs each JetStream write to disk before NATS acknowledges it.
 It reduces write throughput. If you omit it, Chatto keeps the NATS default sync
 interval.
+
+## Email-Free Deployment
+
+Generate a configuration with `chatto init`. Edit these sections in
+`chatto.toml`; do not add a second copy of an existing section:
+
+```toml
+[email]
+disabled = true
+
+[auth]
+direct_registration = true
+direct_login = true
+account_creation_policy = 'open'
+
+[operator_api]
+enabled = true
+socket_path = './data/operator.sock'
+```
+
+Keep the generated secrets and embedded NATS settings. Set `webserver.url`
+to your server URL. No SMTP or JMAP settings are required. Chatto keeps the
+bundled frontend and embedded NATS in the same binary. Automatic TLS can also
+run without a contact email in this mode.
+
+Start the server:
+
+```sh
+chatto run -c chatto.toml
+```
+
+On a new server, open the setup wizard to create the first owner with a
+username and password. The wizard does not ask for email. To create the first
+owner from a terminal instead, run this command in a second terminal from the
+same directory. Enter the password at the prompt:
+
+```sh
+chatto operator --operator-socket ./data/operator.sock user create --login firstowner --role owner
+```
+
+An operator-created account closes the first-run wizard. Do not create an
+ordinary account first if you intend to use the wizard. Owner access uses the
+existing owner role. To give an existing account owner access, use its stable
+user ID from `user list`:
+
+```sh
+chatto operator --operator-socket ./data/operator.sock user list
+chatto operator --operator-socket ./data/operator.sock user role add USER_ID owner
+```
+
+The operator socket is local and gives full server control. Keep its directory
+private and its default `0600` permissions. See [Operator
+CLI](/guides/operations/operator-cli/) for access and automation instructions.
+
+Users register with a unique username and password. Set
+`auth.account_creation_policy = 'invite_only'` to require an existing invite
+link. Create links through the existing invitation controls. Expiration,
+revocation, and use limits still apply. Open registration does not use an
+invitation. Set `auth.direct_registration = false` to close public signup.
+
+Users sign in with their username and password. Email fields, verification,
+email management, and email password recovery are unavailable. Users can still
+change their password in authenticated account settings. For a lost password,
+the operator confirms the user's identity through a trusted channel, then runs:
+
+```sh
+chatto operator --operator-socket ./data/operator.sock user list
+chatto operator --operator-socket ./data/operator.sock user set-password USER_ID
+```
+
+Enter the new password at the prompt. The reset invalidates older sessions.
+Share the new password through a secure channel.
+
+Restart Chatto after changing `email.disabled`. Existing usernames, passwords,
+external identities, and owner-role assignments remain usable. Previously
+stored email addresses remain in the data; this switch does not delete them.
+They are not used for login, email features, or new owner grants while email
+is disabled. Re-enabling email makes those addresses available again. A user
+who previously signed in only by email must use their username. Use the
+Operator CLI to find it.
+
+External providers use identity subjects instead of email. In this mode,
+Chatto ignores `request_email` and custom provider scopes, uses the provider's
+basic identity scopes, and ignores email claims, including claims in pending
+flows. Choose a provider that supports basic identity without an email scope.
+Providers can still return an unsolicited email claim; Chatto does not save it
+or use it for account creation.
 
 ## Run Chatto as a systemd Service
 

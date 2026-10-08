@@ -72,7 +72,7 @@ Built-in automatic TLS via Let's Encrypt. When enabled, Chatto handles certifica
 </EnvVar>
 
 <EnvVar name="CHATTO_WEBSERVER_TLS_EMAIL" toml="webserver.tls.email">
-  Email address for Let's Encrypt notifications. Required when TLS is enabled.
+  Email address for Let's Encrypt notifications. Required when TLS is enabled unless `email.disabled` is `true`; email-free mode sends no contact email.
 </EnvVar>
 
 <EnvVar name="CHATTO_WEBSERVER_TLS_CACHE_DIR" toml="webserver.tls.cache_dir" default=".chatto/certs">
@@ -353,7 +353,7 @@ Only used when `storage_backend` is set to `s3`. See the [S3 Storage guide](/gui
 </EnvVar>
 
 <EnvVar name="CHATTO_AUTH_DIRECT_REGISTRATION" toml="auth.direct_registration" default="true">
-  Enable direct (email/password) registration. When `false`, the registration page is hidden and the registration API returns `403`. Existing users can still sign in through enabled password login or configured SSO providers.
+  Enable direct local registration. Email verification is required unless `email.disabled` is `true`. When `false`, the registration page is hidden and the registration API returns `403`. Existing users can still sign in through enabled password login or configured SSO providers.
 </EnvVar>
 
 <EnvVar name="CHATTO_AUTH_DIRECT_LOGIN" toml="auth.direct_login" default="true">
@@ -429,6 +429,15 @@ See [External Login Providers](/guides/integrations/external-login-providers/) f
 ## Transactional Email
 
 SMTP is the default transactional email transport. Set `email.transport = "jmap"` when your provider exposes JMAP submission and you want Chatto to authenticate with a bearer token instead.
+
+<EnvVar name="CHATTO_EMAIL_DISABLED" toml="email.disabled" default="false">
+  Disable email features and all email transports. Local signup uses only a
+  unique username and password. Email login, verification, management, and
+  email password recovery are rejected. Existing email data is retained.
+  Provider email requests and claims are ignored. Authenticated password
+  changes, first-owner setup, and Operator CLI recovery remain available.
+  See [Email-Free Deployment](/guides/deployment/binary/#email-free-deployment).
+</EnvVar>
 
 <EnvVar name="CHATTO_EMAIL_TRANSPORT" toml="email.transport" default="smtp">
   Transactional email transport. Supported values are `smtp` and `jmap`.
@@ -597,7 +606,7 @@ SMTP is the default transactional email transport. Set `email.transport = "jmap"
 Server-wide resource limits. Use `-1` for unlimited (the default), `0` to disable creation entirely, or any positive integer to cap.
 
 <EnvVar name="CHATTO_LIMITS_MAX_USERS" toml="limits.max_users" default="-1">
-  Maximum number of verified accounts on this server. An account counts once it has at least one verified sign-in factor: a verified email or a linked SSO identity. Enforced when accounts are created and when the first verified factor is added. Note that the check is non-atomic, so a burst at the boundary can briefly overshoot by one or two.
+  Maximum number of verified accounts on this server. An account counts once it has at least one verified sign-in factor: a verified email or a linked SSO identity. Password accounts also count when `email.disabled` is `true`. Enforced when accounts are created and when the first verified factor is added. Note that the check is non-atomic, so a burst at the boundary can briefly overshoot by one or two.
 </EnvVar>
 
 ## Outbound bot webhooks

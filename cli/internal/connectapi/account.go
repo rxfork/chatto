@@ -54,6 +54,10 @@ func (s *accountService) ChangePassword(ctx context.Context, req *connect.Reques
 }
 
 func (s *accountService) ListVerifiedEmails(ctx context.Context, req *connect.Request[apiv1.ListVerifiedEmailsRequest]) (*connect.Response[apiv1.ListVerifiedEmailsResponse], error) {
+	if s.api.config.Email.Disabled {
+		return nil, connect.NewError(connect.CodeFailedPrecondition, email.ErrEmailDisabled)
+	}
+
 	caller, err := requireCaller(ctx)
 	if err != nil {
 		return nil, err
@@ -69,6 +73,10 @@ func (s *accountService) ListVerifiedEmails(ctx context.Context, req *connect.Re
 }
 
 func (s *accountService) RequestEmailVerification(ctx context.Context, req *connect.Request[apiv1.RequestEmailVerificationRequest]) (*connect.Response[apiv1.RequestEmailVerificationResponse], error) {
+	if s.api.config.Email.Disabled {
+		return nil, connect.NewError(connect.CodeFailedPrecondition, email.ErrEmailDisabled)
+	}
+
 	caller, err := requireCaller(ctx)
 	if err != nil {
 		return nil, err
@@ -116,6 +124,10 @@ func (s *accountService) RequestEmailVerification(ctx context.Context, req *conn
 }
 
 func (s *accountService) ConfirmEmailVerification(ctx context.Context, req *connect.Request[apiv1.ConfirmEmailVerificationRequest]) (*connect.Response[apiv1.ConfirmEmailVerificationResponse], error) {
+	if s.api.config.Email.Disabled {
+		return nil, connect.NewError(connect.CodeFailedPrecondition, email.ErrEmailDisabled)
+	}
+
 	caller, err := requireCaller(ctx)
 	if err != nil {
 		return nil, err
@@ -138,6 +150,10 @@ func (s *accountService) ConfirmEmailVerification(ctx context.Context, req *conn
 }
 
 func (s *accountService) SetPrimaryEmail(ctx context.Context, req *connect.Request[apiv1.SetPrimaryEmailRequest]) (*connect.Response[apiv1.SetPrimaryEmailResponse], error) {
+	if s.api.config.Email.Disabled {
+		return nil, connect.NewError(connect.CodeFailedPrecondition, email.ErrEmailDisabled)
+	}
+
 	caller, err := requireCaller(ctx)
 	if err != nil {
 		return nil, err

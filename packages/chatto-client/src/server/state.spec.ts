@@ -50,9 +50,22 @@ describe('ServerInfoState.init()', () => {
     expect(state.description).toBe('a server for acme');
     expect(state.directRegistrationEnabled).toBe(false);
     expect(state.directLoginEnabled).toBe(false);
+    expect(state.emailDisabled).toBe(false);
     expect(state.videoProcessingEnabled).toBe(false);
     expect(state.messageEditWindowSeconds).toBe(3 * 60 * 60);
     expect(consoleError).not.toHaveBeenCalled();
+  });
+
+  it('updates email-free mode on discovery refresh', async () => {
+    const loader = vi
+      .fn<() => Promise<PublicServerInfo>>()
+      .mockResolvedValueOnce(publicServerInfo({ emailDisabled: true }))
+      .mockResolvedValueOnce(publicServerInfo());
+    const state = new ServerInfoState('https://acme.test', loader);
+    await state.init();
+    expect(state.emailDisabled).toBe(true);
+    await state.refreshProfile();
+    expect(state.emailDisabled).toBe(false);
   });
 
   it('coalesces concurrent discovery requests', async () => {

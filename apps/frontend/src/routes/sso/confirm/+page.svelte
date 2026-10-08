@@ -125,7 +125,7 @@
       <p class="text-sm text-muted">
         {m('auth.sso.create_intro', { provider: pending.providerLabel })}
       </p>
-      {#if pending.verifiedEmail}
+      {#if pending.verifiedEmail && !data.serverInfo?.emailDisabled}
         <p class="text-sm">{pending.verifiedEmail}</p>
       {/if}
     </div>
@@ -185,7 +185,7 @@
       <p class="text-sm text-muted">
         {m('auth.sso.link_intro', { provider: pending.providerLabel })}
       </p>
-      {#if pending.verifiedEmail}
+      {#if pending.verifiedEmail && !data.serverInfo?.emailDisabled}
         <p class="text-sm">{pending.verifiedEmail}</p>
       {/if}
     </div>

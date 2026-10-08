@@ -32,6 +32,7 @@
   const canSubmit = $derived(identifier.trim() && password);
   const authProviders = $derived(data.serverInfo?.authProviders ?? []);
   const directRegistrationEnabled = $derived(data.serverInfo?.directRegistrationEnabled ?? true);
+  const emailDisabled = $derived(data.serverInfo?.emailDisabled ?? false);
   const directLoginEnabled = $derived(data.serverInfo?.directLoginEnabled ?? true);
   const isAuthenticating = $derived(isLoading || selectedProviderId !== null);
   const pageError = $derived(
@@ -229,9 +230,11 @@
       <Form onsubmit={handleSubmit}>
         <TextInput
           id="identifier"
-          label={m('auth.login.identifier_label')}
+          label={emailDisabled ? m('common.username') : m('auth.login.identifier_label')}
           bind:value={identifier}
-          placeholder={m('common.email_placeholder')}
+          placeholder={emailDisabled
+            ? m('common.username_placeholder')
+            : m('common.email_placeholder')}
           disabled={isAuthenticating}
           required
           autocomplete="username"
@@ -265,9 +268,11 @@
         </Button>
       </Form>
 
-      <div class="mt-4 text-center">
-        <a href={resolve('/forgot-password')} class="link">{m('auth.login.forgot_password')}</a>
-      </div>
+      {#if !emailDisabled}
+        <div class="mt-4 text-center">
+          <a href={resolve('/forgot-password')} class="link">{m('auth.login.forgot_password')}</a>
+        </div>
+      {/if}
     {/if}
 
     {#if directRegistrationEnabled}

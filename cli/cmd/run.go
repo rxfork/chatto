@@ -170,6 +170,7 @@ func runServer(configPath string) {
 	cfg.Core.AuthAccessTokenTTL = cfg.Auth.AccessTokenTTLOrDefault()
 	cfg.Core.AuthLoopbackClientEnabled = cfg.Auth.LoopbackClientEnabled
 	cfg.Core.EmailOTP = cfg.Auth.EmailOTP
+	cfg.Core.EmailDisabled = cfg.Email.Disabled
 	cfg.Core.Replicas = cfg.NATS.ReplicasOrDefault()
 	cfg.Core.Limits = cfg.Limits
 	cfg.Core.Owners = cfg.Owners

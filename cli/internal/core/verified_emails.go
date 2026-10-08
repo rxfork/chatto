@@ -19,6 +19,9 @@ import (
 // ============================================================================
 
 var (
+	// ErrEmailDisabled rejects email writes in an email-free deployment.
+	ErrEmailDisabled = errors.New("email features are disabled")
+
 	// ErrTokenNotFound is returned when the verification code doesn't exist or has expired.
 	ErrTokenNotFound = errors.New("verification code not found or expired")
 
@@ -190,7 +193,7 @@ func (c *ChattoCore) VerifyEmailCode(ctx context.Context, userID, email, code st
 // account gains its first verified sign-in factor.
 func (c *ChattoCore) requireVerifiedAccountCapacity(ctx context.Context, userID string) error {
 	if max := c.config.Limits.MaxUsersOrDefault(); max >= 0 {
-		if userID != "" && c.userModel.hasVerifiedFactor(userID) {
+		if userID != "" && (c.userModel.hasVerifiedFactor(userID) || c.emailFreePasswordAccount(userID)) {
 			return nil
 		}
 		count, err := c.CountUserLimitAccounts(ctx)
@@ -208,6 +211,9 @@ func (c *ChattoCore) requireVerifiedAccountCapacity(ctx context.Context, userID 
 // Idempotent: rewriting the same (user, email) pair just overwrites the
 // existing entry with identical content.
 func (c *ChattoCore) addVerifiedEmailAs(ctx context.Context, actorID, userID, email string) error {
+	if c.config.EmailDisabled {
+		return ErrEmailDisabled
+	}
 	if err := c.requireHumanUser(ctx, userID); err != nil {
 		return err
 	}
@@ -300,6 +306,9 @@ func (c *ChattoCore) GetVerifiedEmails(ctx context.Context, userID string) ([]Ve
 // SetPrimaryVerifiedEmail selects one verified address for account-directed
 // email. The command is idempotent when the address is already primary.
 func (c *ChattoCore) SetPrimaryVerifiedEmail(ctx context.Context, userID, email string) error {
+	if c.config.EmailDisabled {
+		return ErrEmailDisabled
+	}
 	if strings.TrimSpace(userID) == "" {
 		return ErrInvalidArgument
 	}
@@ -389,12 +398,25 @@ func (c *ChattoCore) CountVerifiedAccounts(ctx context.Context) (int, error) {
 	return len(c.userModel.verifiedAccountIDs()), nil
 }
 
+func (c *ChattoCore) emailFreePasswordAccount(userID string) bool {
+	_, hasPassword := c.userModel.passwordHash(userID)
+	return c.config.EmailDisabled && hasPassword
+}
+
 // CountUserLimitAccounts returns every account consuming the instance user
 // limit: humans with a verified sign-in factor plus all active bot accounts.
+// Email-free deployments also count humans with a password.
 func (c *ChattoCore) CountUserLimitAccounts(ctx context.Context) (int, error) {
 	ids := make(map[string]struct{})
 	for _, userID := range c.userModel.verifiedAccountIDs() {
 		ids[userID] = struct{}{}
+	}
+	if c.config.EmailDisabled {
+		for _, user := range c.userModel.users.Projection().ActiveDirectoryMetadata() {
+			if _, ok := c.userModel.passwordHash(user.ID); ok {
+				ids[user.ID] = struct{}{}
+			}
+		}
 	}
 	for _, userID := range c.userModel.botIDs() {
 		ids[userID] = struct{}{}
@@ -413,7 +435,7 @@ func (c *ChattoCore) ListUsersWithVerifiedEmail(ctx context.Context) ([]string, 
 // from owner roles assigned manually, so removed config emails are not revoked
 // here.
 func (c *ChattoCore) applyConfigOwners(ctx context.Context) error {
-	if len(c.config.Owners.Emails) == 0 {
+	if c.config.EmailDisabled || len(c.config.Owners.Emails) == 0 {
 		return nil
 	}
 

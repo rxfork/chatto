@@ -155,6 +155,16 @@ func (s *HTTPServer) setupAuthRoutes() {
 	auth := s.router.Group("/auth")
 	auth.Use(limitLegacyRequestBody())
 	auth.Use(func(c *gin.Context) {
+		if s.config.Email.Disabled {
+			switch c.Request.URL.Path {
+			case "/auth/register", "/auth/register/verify-code", "/auth/verify-email/request-code", "/auth/verify-email/confirm-code", "/auth/forgot-password", "/auth/reset-password":
+				c.AbortWithStatusJSON(http.StatusForbidden, gin.H{"error": "Email features are disabled"})
+				return
+			}
+		}
+		c.Next()
+	})
+	auth.Use(func(c *gin.Context) {
 		s.requestContextWithAuditMetadata(c)
 		c.Next()
 	})
@@ -767,29 +777,34 @@ func (s *HTTPServer) setupAuthRoutes() {
 		}
 
 		var req struct {
-			Token                string `json:"token" binding:"required"`
+			Token                string `json:"token"`
 			Login                string `json:"login" binding:"required"`
 			Password             string `json:"password" binding:"required,min=8,max=128"`
-			PasswordConfirmation string `json:"passwordConfirmation" binding:"required"`
+			PasswordConfirmation string `json:"passwordConfirmation"`
 		}
 
 		if err := c.ShouldBindJSON(&req); err != nil {
-			c.JSON(http.StatusBadRequest, gin.H{"error": "Token, login, and a password between 8 and 128 characters are required"})
+			c.JSON(http.StatusBadRequest, gin.H{"error": "Login and a password between 8 and 128 characters are required"})
 			return
 		}
 
 		ctx := c.Request.Context()
 
-		// Validate token (not consumed on validation failure — user can retry)
-		tokenData, err := s.core.GetRegistrationToken(ctx, req.Token)
-		if err != nil {
-			if errors.Is(err, core.ErrRegistrationTokenNotFound) || errors.Is(err, core.ErrRegistrationTokenExpired) {
-				c.JSON(http.StatusBadRequest, gin.H{"error": "Invalid or expired registration code"})
+		// Email-free signup has no challenge or completion token.
+		var tokenData *core.RegistrationToken
+		var err error
+		if !s.config.Email.Disabled {
+			// Validate token (not consumed on validation failure — user can retry)
+			tokenData, err = s.core.GetRegistrationToken(ctx, req.Token)
+			if err != nil {
+				if errors.Is(err, core.ErrRegistrationTokenNotFound) || errors.Is(err, core.ErrRegistrationTokenExpired) {
+					c.JSON(http.StatusBadRequest, gin.H{"error": "Invalid or expired registration code"})
+					return
+				}
+				log.Error("Failed to validate registration completion token", "error", err)
+				c.JSON(http.StatusInternalServerError, gin.H{"error": "Registration failed"})
 				return
 			}
-			log.Error("Failed to validate registration completion token", "error", err)
-			c.JSON(http.StatusInternalServerError, gin.H{"error": "Registration failed"})
-			return
 		}
 
 		// Validate login format
@@ -799,7 +814,7 @@ func (s *HTTPServer) setupAuthRoutes() {
 		}
 
 		// Validate passwords match
-		if req.Password != req.PasswordConfirmation {
+		if (!s.config.Email.Disabled || req.PasswordConfirmation != "") && req.Password != req.PasswordConfirmation {
 			c.JSON(http.StatusBadRequest, gin.H{"error": "Passwords do not match"})
 			return
 		}
@@ -810,21 +825,26 @@ func (s *HTTPServer) setupAuthRoutes() {
 			return
 		}
 
-		// Check if email was claimed while token was outstanding
-		emailClaimed, err := s.core.IsEmailClaimed(ctx, tokenData.Email)
-		if err != nil {
-			log.Error("Failed to check email availability", "error", err)
-			c.JSON(http.StatusInternalServerError, gin.H{"error": "Registration failed"})
-			return
-		}
-		if emailClaimed {
-			c.JSON(http.StatusConflict, gin.H{"error": "This email address is already in use"})
-			return
+		if !s.config.Email.Disabled {
+			// Check if email was claimed while token was outstanding
+			emailClaimed, err := s.core.IsEmailClaimed(ctx, tokenData.Email)
+			if err != nil {
+				log.Error("Failed to check email availability", "error", err)
+				c.JSON(http.StatusInternalServerError, gin.H{"error": "Registration failed"})
+				return
+			}
+			if emailClaimed {
+				c.JSON(http.StatusConflict, gin.H{"error": "This email address is already in use"})
+				return
+			}
 		}
 
-		// Create user with verified email atomically (use login as display name initially)
+		// Create the account atomically, including email or invitation facts when needed.
 		var user *evtv1.User
-		if s.config.Auth.InvitationRequired() {
+		if s.config.Email.Disabled {
+			invitationID, _ := sessions.Default(c).Get(accountInvitationSessionKey).(string)
+			user, err = s.core.CreateLocalSignup(ctx, req.Login, req.Password, invitationID, s.config.Auth.InvitationRequired())
+		} else if s.config.Auth.InvitationRequired() {
 			if tokenData.InvitationID == "" {
 				c.JSON(http.StatusBadRequest, gin.H{"error": "This invite link is invalid or no longer available"})
 				return
@@ -866,7 +886,13 @@ func (s *HTTPServer) setupAuthRoutes() {
 		// Server membership is implicit; global rooms appear automatically.
 
 		// Delete registration completion token (consumed)
-		if err := s.core.DeleteRegistrationToken(ctx, req.Token); err != nil {
+		if s.config.Email.Disabled {
+			session := sessions.Default(c)
+			session.Delete(accountInvitationSessionKey)
+			if err := session.Save(); err != nil {
+				log.Warn("Failed to clear invitation session", "error", err)
+			}
+		} else if err := s.core.DeleteRegistrationToken(ctx, req.Token); err != nil {
 			log.Error("Failed to delete registration completion token", "error", err)
 			// Don't fail — user was created successfully
 		}

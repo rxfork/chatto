@@ -113,6 +113,13 @@ override a saved choice.
 
 `MyAccountService.GetSettings` exposes caller-owned display preferences using
 the same settings resource as updates and the combined viewer response.
+When `email.disabled` is true, public discovery sets
+`ServerLogin.email_disabled`. Direct registration completion accepts a username
+and password without a token and uses the existing atomic account/invitation
+batch. Legacy email registration, verification, and recovery routes reject
+requests. The account email RPCs reject requests as well. No email sender is
+initialized. The normal password and owner-role APIs remain in use.
+
 `MyAccountService` also lists the caller's verified emails, sends and confirms
 email-verification codes, and selects the primary email. These methods do not
 accept a caller-selected target account. They require the caller's expected
