@@ -35,6 +35,7 @@ permissions:
 
 jobs:
   image:
+    if: github.repository == 'chattocorp/chatto'
     runs-on: ubuntu-latest
     permissions:
       contents: read

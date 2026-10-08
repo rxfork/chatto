@@ -16,6 +16,7 @@ concurrency:
 
 jobs:
   package:
+    if: github.repository == 'chattocorp/chatto'
     runs-on: ubuntu-latest
     timeout-minutes: 20
     steps:
@@ -54,7 +55,7 @@ jobs:
           if-no-files-found: error
 
   publish:
-    if: github.event_name == 'push'
+    if: ${{ github.repository == 'chattocorp/chatto' && (github.event_name == 'push') }}
     needs: package
     runs-on: ubuntu-latest
     timeout-minutes: 5

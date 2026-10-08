@@ -4,6 +4,7 @@ on:
   push:
     branches:
       - main
+      - v0.5
       - 'release-[0-9]*'
   pull_request:
     types:
@@ -25,6 +26,7 @@ permissions:
 
 jobs:
   changes:
+    if: github.repository == 'chattocorp/chatto'
     runs-on: ubuntu-latest
     timeout-minutes: 5
     permissions:
@@ -90,7 +92,7 @@ jobs:
 
   test-runling:
     needs: changes
-    if: ${{ needs.changes.outputs.runling == 'true' }}
+    if: ${{ github.repository == 'chattocorp/chatto' && (needs.changes.outputs.runling == 'true') }}
     runs-on: ubuntu-latest
     timeout-minutes: 20
     steps:
@@ -105,7 +107,7 @@ jobs:
 
   test-chattobot:
     needs: changes
-    if: ${{ needs.changes.outputs.chattobot == 'true' }}
+    if: ${{ github.repository == 'chattocorp/chatto' && (needs.changes.outputs.chattobot == 'true') }}
     runs-on: ubuntu-latest
     timeout-minutes: 20
     steps:
@@ -118,7 +120,7 @@ jobs:
       - run: mise test-chattobot
 
   build-main-image-contexts:
-    if: github.event_name == 'push' && github.ref == 'refs/heads/main'
+    if: ${{ github.repository == 'chattocorp/chatto' && (github.event_name == 'push' && github.ref == 'refs/heads/main') }}
     runs-on: ubuntu-latest
     timeout-minutes: 20
     outputs:
@@ -195,6 +197,7 @@ jobs:
 
   license-check:
     # runs-on: ubicloud-standard-4
+    if: github.repository == 'chattocorp/chatto'
     runs-on: ubuntu-latest
     timeout-minutes: 10
     steps:
@@ -210,6 +213,7 @@ jobs:
         run: mise license-check
 
   workflow-lint:
+    if: github.repository == 'chattocorp/chatto'
     runs-on: ubuntu-latest
     timeout-minutes: 10
     steps:
@@ -226,7 +230,7 @@ jobs:
 
   desktop:
     needs: changes
-    if: ${{ needs.changes.outputs.desktop == 'true' }}
+    if: ${{ github.repository == 'chattocorp/chatto' && (needs.changes.outputs.desktop == 'true') }}
     name: desktop (${{ matrix.platform }})
     timeout-minutes: 45
     strategy:
@@ -287,7 +291,7 @@ jobs:
 
   desktop-macos-capture:
     needs: changes
-    if: ${{ needs.changes.outputs.desktop == 'true' }}
+    if: ${{ github.repository == 'chattocorp/chatto' && (needs.changes.outputs.desktop == 'true') }}
     runs-on: macos-15
     timeout-minutes: 15
     steps:
@@ -299,7 +303,7 @@ jobs:
 
   codegen-proto-drift:
     needs: changes
-    if: ${{ !cancelled() }}
+    if: ${{ github.repository == 'chattocorp/chatto' && (!cancelled()) }}
     # runs-on: ubicloud-standard-4
     runs-on: ubuntu-latest
     timeout-minutes: 15
@@ -387,7 +391,7 @@ jobs:
 
   check-workspace:
     needs: changes
-    if: ${{ needs.changes.outputs.chatto == 'true' || needs.changes.outputs.desktop == 'true' }}
+    if: ${{ github.repository == 'chattocorp/chatto' && (needs.changes.outputs.chatto == 'true' || needs.changes.outputs.desktop == 'true') }}
     # runs-on: ubicloud-standard-4
     runs-on: ubuntu-latest
     timeout-minutes: 15
@@ -411,7 +415,7 @@ jobs:
 
   test-workspace:
     needs: changes
-    if: ${{ needs.changes.outputs.chatto == 'true' }}
+    if: ${{ github.repository == 'chattocorp/chatto' && (needs.changes.outputs.chatto == 'true') }}
     # Keep this job name stable because it can be a required branch check.
     # runs-on: ubicloud-standard-4
     runs-on: ubuntu-latest
@@ -436,7 +440,7 @@ jobs:
 
   test-cli-shared:
     needs: changes
-    if: ${{ needs.changes.outputs.chatto == 'true' || needs.changes.outputs.authling == 'true' }}
+    if: ${{ github.repository == 'chattocorp/chatto' && (needs.changes.outputs.chatto == 'true' || needs.changes.outputs.authling == 'true') }}
     # runs-on: ubicloud-standard-4
     runs-on: ubuntu-latest
     timeout-minutes: 20
@@ -470,7 +474,7 @@ jobs:
 
   test-cli-chatto:
     needs: changes
-    if: ${{ needs.changes.outputs.chatto == 'true' }}
+    if: ${{ github.repository == 'chattocorp/chatto' && (needs.changes.outputs.chatto == 'true') }}
     # runs-on: ubicloud-standard-4
     runs-on: ubuntu-latest
     timeout-minutes: 20
@@ -499,7 +503,7 @@ jobs:
 
   test-oidc-conformance:
     needs: changes
-    if: ${{ needs.changes.outputs.chatto == 'true' || needs.changes.outputs.authling == 'true' }}
+    if: ${{ github.repository == 'chattocorp/chatto' && (needs.changes.outputs.chatto == 'true' || needs.changes.outputs.authling == 'true') }}
     runs-on: ubuntu-latest
     timeout-minutes: 20
     steps:
@@ -525,7 +529,7 @@ jobs:
 
   test-cli:
     needs: [changes, test-cli-shared, test-cli-chatto]
-    if: ${{ always() && (needs.changes.outputs.chatto == 'true' || needs.changes.outputs.authling == 'true') }}
+    if: ${{ github.repository == 'chattocorp/chatto' && (always() && (needs.changes.outputs.chatto == 'true' || needs.changes.outputs.authling == 'true')) }}
     runs-on: ubuntu-latest
     steps:
       - name: Verify CLI test jobs
@@ -541,7 +545,7 @@ jobs:
 
   test-authling-e2e:
     needs: changes
-    if: ${{ needs.changes.outputs.authling == 'true' }}
+    if: ${{ github.repository == 'chattocorp/chatto' && (needs.changes.outputs.authling == 'true') }}
     runs-on: ubuntu-latest
     timeout-minutes: 15
     steps:
@@ -581,7 +585,7 @@ jobs:
     needs: changes
     # Expand the matrix even when no E2E work is needed. A skipped matrix job
     # has no per-shard check names and would leave required checks pending.
-    if: ${{ !cancelled() }}
+    if: ${{ github.repository == 'chattocorp/chatto' && (!cancelled()) }}
     # runs-on: ubicloud-standard-4
     runs-on: ubuntu-latest
     timeout-minutes: 20
@@ -643,7 +647,7 @@ jobs:
 
   test-e2e-media:
     needs: changes
-    if: ${{ needs.changes.outputs.chatto == 'true' }}
+    if: ${{ github.repository == 'chattocorp/chatto' && (needs.changes.outputs.chatto == 'true') }}
     # runs-on: ubicloud-standard-4
     runs-on: ubuntu-latest
     timeout-minutes: 15
@@ -678,7 +682,7 @@ jobs:
 
   test-e2e-performance:
     needs: changes
-    if: ${{ needs.changes.outputs.chatto == 'true' }}
+    if: ${{ github.repository == 'chattocorp/chatto' && (needs.changes.outputs.chatto == 'true') }}
     runs-on: ubuntu-latest
     timeout-minutes: 35
     steps:
@@ -799,7 +803,7 @@ jobs:
           retention-days: 30
 
   publish-main-image:
-    if: github.event_name == 'push' && github.ref == 'refs/heads/main'
+    if: ${{ github.repository == 'chattocorp/chatto' && (github.event_name == 'push' && github.ref == 'refs/heads/main') }}
     needs:
       - build-main-image-contexts
       - license-check
@@ -889,7 +893,7 @@ jobs:
 
   check-docs:
     needs: changes
-    if: needs.changes.outputs.docs == 'true'
+    if: ${{ github.repository == 'chattocorp/chatto' && (needs.changes.outputs.docs == 'true') }}
     runs-on: ubuntu-latest
     timeout-minutes: 10
     steps:
@@ -899,3 +903,30 @@ jobs:
           install-cli-deps: 'false'
       - run: pnpm turbo run check --filter=docs-website
       - run: pnpm run build:docs
+
+  server-binary:
+    if: github.repository == 'rxfork/chatto' && (github.ref == 'refs/heads/v0.5' || github.base_ref == 'v0.5')
+    runs-on: ubuntu-latest
+    timeout-minutes: 45
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v6
+
+      - name: Setup environment
+        uses: ./.github/actions/setup
+
+      - name: Build bundled frontend
+        run: mise build-frontend
+
+      - name: Test server
+        run: cd cli && go test -trimpath -p 2 -tags test_endpoints ./...
+
+      - name: Build standalone server binary
+        run: cd cli && CGO_ENABLED=0 go build -trimpath -ldflags '-s -w' -o bin/chatto .
+
+      - name: Publish standalone server artifact
+        uses: actions/upload-artifact@v7
+        with:
+          name: chatto-server-linux-amd64
+          path: cli/bin/chatto
+          if-no-files-found: error
