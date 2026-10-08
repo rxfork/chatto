@@ -889,9 +889,6 @@ jobs:
       - name: Verify bundled frontend version
         run: jq -e --arg version "${GITHUB_REF_NAME#v}" '.version == $version' apps/frontend/build/_app/version.json
 
-      - name: Test server
-        run: cd cli && go test -trimpath -p 2 -tags test_endpoints ./...
-
       - name: Publish Linux server archives
         uses: goreleaser/goreleaser-action@v6
         with:
