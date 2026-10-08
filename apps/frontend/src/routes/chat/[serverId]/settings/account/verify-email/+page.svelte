@@ -21,6 +21,12 @@
   } from '$lib/verifiedEmailChallenge';
 
   const serverScope = useServerScope();
+  // Wait for discovery before rendering stored email data or email controls.
+  const emailEnabled = $derived(
+    !serverScope.store.serverInfo.loading &&
+      !serverScope.store.serverInfo.error &&
+      !serverScope.store.serverInfo.emailDisabled
+  );
   let componentActive = true;
   let navigationGeneration = 0;
 
@@ -147,73 +153,77 @@
   }
 </script>
 
-<PageTitle title={m('settings.account.email.verify')} />
+<PageTitle
+  title={emailEnabled ? m('settings.account.email.verify') : m('settings.account.title')}
+/>
 
 <div class="pane-page">
-  <PaneHeader
-    title={m('settings.account.email.code_label')}
-    subtitle={m('settings.account.email.title')}
-    backHref={accountPath}
-  />
+  {#if emailEnabled}
+    <PaneHeader
+      title={m('settings.account.email.code_label')}
+      subtitle={m('settings.account.email.title')}
+      backHref={accountPath}
+    />
 
-  <PaneContent>
-    <Panel title={m('settings.account.email.verify')} icon="iconify icon-[uil--envelope-check]">
-      {#if pendingEmail}
-        <form class="mx-auto flex max-w-md flex-col gap-5" onsubmit={confirm}>
-          <div class="text-center">
-            <p class="text-muted">{m('auth.register.code.sent_to')}</p>
-            <p class="mt-1 font-semibold break-words"><bdi>{pendingEmail}</bdi></p>
-          </div>
+    <PaneContent>
+      <Panel title={m('settings.account.email.verify')} icon="iconify icon-[uil--envelope-check]">
+        {#if pendingEmail}
+          <form class="mx-auto flex max-w-md flex-col gap-5" onsubmit={confirm}>
+            <div class="text-center">
+              <p class="text-muted">{m('auth.register.code.sent_to')}</p>
+              <p class="mt-1 font-semibold break-words"><bdi>{pendingEmail}</bdi></p>
+            </div>
 
-          <VerificationCodeInput
-            bind:value={code}
-            autofocus
-            disabled={confirming}
-            label={m('auth.register.code.aria_label')}
-            digitLabel={(number) => m('auth.register.code.digit_label', { number })}
-          />
+            <VerificationCodeInput
+              bind:value={code}
+              autofocus
+              disabled={confirming}
+              label={m('auth.register.code.aria_label')}
+              digitLabel={(number) => m('auth.register.code.digit_label', { number })}
+            />
 
-          <div class="text-center text-sm text-muted">
-            {m('auth.register.code.did_not_receive')}
-            <button
-              type="button"
-              class="cursor-pointer link disabled:cursor-default disabled:opacity-60"
-              disabled={confirming || resending}
-              onclick={resend}
-            >
-              {resending ? m('auth.register.code.resending') : m('auth.register.code.resend')}
-            </button>
-          </div>
+            <div class="text-center text-sm text-muted">
+              {m('auth.register.code.did_not_receive')}
+              <button
+                type="button"
+                class="cursor-pointer link disabled:cursor-default disabled:opacity-60"
+                disabled={confirming || resending}
+                onclick={resend}
+              >
+                {resending ? m('auth.register.code.resending') : m('auth.register.code.resend')}
+              </button>
+            </div>
 
-          <FormError {error} />
+            <FormError {error} />
 
-          <div class="flex justify-end gap-2">
-            <Button
-              href={accountPath}
-              variant="secondary"
-              onclick={() =>
-                clearPendingEmailVerification(serverScope.serverId, viewerUserId, pendingEmail)}
-            >
+            <div class="flex justify-end gap-2">
+              <Button
+                href={accountPath}
+                variant="secondary"
+                onclick={() =>
+                  clearPendingEmailVerification(serverScope.serverId, viewerUserId, pendingEmail)}
+              >
+                {m('settings.account.email.use_another')}
+              </Button>
+              <Button
+                type="submit"
+                disabled={code.length !== 6}
+                loading={confirming}
+                loadingText={m('auth.register.code.checking')}
+              >
+                {m('settings.account.email.verify')}
+              </Button>
+            </div>
+          </form>
+        {:else}
+          <div class="flex max-w-xl flex-col items-start gap-4">
+            <p class="text-muted">{m('settings.account.email.no_pending_verification')}</p>
+            <Button href={accountPath} variant="secondary">
               {m('settings.account.email.use_another')}
             </Button>
-            <Button
-              type="submit"
-              disabled={code.length !== 6}
-              loading={confirming}
-              loadingText={m('auth.register.code.checking')}
-            >
-              {m('settings.account.email.verify')}
-            </Button>
           </div>
-        </form>
-      {:else}
-        <div class="flex max-w-xl flex-col items-start gap-4">
-          <p class="text-muted">{m('settings.account.email.no_pending_verification')}</p>
-          <Button href={accountPath} variant="secondary">
-            {m('settings.account.email.use_another')}
-          </Button>
-        </div>
-      {/if}
-    </Panel>
-  </PaneContent>
+        {/if}
+      </Panel>
+    </PaneContent>
+  {/if}
 </div>

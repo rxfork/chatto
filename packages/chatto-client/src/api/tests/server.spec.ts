@@ -123,6 +123,7 @@ describe('public server discovery', () => {
       authorizeUrl: '/oauth/authorize',
       directRegistrationEnabled: true,
       directLoginEnabled: false,
+      emailDisabled: false,
       accountCreationPolicy: 'open',
       welcomeMessage: 'welcome',
       description: 'description',
@@ -138,6 +139,18 @@ describe('public server discovery', () => {
           autoProvision: true
         }
       ]
+    });
+  });
+
+  it('exposes email-free mode from discovery', async () => {
+    respondWith(
+      new GetServerResponse({
+        profile: { name: 'Chatto', version: '0.5.0' },
+        login: { emailDisabled: true }
+      })
+    );
+    await expect(getPublicServerInfo('https://chat.example.test')).resolves.toMatchObject({
+      emailDisabled: true
     });
   });
 

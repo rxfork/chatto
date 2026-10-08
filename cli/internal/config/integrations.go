@@ -89,6 +89,7 @@ type JMAPConfig struct {
 // EmailConfig contains transactional email transport settings. SMTP remains the
 // default so existing configurations continue to work without changes.
 type EmailConfig struct {
+	Disabled  bool           `toml:"disabled" env:"CHATTO_EMAIL_DISABLED" comment:"Disable all email features and transports. Local registration uses only a username and password. Default: false."`
 	Transport EmailTransport `toml:"transport" env:"CHATTO_EMAIL_TRANSPORT" comment:"Transactional email transport: smtp (default) or jmap."`
 	JMAP      JMAPConfig     `toml:"jmap,commented" comment:"JMAP transactional email configuration. Used only when email.transport = 'jmap'."`
 }

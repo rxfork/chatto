@@ -49,3 +49,10 @@ Chatto sends transactional email for account registration, email-address verific
 - **ADRs:** None
 - **FDRs:** FDR-018 (Account Lifecycle), FDR-023 (Authentication & Sessions)
 - **Issues:** [#1440](https://github.com/chattocorp/chatto/issues/1440), [#1454](https://github.com/chattocorp/chatto/issues/1454)
+
+## Email-Free Mode
+
+Set `email.disabled = true` to disable every email feature. Chatto does not
+initialize SMTP or JMAP and does not require their configuration. Existing
+email data stays stored. Local signup, owner setup, and operator password
+recovery do not require email. See FDR-023 and the standalone binary guide.

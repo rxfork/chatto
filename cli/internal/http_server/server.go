@@ -122,13 +122,17 @@ func NewHTTPServer(cfg HTTPServerConfig) (*HTTPServer, error) {
 	logger := log.WithPrefix("server.HTTP")
 
 	// Create the configured email sender (mock if built with -tags test_endpoints).
-	mockMailer, mailer := createMailer(cfg.Config.Email, cfg.Config.SMTP)
+	var mockMailer *email.MockSender
+	var mailer email.Sender
+	if !cfg.Config.Email.Disabled {
+		mockMailer, mailer = createMailer(cfg.Config.Email, cfg.Config.SMTP)
+	}
 
 	// Warn at startup if test endpoints are enabled (security-bypassing endpoints)
 	if mockMailer != nil {
 		logger.Warn("TEST ENDPOINTS ENABLED - This build includes security-bypassing endpoints. DO NOT use in production!")
 	}
-	if cfg.Config.Email.TransportOrDefault() == config.EmailTransportSMTP {
+	if !cfg.Config.Email.Disabled && cfg.Config.Email.TransportOrDefault() == config.EmailTransportSMTP {
 		if settings := cfg.Config.SMTP.InsecureTransportSettings(); len(settings) > 0 {
 			logger.Warn("Insecure SMTP transport configured; password-reset links and verification codes can be intercepted on the network", "settings", strings.Join(settings, ", "))
 		}
@@ -311,6 +315,9 @@ func (s *HTTPServer) Run(ctx context.Context) error {
 
 	if s.config.Webserver.TLS.Enabled {
 		tlsConfig := s.config.Webserver.TLS
+		if s.config.Email.Disabled {
+			tlsConfig.Email = ""
+		}
 
 		// Ensure certificate cache directory exists and remains private even when
 		// reusing a path created with more permissive permissions.

@@ -43,4 +43,6 @@ message ServerLogin {
   // Whether users can sign in directly with a username or email address and password.
   // Absent on older servers, where clients should treat direct login as enabled.
   optional bool direct_login_enabled = 5;
+  // Email features are disabled. Local signup requires only a username and password.
+  bool email_disabled = 6;
 }

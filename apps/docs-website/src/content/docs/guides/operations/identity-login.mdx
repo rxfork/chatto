@@ -224,6 +224,22 @@ have every normal permission, and role denies cannot lock them out.
   depend only on an account at an external login provider.
 </Aside>
 
+## Email-Free Accounts
+
+Set `email.disabled = true` to use local username/password accounts without
+email. The default is `false`. Keep the normal account admission policy:
+`open` accepts public signup, and `invite_only` requires a valid existing
+invite link. No registration code or email address is required or saved.
+
+This mode disables email login, verification, email settings, and email
+password recovery. It does not delete existing email data. Existing owner-role
+assignments remain, but `owners.emails` makes no new grants. Use the first-run
+wizard or the Operator CLI owner role instead. External provider email claims
+are ignored, and custom scopes cannot turn email requests back on.
+
+See [Email-Free Deployment](/guides/deployment/binary/#email-free-deployment)
+for configuration, first-owner commands, and operator password recovery.
+
 ## Password Managers
 
 Chatto publishes `/.well-known/change-password` on each server origin. A

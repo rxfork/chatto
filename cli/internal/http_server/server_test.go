@@ -365,6 +365,10 @@ func setupTestHTTPServer(t *testing.T) (*httptest.Server, *http.Client, *core.Ch
 }
 
 func setupTestHTTPServerWithHook(t *testing.T, configure func(*HTTPServer)) (*httptest.Server, *http.Client, *core.ChattoCore) {
+	return setupTestHTTPServerWithCoreConfig(t, config.CoreConfig{SkipSetupWizard: true}, configure)
+}
+
+func setupTestHTTPServerWithCoreConfig(t *testing.T, coreConfig config.CoreConfig, configure func(*HTTPServer)) (*httptest.Server, *http.Client, *core.ChattoCore) {
 	t.Helper()
 	gin.SetMode(gin.TestMode)
 
@@ -373,7 +377,6 @@ func setupTestHTTPServerWithHook(t *testing.T, configure func(*HTTPServer)) (*ht
 	ctx := testContext(t)
 
 	// Create ChattoCore
-	coreConfig := config.CoreConfig{SkipSetupWizard: true}
 	chattoCore, err := core.NewChattoCore(ctx, nc, coreConfig)
 	if err != nil {
 		t.Fatalf("Failed to create ChattoCore: %v", err)

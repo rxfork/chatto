@@ -49,6 +49,35 @@ describe('standalone server selection', () => {
     });
   });
 
+  it('shows username login and hides email recovery in email-free mode', async () => {
+    const page = render(LoginPage, {
+      props: {
+        data: {
+          ...standaloneData,
+          serverInfo: {
+            name: 'Email-free server',
+            version: '0.5.0',
+            authorizeUrl: '/oauth/authorize',
+            directRegistrationEnabled: true,
+            directLoginEnabled: true,
+            emailDisabled: true,
+            accountCreationPolicy: 'open',
+            welcomeMessage: null,
+            description: null,
+            iconUrl: null,
+            bannerUrl: null,
+            authProviders: []
+          }
+        }
+      }
+    });
+    await expect.element(page.getByLabelText('Username')).toBeVisible();
+    await expect
+      .element(page.getByRole('link', { name: 'Forgot password?' }))
+      .not.toBeInTheDocument();
+    await expect.element(page.getByLabelText('Username or Email')).not.toBeInTheDocument();
+  });
+
   it('keeps saved servers out of the welcome page without checking them', async () => {
     mocks.servers = [
       { id: 'remote', url: 'https://remote.example', name: 'Remote Community', token: null }

@@ -12,7 +12,7 @@ import "strings"
 // briefly overshoot by one or two. This soft-limit tradeoff is intentional at
 // the current scale; GitHub issue #247 records when a CAS counter is warranted.
 type LimitsConfig struct {
-	MaxUsers *int `toml:"max_users,commented" env:"CHATTO_LIMITS_MAX_USERS" comment:"Maximum number of verified accounts allowed in this instance. -1 = unlimited (default), 0 = no new signups, positive = cap. Counts users with at least one verified email or linked SSO identity."`
+	MaxUsers *int `toml:"max_users,commented" env:"CHATTO_LIMITS_MAX_USERS" comment:"Maximum number of verified accounts allowed in this instance. -1 = unlimited (default), 0 = no new signups, positive = cap. Counts users with at least one verified email or linked SSO identity, and password accounts when email.disabled is true."`
 }
 
 // MaxUsersOrDefault returns the configured max-users limit, defaulting to -1 (unlimited).

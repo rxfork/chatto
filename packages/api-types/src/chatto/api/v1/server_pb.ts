@@ -164,6 +164,13 @@ export class ServerLogin extends Message<ServerLogin> {
    */
   directLoginEnabled?: boolean;
 
+  /**
+   * Email features are disabled. Local signup requires only a username and password.
+   *
+   * @generated from field: bool email_disabled = 6;
+   */
+  emailDisabled = false;
+
   constructor(data?: PartialMessage<ServerLogin>) {
     super();
     proto3.util.initPartial(data, this);
@@ -177,6 +184,7 @@ export class ServerLogin extends Message<ServerLogin> {
     { no: 3, name: "authorize_url", kind: "scalar", T: 9 /* ScalarType.STRING */ },
     { no: 4, name: "account_creation_policy", kind: "enum", T: proto3.getEnumType(AccountCreationPolicy) },
     { no: 5, name: "direct_login_enabled", kind: "scalar", T: 8 /* ScalarType.BOOL */, opt: true },
+    { no: 6, name: "email_disabled", kind: "scalar", T: 8 /* ScalarType.BOOL */ },
   ]);
 
   static fromBinary(bytes: Uint8Array, options?: Partial<BinaryReadOptions>): ServerLogin {

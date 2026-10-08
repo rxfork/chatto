@@ -187,7 +187,7 @@ func (c *ChattoCore) VerifyPasswordWithAuthGeneration(ctx context.Context, ident
 	user, err := c.GetUserByLogin(ctx, identifier)
 	if err != nil {
 		// If not found and identifier looks like an email, try email lookup
-		if strings.Contains(identifier, "@") {
+		if !c.config.EmailDisabled && strings.Contains(identifier, "@") {
 			user, err = c.GetUserByVerifiedEmail(ctx, identifier)
 		}
 	}

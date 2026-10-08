@@ -46,11 +46,12 @@ type userCreationOptions struct {
 	botOwnerID    string
 	botAPIKeyOut  *string
 	botAPIKeyName string
+	localSignup   bool // Public username/password signup.
 	authorize     func() error
 }
 
 func (c *ChattoCore) createUserWithOptions(ctx context.Context, actorID string, login, displayName, password string, options userCreationOptions) (*evtv1.User, error) {
-	if options.setup == nil && (options.verifiedEmail != "" || options.external != nil) {
+	if options.setup == nil && (options.verifiedEmail != "" || options.external != nil || options.localSignup) {
 		required, err := c.SetupRequired(ctx)
 		if err != nil {
 			return nil, err
@@ -58,6 +59,9 @@ func (c *ChattoCore) createUserWithOptions(ctx context.Context, actorID string, 
 		if required {
 			return nil, ErrSetupRequired
 		}
+	}
+	if c.config.EmailDisabled && options.verifiedEmail != "" {
+		return nil, ErrEmailDisabled
 	}
 	// Trim and validate login (preserve original casing)
 	login = strings.TrimSpace(login)
@@ -295,7 +299,7 @@ func (c *ChattoCore) createUserWithOptions(ctx context.Context, actorID string, 
 			if err := c.requireSetupAvailable(ctx); err != nil {
 				return err
 			}
-		} else if options.verifiedEmail != "" || options.external != nil {
+		} else if options.verifiedEmail != "" || options.external != nil || options.localSignup {
 			required, err := c.SetupRequired(ctx)
 			if err != nil {
 				return err
@@ -331,7 +335,7 @@ func (c *ChattoCore) createUserWithOptions(ctx context.Context, actorID string, 
 				return ErrExternalIdentityAlreadyClaimed
 			}
 		}
-		if (options.verifiedEmail != "" || options.external != nil) && c.config.Limits.MaxUsersOrDefault() >= 0 {
+		if (options.verifiedEmail != "" || options.external != nil || options.localSignup) && c.config.Limits.MaxUsersOrDefault() >= 0 {
 			if err := c.requireVerifiedAccountCapacity(ctx, ""); err != nil {
 				return err
 			}
@@ -408,6 +412,21 @@ func (c *ChattoCore) CreateVerifiedUserWithInvitation(ctx context.Context, actor
 		verifiedEmail: email,
 		invitationID:  invitationID,
 	})
+}
+
+// CreateLocalSignup creates a password account without an email. Admission is
+// checked in the same OCC transaction as account creation and redemption.
+func (c *ChattoCore) CreateLocalSignup(ctx context.Context, login, password, invitationID string, invitationRequired bool) (*evtv1.User, error) {
+	if !c.config.EmailDisabled || password == "" {
+		return nil, ErrInvalidArgument
+	}
+	if invitationRequired && invitationID == "" {
+		return nil, ErrInvitationInvalid
+	}
+	if !invitationRequired {
+		invitationID = ""
+	}
+	return c.createUserWithOptions(ctx, SystemActorID, login, login, password, userCreationOptions{localSignup: true, invitationID: invitationID})
 }
 
 // rollbackUserCreation undoes the persisted writes performed by CreateUser. Best-effort —

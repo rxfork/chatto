@@ -18,6 +18,12 @@
   import { m } from '$lib/i18n/messages';
 
   const serverScope = useServerScope();
+  // Wait for discovery before rendering stored email data or email controls.
+  const emailEnabled = $derived(
+    !serverScope.store.serverInfo.loading &&
+      !serverScope.store.serverInfo.error &&
+      !serverScope.store.serverInfo.emailDisabled
+  );
   const userSettings = $derived(
     timeFormatSettingsFor(serverScope.store.currentUser.user?.settings)
   );
@@ -132,7 +138,7 @@
         {/snippet}
         <DataTable
           items={users}
-          columns={5}
+          columns={emailEnabled ? 5 : 4}
           loading={initialLoading}
           loadingMessage={m('admin.members.loading')}
           emptyMessage={m('admin.members.empty')}
@@ -145,7 +151,9 @@
           {#snippet header()}
             <th class="table-header-cell">{m('admin.common.user')}</th>
             <th class="table-header-cell">{m('admin.users.login')}</th>
-            <th class="table-header-cell">{m('admin.users.email')}</th>
+            {#if emailEnabled}
+              <th class="table-header-cell">{m('admin.users.email')}</th>
+            {/if}
             <th class="table-header-cell">{m('admin.common.joined')}</th>
             <th class="table-header-cell">{m('admin.common.roles')}</th>
           {/snippet}
@@ -165,22 +173,24 @@
               </div>
             </td>
             <td class="px-4 py-3 text-muted">@{user.login}</td>
-            <td class="px-4 py-3 text-muted">
-              {#if user.primaryVerifiedEmail}
-                <span class="flex min-w-0 items-center gap-1">
-                  <span
-                    class="iconify icon-[uil--check-circle] shrink-0 text-success"
-                    role="img"
-                    aria-label={m('admin.members.email_verified')}
-                  ></span>
-                  <bdi class="truncate" dir="auto" title={user.primaryVerifiedEmail}
-                    >{user.primaryVerifiedEmail}</bdi
-                  >
-                </span>
-              {:else}
-                —
-              {/if}
-            </td>
+            {#if emailEnabled}
+              <td class="px-4 py-3 text-muted">
+                {#if user.primaryVerifiedEmail}
+                  <span class="flex min-w-0 items-center gap-1">
+                    <span
+                      class="iconify icon-[uil--check-circle] shrink-0 text-success"
+                      role="img"
+                      aria-label={m('admin.members.email_verified')}
+                    ></span>
+                    <bdi class="truncate" dir="auto" title={user.primaryVerifiedEmail}
+                      >{user.primaryVerifiedEmail}</bdi
+                    >
+                  </span>
+                {:else}
+                  —
+                {/if}
+              </td>
+            {/if}
             <td class="px-4 py-3 text-muted">{formatDate(user.createdAt)}</td>
             <td class="px-4 py-3">
               <div class="flex flex-wrap gap-1">

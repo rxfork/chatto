@@ -36,6 +36,9 @@ type Sender interface {
 // NewSender creates the configured transactional email transport. SMTP remains
 // the default transport for configurations that predate EmailConfig.
 func NewSender(emailConfig config.EmailConfig, smtpConfig config.SMTPConfig) Sender {
+	if emailConfig.Disabled {
+		return NewMailer(config.SMTPConfig{})
+	}
 	if emailConfig.TransportOrDefault() == config.EmailTransportJMAP {
 		return NewJMAPMailer(emailConfig.JMAP)
 	}

@@ -44,6 +44,7 @@ func (s *serverDiscoveryService) GetServer(ctx context.Context, _ *connect.Reque
 		Profile:       profile,
 		SetupRequired: setupRequired,
 		Login: &apiv1.ServerLogin{
+			EmailDisabled:             s.api.config.Email.Disabled,
 			DirectRegistrationEnabled: s.api.config.Auth.DirectRegistrationOrDefault() && !setupRequired,
 			DirectLoginEnabled:        &directLoginEnabled,
 			Providers:                 apiAuthProviders(s.api.config.Auth.PublicProviders()),

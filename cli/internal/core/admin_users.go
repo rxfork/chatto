@@ -118,6 +118,9 @@ func (c *ChattoCore) AdminGetUser(ctx context.Context, userID string) (*AdminUse
 // AdminCreateUserAs creates a user with an explicit actor and applies optional
 // email and role state with compensation if a post-create step fails.
 func (c *ChattoCore) AdminCreateUserAs(ctx context.Context, actorID string, req AdminCreateUserRequest) (*AdminUserView, error) {
+	if c.config.EmailDisabled && strings.TrimSpace(req.VerifiedEmail) != "" {
+		return nil, ErrEmailDisabled
+	}
 	displayName := strings.TrimSpace(req.DisplayName)
 	if displayName == "" {
 		displayName = strings.TrimSpace(req.Login)

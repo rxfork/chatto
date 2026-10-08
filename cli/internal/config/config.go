@@ -361,52 +361,56 @@ func (c *ChattoConfig) Validate() error {
 		if c.Webserver.TLS.Domain == "" {
 			errs = append(errs, "webserver.tls.domain is required when TLS is enabled")
 		}
-		if c.Webserver.TLS.Email == "" {
+		if !c.Email.Disabled && c.Webserver.TLS.Email == "" {
 			errs = append(errs, "webserver.tls.email is required when TLS is enabled")
 		}
 	}
 
-	// Transactional email configuration
-	switch c.Email.TransportOrDefault() {
-	case EmailTransportSMTP:
-		switch c.SMTP.TLSPolicyOrDefault() {
-		case SMTPTLSMandatory, SMTPTLSOpportunistic, SMTPTLSImplicit:
-		default:
-			errs = append(errs, "smtp.tls must be one of: mandatory, opportunistic, implicit")
-		}
-		if c.SMTP.Enabled {
+	// Disabled email does not validate or initialize a transport.
+	if !c.Email.Disabled {
+		// Transactional email configuration
+		switch c.Email.TransportOrDefault() {
+		case EmailTransportSMTP:
+			switch c.SMTP.TLSPolicyOrDefault() {
+			case SMTPTLSMandatory, SMTPTLSOpportunistic, SMTPTLSImplicit:
+			default:
+				errs = append(errs, "smtp.tls must be one of: mandatory, opportunistic, implicit")
+			}
+			if c.SMTP.Enabled {
+				if c.Webserver.URL == "" {
+					errs = append(errs, "webserver.url is required when SMTP is enabled")
+				}
+				if c.SMTP.Host == "" {
+					errs = append(errs, "smtp.host is required when SMTP is enabled")
+				}
+				if c.SMTP.Port < 1 || c.SMTP.Port > 65535 {
+					errs = append(errs, "smtp.port must be between 1 and 65535 when SMTP is enabled")
+				}
+				if c.SMTP.From == "" {
+					errs = append(errs, "smtp.from is required when SMTP is enabled")
+				}
+			}
+		case EmailTransportJMAP:
 			if c.Webserver.URL == "" {
-				errs = append(errs, "webserver.url is required when SMTP is enabled")
+				errs = append(errs, "webserver.url is required when JMAP email is enabled")
 			}
-			if c.SMTP.Host == "" {
-				errs = append(errs, "smtp.host is required when SMTP is enabled")
+			if c.Email.JMAP.SessionURL == "" {
+				errs = append(errs, "email.jmap.session_url is required when email.transport is jmap")
+			} else if err := validateAbsoluteHTTPSURL("email.jmap.session_url", c.Email.JMAP.SessionURL); err != nil {
+				errs = append(errs, err.Error())
 			}
-			if c.SMTP.Port < 1 || c.SMTP.Port > 65535 {
-				errs = append(errs, "smtp.port must be between 1 and 65535 when SMTP is enabled")
+			if c.Email.JMAP.AccessToken == "" {
+				errs = append(errs, "email.jmap.access_token is required when email.transport is jmap")
 			}
-			if c.SMTP.From == "" {
-				errs = append(errs, "smtp.from is required when SMTP is enabled")
+			if c.Email.JMAP.From == "" {
+				errs = append(errs, "email.jmap.from is required when email.transport is jmap")
+			} else if _, err := mail.ParseAddress(c.Email.JMAP.From); err != nil {
+				errs = append(errs, "email.jmap.from must be a valid email address")
 			}
+		default:
+			errs = append(errs, "email.transport must be one of: smtp, jmap")
 		}
-	case EmailTransportJMAP:
-		if c.Webserver.URL == "" {
-			errs = append(errs, "webserver.url is required when JMAP email is enabled")
-		}
-		if c.Email.JMAP.SessionURL == "" {
-			errs = append(errs, "email.jmap.session_url is required when email.transport is jmap")
-		} else if err := validateAbsoluteHTTPSURL("email.jmap.session_url", c.Email.JMAP.SessionURL); err != nil {
-			errs = append(errs, err.Error())
-		}
-		if c.Email.JMAP.AccessToken == "" {
-			errs = append(errs, "email.jmap.access_token is required when email.transport is jmap")
-		}
-		if c.Email.JMAP.From == "" {
-			errs = append(errs, "email.jmap.from is required when email.transport is jmap")
-		} else if _, err := mail.ParseAddress(c.Email.JMAP.From); err != nil {
-			errs = append(errs, "email.jmap.from must be a valid email address")
-		}
-	default:
-		errs = append(errs, "email.transport must be one of: smtp, jmap")
+
 	}
 
 	// Push notification configuration

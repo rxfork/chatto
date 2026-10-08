@@ -143,11 +143,17 @@ func (s *HTTPServer) setupOIDCRoutes() {
 	configured := make(map[string]*authProviderRuntime, len(providers))
 	var legacyOIDCConfig *config.AuthProviderConfig
 	for _, providerConfig := range providers {
+		if s.config.Email.Disabled {
+			noEmail := false
+			providerConfig.RequestEmail = &noEmail
+			providerConfig.Scopes = emailFreeProviderScopes(providerConfig.Type)
+		}
 		runtime, err := newAuthProviderRuntime(providerConfig, s.providerCallbackURL(providerConfig.ID))
 		if err != nil {
 			s.logger.Error("Skipping invalid auth provider", "provider_id", providerConfig.ID, "provider_type", providerConfig.Type, "error", err)
 			continue
 		}
+		runtime.emailDisabled = s.config.Email.Disabled
 		configured[providerConfig.ID] = runtime
 		if providerConfig.Type == config.AuthProviderTypeOpenIDConnect {
 			providerConfig := providerConfig
@@ -166,6 +172,7 @@ func (s *HTTPServer) setupOIDCRoutes() {
 		if err != nil {
 			s.logger.Error("Skipping legacy OIDC auth route", "provider_id", legacyOIDCConfig.ID, "error", err)
 		} else {
+			runtime.emailDisabled = s.config.Email.Disabled
 			legacyOIDCRuntime = runtime
 		}
 	}
@@ -404,10 +411,11 @@ func (s *HTTPServer) handleProviderCallback(c *gin.Context, providerRuntime *aut
 }
 
 type authProviderRuntime struct {
-	config      config.AuthProviderConfig
-	callbackURL string
-	oidc        *oidcProvider
-	goth        goth.Provider
+	config        config.AuthProviderConfig
+	callbackURL   string
+	oidc          *oidcProvider
+	goth          goth.Provider
+	emailDisabled bool
 }
 
 type resolvedProviderIdentity struct {
@@ -440,6 +448,21 @@ func newAuthProviderRuntime(providerConfig config.AuthProviderConfig, callbackUR
 		runtime.goth.SetName(providerConfig.ID)
 	}
 	return runtime, nil
+}
+
+// emailFreeProviderScopes excludes email and broad scopes that grant mailbox access.
+// Custom scopes are ignored in email-free deployments.
+func emailFreeProviderScopes(providerType string) []string {
+	switch providerType {
+	case config.AuthProviderTypeGitHub:
+		return []string{"read:user"}
+	case config.AuthProviderTypeGitLab:
+		return []string{"read_user"}
+	case config.AuthProviderTypeDiscord:
+		return []string{discord.ScopeIdentify}
+	default:
+		return []string{"openid", "profile"}
+	}
 }
 
 func providerScopes(providerConfig config.AuthProviderConfig) []string {
@@ -597,6 +620,9 @@ func (r *authProviderRuntime) resolveOIDCIdentity(c *gin.Context, session sessio
 		}
 	}
 
+	if r.emailDisabled {
+		claims.Email, claims.EmailVerified = "", false
+	}
 	verifiedEmail := ""
 	if claims.Email != "" && claims.EmailVerified {
 		verifiedEmail = strings.ToLower(strings.TrimSpace(claims.Email))
@@ -630,6 +656,9 @@ func (r *authProviderRuntime) resolveGothIdentity(c *gin.Context, session sessio
 	if gothUser.UserID == "" {
 		return resolvedProviderIdentity{}, fmt.Errorf("provider returned empty user id")
 	}
+	if r.emailDisabled {
+		gothUser.Email = ""
+	}
 	return resolvedProviderIdentity{
 		issuer:          r.config.ID,
 		subject:         gothUser.UserID,
@@ -641,6 +670,9 @@ func (r *authProviderRuntime) resolveGothIdentity(c *gin.Context, session sessio
 }
 
 func (r *authProviderRuntime) verifiedEmailFromGothUser(ctx context.Context, gothUser goth.User) string {
+	if r.emailDisabled {
+		return ""
+	}
 	switch r.config.Type {
 	case config.AuthProviderTypeDiscord:
 		if rawBool(gothUser.RawData, "verified") {

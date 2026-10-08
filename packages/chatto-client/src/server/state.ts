@@ -98,6 +98,14 @@ export class ServerInfoState {
   set directLoginEnabled(value) {
     this.#directLoginEnabledSignal.set(value);
   }
+  /** Whether discovery disables all email operations for this server. */
+  readonly #emailDisabledSignal = signal(false);
+  get emailDisabled(): boolean {
+    return this.#emailDisabledSignal.get();
+  }
+  set emailDisabled(value: boolean) {
+    this.#emailDisabledSignal.set(value);
+  }
   #getProjectedState: () => ProjectedServerState | null;
 
   readonly #loadingSignal = signal(true);
@@ -260,6 +268,7 @@ export class ServerInfoState {
         this.bannerUrl = info.bannerUrl;
         this.directRegistrationEnabled = info.directRegistrationEnabled;
         this.directLoginEnabled = info.directLoginEnabled;
+        this.emailDisabled = info.emailDisabled ?? false;
       });
     } catch (err) {
       this.error = err;

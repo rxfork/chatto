@@ -149,6 +149,7 @@ type CoreConfig struct {
 	AuthTokenTTL                time.Duration     `toml:"-" env:"-"` // Human session renewal window and per-cookie lifetime, set from AuthConfig.TokenTTLOrDefault().
 	AuthAccessTokenTTL          time.Duration     `toml:"-" env:"-"` // Set by caller from AuthConfig.AccessTokenTTLOrDefault().
 	AuthLoopbackClientEnabled   bool              `toml:"-" env:"-"` // Set by caller from AuthConfig.LoopbackClientEnabled; gates the built-in loopback OAuth client.
+	EmailDisabled               bool              `toml:"-" env:"-"` // Set from EmailConfig.Disabled.
 	EmailOTP                    EmailOTPConfig    `toml:"-" env:"-"` // Set by caller from AuthConfig.EmailOTP
 	Replicas                    int               `toml:"-" env:"-"` // Set by caller from NATSConfig.ReplicasOrDefault()
 	Limits                      LimitsConfig      `toml:"-" env:"-"` // Set by caller from ChattoConfig.Limits

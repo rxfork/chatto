@@ -346,6 +346,9 @@ func (c *ChattoCore) adminMemberForViewer(ctx context.Context, actorID string, u
 }
 
 func (c *ChattoCore) canViewAdminMemberEmails(ctx context.Context, actorID, targetUserID string) (bool, error) {
+	if c.config.EmailDisabled {
+		return false, nil
+	}
 	if actorID == targetUserID {
 		return true, nil
 	}

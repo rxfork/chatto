@@ -12,6 +12,12 @@
   import VerifiedEmailSettings from './VerifiedEmailSettings.svelte';
 
   const serverScope = useServerScope();
+  // Wait for discovery before rendering stored email data or email controls.
+  const emailEnabled = $derived(
+    !serverScope.store.serverInfo.loading &&
+      !serverScope.store.serverInfo.error &&
+      !serverScope.store.serverInfo.emailDisabled
+  );
   const currentUser = $derived(serverScope.store.currentUser);
   const serverId = serverScope.serverId;
   const serverSegment = $derived(serverIdToSegment(serverId));
@@ -51,9 +57,11 @@
       </Panel>
 
       <PasswordSettings {currentUser} getAccountAPI={accountAPI} />
-      {#key serverScope.store.accountId ?? ''}
-        <VerifiedEmailSettings />
-      {/key}
+      {#if emailEnabled}
+        {#key serverScope.store.accountId ?? ''}
+          <VerifiedEmailSettings />
+        {/key}
+      {/if}
       <ExternalIdentitySettings {currentUser} {accountSettingsPath} />
       <DeleteAccountSection
         canDeleteAccount={currentUser.user?.viewerCanDeleteAccount ?? false}

@@ -179,8 +179,10 @@ type ServerLogin struct {
 	// Whether users can sign in directly with a username or email address and password.
 	// Absent on older servers, where clients should treat direct login as enabled.
 	DirectLoginEnabled *bool `protobuf:"varint,5,opt,name=direct_login_enabled,json=directLoginEnabled,proto3,oneof" json:"direct_login_enabled,omitempty"`
-	unknownFields      protoimpl.UnknownFields
-	sizeCache          protoimpl.SizeCache
+	// Email features are disabled. Local signup requires only a username and password.
+	EmailDisabled bool `protobuf:"varint,6,opt,name=email_disabled,json=emailDisabled,proto3" json:"email_disabled,omitempty"`
+	unknownFields protoimpl.UnknownFields
+	sizeCache     protoimpl.SizeCache
 }
 
 func (x *ServerLogin) Reset() {
@@ -248,6 +250,13 @@ func (x *ServerLogin) GetDirectLoginEnabled() bool {
 	return false
 }
 
+func (x *ServerLogin) GetEmailDisabled() bool {
+	if x != nil {
+		return x.EmailDisabled
+	}
+	return false
+}
+
 var File_chatto_api_v1_server_proto protoreflect.FileDescriptor
 
 const file_chatto_api_v1_server_proto_rawDesc = "" +
@@ -264,13 +273,14 @@ const file_chatto_api_v1_server_proto_rawDesc = "" +
 	"\t_logo_urlB\r\n" +
 	"\v_banner_urlB\x12\n" +
 	"\x10_welcome_messageB\x0e\n" +
-	"\f_description\"\xdf\x02\n" +
+	"\f_description\"\x86\x03\n" +
 	"\vServerLogin\x12>\n" +
 	"\x1bdirect_registration_enabled\x18\x01 \x01(\bR\x19directRegistrationEnabled\x12=\n" +
 	"\tproviders\x18\x02 \x03(\v2\x1f.chatto.api.v1.ProviderMetadataR\tproviders\x12#\n" +
 	"\rauthorize_url\x18\x03 \x01(\tR\fauthorizeUrl\x12\\\n" +
 	"\x17account_creation_policy\x18\x04 \x01(\x0e2$.chatto.api.v1.AccountCreationPolicyR\x15accountCreationPolicy\x125\n" +
-	"\x14direct_login_enabled\x18\x05 \x01(\bH\x00R\x12directLoginEnabled\x88\x01\x01B\x17\n" +
+	"\x14direct_login_enabled\x18\x05 \x01(\bH\x00R\x12directLoginEnabled\x88\x01\x01\x12%\n" +
+	"\x0eemail_disabled\x18\x06 \x01(\bR\remailDisabledB\x17\n" +
 	"\x15_direct_login_enabled*\x8b\x01\n" +
 	"\x15AccountCreationPolicy\x12'\n" +
 	"#ACCOUNT_CREATION_POLICY_UNSPECIFIED\x10\x00\x12 \n" +

@@ -16,6 +16,33 @@ removes the stored credentials. Login
 flows include classic password login, configured external
 providers, and a bootstrap path for first-boot operator setup.
 
+## Email-Free Deployment
+
+`email.disabled` defaults to `false`. When it is `true`, direct signup uses a
+username and password without an email challenge. The existing creation batch
+includes invitation redemption. Its OCC recheck applies username uniqueness,
+setup readiness, capacity, invitation expiry, revocation, and use limits before
+commit. Failed creation does not consume an invitation. Admission still uses
+`auth.account_creation_policy` and `auth.direct_registration`.
+
+Public discovery reports `ServerLogin.email_disabled`. The bundled frontend
+hides email and recovery controls. Legacy HTTP email operations and account
+email RPCs reject requests, including previously issued credentials. Username
+password login, password proof, hashing, sessions, authenticated password
+changes, and operator recovery keep their existing paths. Password accounts
+consume the user limit in this mode.
+
+The existing first-run setup creates the owner without email. Operators can
+create accounts with the owner role or assign it by stable user ID. Privileged
+mode and role authorization stay in force. Existing role assignments remain;
+`owners.emails` does not grant new roles in this mode.
+
+Provider runtimes use basic identity scopes, ignore email requests and custom
+scopes, and discard email before deriving account hints or storing pending
+flows. Core also strips email from pending flows when it reads them, including
+flows from before a mode change. Existing email data remains stored. Operators
+must restart all serving processes with the same mode.
+
 ## Behavior
 
 - OIDC token authentication can use an explicit Basic, POST, or public-client
