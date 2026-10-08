@@ -57,13 +57,34 @@ func TestMessagePostInteractions(t *testing.T) {
 				set(actor.Id, PermMessagePostInThread, PermissionStateDeny)
 				set(actor.Id, PermMessagePostInInteractions, PermissionStateAllow)
 				set(actor.Id, PermMessageRead, PermissionStateAllow)
+				if dm {
+					canPost, err := c.CanPostMessage(ctx, actor.Id, kind, room.Id)
+					require.NoError(t, err)
+					require.False(t, canPost, "an empty DM is not an interaction")
+					_, _, err = c.RoomCommands().StartDM(ctx, RoomStartDMInput{ActorID: actor.Id, ParticipantIDs: []string{operator.Id}})
+					require.ErrorIs(t, err, ErrPermissionDenied)
+				}
 				root, err := c.PostMessage(ctx, kind, room.Id, author.Id, "context", nil, "", "", nil, false)
 				require.NoError(t, err)
 				post := func(rootID string) error {
 					_, err := c.Messages().PostMessage(ctx, MessagePostInput{ActorID: actor.Id, RoomID: room.Id, Body: "reply", ThreadRootEventID: rootID})
 					return err
 				}
-				require.ErrorIs(t, post(""), ErrPermissionDenied, "interaction posting cannot start a root")
+				if dm {
+					canStart, err := c.CanStartDM(ctx, actor.Id)
+					require.NoError(t, err)
+					require.False(t, canStart)
+					require.NoError(t, post(""), "received DMs allow normal conversation replies")
+					viewer, err := c.RoomDirectoryReads().roomViewerState(ctx, actor.Id, room)
+					require.NoError(t, err)
+					require.True(t, viewer.CanPostMessage, "the main DM composer must be enabled")
+					_, err = c.Messages().PostMessage(ctx, MessagePostInput{ActorID: actor.Id, RoomID: room.Id, Body: "quoted normal reply", InReplyTo: root.Id})
+					require.NoError(t, err, "quoting a DM root does not require a thread")
+					_, err = c.Messages().PostMessage(ctx, MessagePostInput{ActorID: actor.Id, RoomID: room.Id, Body: "new thread", CreateThread: true})
+					require.ErrorIs(t, err, ErrPermissionDenied, "interaction posting does not grant explicit thread creation")
+				} else {
+					require.ErrorIs(t, post(""), ErrPermissionDenied, "interaction posting cannot start a channel root")
+				}
 				if !dm {
 					require.ErrorIs(t, post(root.Id), ErrPermissionDenied, "broad read does not authorize unrelated replies")
 					_, err = c.PostMessage(ctx, kind, room.Id, actor.Id, "@"+actor.Login, nil, root.Id, "", nil, false)
@@ -85,6 +106,7 @@ func TestMessagePostInteractions(t *testing.T) {
 				set(actor.Id, PermMessageRead, PermissionStateDeny)
 				set(actor.Id, PermMessageReadInteractions, PermissionStateDeny)
 				require.ErrorIs(t, post(root.Id), ErrPermissionDenied, "posting does not grant read access")
+				require.ErrorIs(t, post(""), ErrPermissionDenied, "normal replies also require read access")
 				set(actor.Id, PermMessageReadInteractions, PermissionStateAllow)
 				require.NoError(t, post(root.Id))
 				if botAccount {
@@ -96,6 +118,7 @@ func TestMessagePostInteractions(t *testing.T) {
 				}
 				set(actor.Id, PermMessagePostInInteractions, PermissionStateDeny)
 				require.ErrorIs(t, post(root.Id), ErrPermissionDenied, "revocation closes posting")
+				require.ErrorIs(t, post(""), ErrPermissionDenied, "revocation closes normal replies")
 				if botAccount {
 					set(author.Id, PermMessagePost, PermissionStateAllow)
 				}

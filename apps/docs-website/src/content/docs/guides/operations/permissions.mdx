@@ -116,7 +116,7 @@ Scopes: **S** Server, **G** Room group, **R** Room, **DM** Direct messages.
 | `message.read-interactions` | All | | Read only threads that the account started, where another account mentioned it directly, or where it received a DM. It can read the full thread. |
 | `message.post` | All | | Post messages and thread replies. At DM scope, a person can also start DMs. Includes `message.post-in-thread` and `message.post-in-interactions`. |
 | `message.post-in-thread` | All | | Reply in each thread that the account can read. |
-| `message.post-in-interactions` | All | | Reply only in the threads that `message.read-interactions` describes. |
+| `message.post-in-interactions` | All | | Reply in the threads that `message.read-interactions` describes. In a received DM, also send normal messages, including when threading is disabled. Does not permit starting DMs. |
 | `message.attach` | All | | Attach files to new messages. |
 | `message.react` | All | | Add and remove reactions. |
 | `message.echo` | All | | Echo a thread reply to the room. |

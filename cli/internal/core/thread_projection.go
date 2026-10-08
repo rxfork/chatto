@@ -781,6 +781,24 @@ func (p *ThreadProjection) HasInteraction(userID, roomID, threadRootEventID stri
 	return ok && p.principalIDs.id(room) == roomID
 }
 
+// HasRoomInteraction reports whether the account has a message-derived
+// relationship in this room. DM membership alone does not create one.
+func (p *ThreadProjection) HasRoomInteraction(userID, roomID string) bool {
+	p.RLock()
+	defer p.RUnlock()
+	user, userKnown := p.principalIDs.lookup(userID)
+	room, roomKnown := p.principalIDs.lookup(roomID)
+	if !userKnown || !roomKnown {
+		return false
+	}
+	for key, interactionRoom := range p.interactions {
+		if key.user == user && interactionRoom == room {
+			return true
+		}
+	}
+	return false
+}
+
 // ThreadCount returns how many threads are currently in the
 // projection. Diagnostics only.
 func (p *ThreadProjection) ThreadCount() int {
