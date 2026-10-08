@@ -1218,8 +1218,18 @@ export class ServerStateStore {
         if (payload.case === 'messagePosted') {
           // Posts do not establish viewer attention. Its user-scoped hints arrive
           // after the server applies Badge decisions and the poster's read state.
-          // Known DM activity is already applied by the room projection.
-          if (!this.projection.rooms.has(roomId)) this.refreshRealtimeResource('rooms');
+          // A first received DM message can establish interaction posting
+          // authority. Fetch the server's decision instead of granting it locally.
+          const room = this.projection.rooms.get(roomId);
+          const grants = room?.viewerState?.permissions ?? [];
+          const mayGainDMPosting =
+            room?.room?.kind === RoomKind.DM &&
+            event.actorId !== this.realtimeViewerId() &&
+            grants.some(
+              (grant) => grant.permission === 'message.post-in-interactions' && grant.granted
+            ) &&
+            !grants.some((grant) => grant.permission === 'message.post' && grant.granted);
+          if (!room || mayGainDMPosting) this.refreshRealtimeResource('rooms');
         }
         return;
       }
