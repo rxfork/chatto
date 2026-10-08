@@ -436,7 +436,11 @@ client starts does not replace a presence change that arrived during the read.
 An event during offset pagination restarts
 the membership read with the event's minimum cursor. Recovery resets and room
 access loss clear retained membership. Universal-room eligibility changes require
-a new authoritative read rather than client-side permission calculations.
+a new authoritative read rather than client-side permission calculations. A received
+DM post also refreshes room resources at the event cursor when the viewer has
+interaction posting authority but cannot yet post normal messages. The server
+response enables the composer after the first message establishes a relationship.
+The client does not grant posting authority from a timeline event alone.
 
 [UserStore](../../packages/chatto-client/src/server/users.ts) stores
 public profiles by server, connection scope, and user ID. Directory and timeline

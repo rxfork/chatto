@@ -1914,6 +1914,62 @@ describe('ServerStateStore unified realtime resources', () => {
     expect(eventMocks.userDeleted).toHaveBeenCalledWith('U2');
   });
 
+  it.each([
+    ['received interaction-only DM', RoomKind.DM, 'U2', false, true, true],
+    ['already writable DM', RoomKind.DM, 'U2', true, true, false],
+    ['DM without interaction posting', RoomKind.DM, 'U2', false, false, false],
+    ['own DM post', RoomKind.DM, 'U1', false, true, false],
+    ['channel post', RoomKind.CHANNEL, 'U2', false, true, false]
+  ] as const)(
+    'refreshes posting authority only when needed: %s',
+    async (_name, kind, actorId, canPost, canInteract, shouldRefresh) => {
+      const store = makeStore(new FakeServerConnection([]));
+      const room = (post: boolean) =>
+        new RoomWithViewerState({
+          room: { id: 'R1', kind },
+          viewerState: {
+            isMember: true,
+            permissions: [
+              { permission: 'message.read', granted: true },
+              { permission: 'message.post', granted: post },
+              { permission: 'message.post-in-interactions', granted: canInteract }
+            ]
+          }
+        });
+      store.projection.rooms.set('R1', room(canPost));
+      apiMocks.readRealtimeResource.mockResolvedValueOnce([roomResource([room(true)])]);
+      apiMocks.readRealtimeResource.mockClear();
+      store.realtimeProjectionHandler(
+        new RealtimeProjectionUpdate({
+          cursor: 'first-dm-post',
+          event: new RealtimeEvent({
+            id: 'POST',
+            actorId,
+            event: {
+              case: 'messagePosted',
+              value: { roomId: 'R1' }
+            }
+          })
+        })
+      );
+      // The timeline event alone never grants posting authority.
+      expect(
+        store.projection.rooms
+          .get('R1')
+          ?.viewerState?.permissions.find((grant) => grant.permission === 'message.post')?.granted
+      ).toBe(canPost);
+      await store.waitForRealtimeReconciliation();
+      expect(apiMocks.readRealtimeResource.mock.calls).toEqual(
+        shouldRefresh ? [['rooms', 'first-dm-post']] : []
+      );
+      expect(
+        store.projection.rooms
+          .get('R1')
+          ?.viewerState?.permissions.find((grant) => grant.permission === 'message.post')?.granted
+      ).toBe(shouldRefresh || canPost);
+    }
+  );
+
   it('coalesces the resource hints from a post before starting reads', async () => {
     const store = makeStore(new FakeServerConnection([]));
     store.rooms.messages('R1');
