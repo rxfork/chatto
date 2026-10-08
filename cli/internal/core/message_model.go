@@ -356,6 +356,16 @@ func (s *MessageModel) AuthorizePost(ctx context.Context, input MessagePostAutho
 		return nil, err
 	}
 
+	if input.CreateThread {
+		can, err := s.core.hasRoomPermission(ctx, kind, room.Id, input.ActorID, PermMessagePost)
+		if err != nil {
+			return nil, err
+		}
+		if !can {
+			return nil, ErrPermissionDenied
+		}
+	}
+
 	if input.ThreadRootEventID != "" {
 		can, err := s.core.CanReplyInThread(ctx, input.ActorID, kind, room.Id, input.ThreadRootEventID)
 		if err != nil {
@@ -392,7 +402,7 @@ func (s *MessageModel) AuthorizePost(ctx context.Context, input MessagePostAutho
 		if !can {
 			return nil, ErrPermissionDenied
 		}
-		can, err = s.core.CanPostMessage(ctx, input.ActorID, kind, room.Id)
+		can, err = s.core.hasRoomPermission(ctx, kind, room.Id, input.ActorID, PermMessagePost)
 		if err != nil {
 			return nil, err
 		}
@@ -562,7 +572,7 @@ func (s *MessageModel) UpdateMessage(ctx context.Context, input MessageUpdateInp
 			if !can {
 				return nil, kind, ErrPermissionDenied
 			}
-			can, err = s.core.CanPostMessage(ctx, input.ActorID, kind, room.Id)
+			can, err = s.core.hasRoomPermission(ctx, kind, room.Id, input.ActorID, PermMessagePost)
 			if err != nil {
 				return nil, kind, err
 			}

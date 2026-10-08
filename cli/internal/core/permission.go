@@ -107,7 +107,8 @@ const (
 	PermMessagePostInThread Permission = "message.post-in-thread"
 
 	// PermMessagePostInInteractions allows replies only in threads with an existing
-	// interaction relationship. It does not grant read access or root posting.
+	// interaction relationship, or normal messages in a received DM. It does not
+	// grant read access, channel root posting, or DM creation.
 	PermMessagePostInInteractions Permission = "message.post-in-interactions"
 
 	// PermMessageAttach allows attaching files to new messages.

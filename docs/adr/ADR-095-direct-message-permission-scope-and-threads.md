@@ -34,7 +34,10 @@ group and room scopes. It has no per-DM identity.
 - Bots inherit no DM decision. A bot needs an explicit direct-user allow, and
   its owner's current effective decision remains the ceiling.
 
-Treat each DM as an Enabled-threading room. A root needs `message.post`. A
+A DM root needs `message.post`, or `message.post-in-interactions` with an
+existing message-derived relationship, current membership, and read access.
+Interaction posting does not permit starting a DM. Normal DM replies also work
+when threading is disabled. A
 thread reply or explicit thread creation needs `message.post-in-thread`. An
 echo to the main room timeline needs `message.echo` and `message.post`. The
 public `also_send_to_channel` field keeps its wire name for compatibility.

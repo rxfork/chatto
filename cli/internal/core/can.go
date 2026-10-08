@@ -434,10 +434,32 @@ func (c *ChattoCore) canReadMessageEvent(ctx context.Context, userID string, kin
 	return ok && c.roomModel.hasThreadInteraction(userID, roomID, rootID), nil
 }
 
-// CanPostMessage checks if a user can post new root messages in a specific room.
-// Uses the permission scope chain for the specified room kind.
+// CanPostMessage checks root posting authority. In a DM, interaction posting
+// permits normal replies after a message-derived relationship exists. This
+// requires current membership and read access and never permits StartDM.
 func (c *ChattoCore) CanPostMessage(ctx context.Context, userID string, kind RoomKind, roomID string) (bool, error) {
-	return c.hasRoomPermission(ctx, kind, roomID, userID, PermMessagePost)
+	return c.readContentDecision(ctx, func(readCtx context.Context) (bool, error) {
+		broad, err := c.hasRoomPermission(readCtx, kind, roomID, userID, PermMessagePost)
+		if err != nil || broad || kind != KindDM {
+			return broad, err
+		}
+		member, err := c.RoomMembershipExists(readCtx, kind, userID, roomID)
+		if err != nil || !member {
+			return false, err
+		}
+		narrow, err := c.hasRoomPermission(readCtx, kind, roomID, userID, PermMessagePostInInteractions)
+		if err != nil || !narrow {
+			return false, err
+		}
+		if !c.roomModel.threads.Projection().HasRoomInteraction(userID, roomID) {
+			return false, nil
+		}
+		read, err := c.canReadMessages(readCtx, userID, kind, roomID)
+		if err != nil || read {
+			return read, err
+		}
+		return c.canReadMessageInteractions(readCtx, userID, kind, roomID)
+	})
 }
 
 // CanPostInThread checks room-level authority to reply in any readable thread.

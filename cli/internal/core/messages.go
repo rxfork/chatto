@@ -1107,7 +1107,7 @@ func (c *ChattoCore) authorizeMessageMutation(
 		if err != nil {
 			return err
 		}
-		canPost, err := c.CanPostMessage(ctx, actorID, kind, roomID)
+		canPost, err := c.hasRoomPermission(ctx, kind, roomID, actorID, PermMessagePost)
 		if err != nil {
 			return err
 		}

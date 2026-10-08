@@ -231,7 +231,7 @@ The full permission catalog is in `cli/internal/core/permission.go`. Key permiss
   with a room-level `everyone` deny and a room-level `admin` allow. Moderators
   and other named roles need their own room-level posting grant.
 - `message.post-in-thread` — reply in any readable thread where room policy permits it.
-- `message.post-in-interactions` — reply only in readable threads with an interaction relationship.
+- `message.post-in-interactions` — reply in readable threads with an interaction relationship. In a received DM, also send normal messages with current membership and read access. This permission does not permit starting DMs or posting channel roots.
 - `message.attach` — attach files to new messages. Fresh servers grant this to `everyone` at server scope; existing servers are not automatically backfilled after upgrade, so operators may need to grant it manually if uploads should remain enabled.
 - `room.manage` — edit/configure/delete channel rooms.
 - `room.remove-member` — remove current channel-room members with an optional suspension. DM membership is not managed through this permission.
