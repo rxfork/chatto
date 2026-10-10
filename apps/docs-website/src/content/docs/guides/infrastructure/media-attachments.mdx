@@ -35,7 +35,7 @@ Avatar and branding uploads can need larger request bodies.
 ```toml
 [core.assets.burn]
 unopened_ttl = "24h"
-view_ttl = "5m"
+view_ttl = "0s"
 recovery_ttl = "1h"
 ```
 
@@ -43,12 +43,22 @@ Select **Burn after reading** on an attachment before you send it. Each member
 in the channel or DM at send time gets one viewing session. People who join
 later cannot open it. Opening starts the timer. Closing the viewer or reaching
 the deadline ends that person's access. Scrolling and reading message history
-do not start a session.
+do not start a session. Original recipients see a server-generated blurred
+image or video-frame preview while the file is retained; later members see a
+hidden card. The preview shows larger shapes while hiding fine detail. A video
+preview appears after processing generates its thumbnail.
 
 The settings above are the defaults. Zero selects the default; other values
 must be at least 1 millisecond. A sent attachment keeps its original settings.
-`unopened_ttl` expires sessions that have not started. `view_ttl` bounds a
-session even when the browser disconnects without closing it. `recovery_ttl`
+With `view_ttl = "0s"`, images get 10 seconds and other non-audio/video files
+get 5 minutes. A nonzero `view_ttl` overrides only those types. Audio always
+gets its verified duration; video gets its verified duration plus 10 seconds
+to press Play. Neither uses `view_ttl`. Audio/video cannot open until processing
+provides their duration; waiting does not consume a session. Run at least one
+asset-processing worker for burn audio, even when video uploads are disabled.
+Audio jobs measure duration without transcoding. The timer runs from Open,
+including buffering, pauses, or a lost browser close.
+`unopened_ttl` expires sessions that have not started. `recovery_ttl`
 keeps the file after the last session ends or expires.
 
 Recipients can select **Request permanent access** under the attachment. The

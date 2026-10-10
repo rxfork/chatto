@@ -447,7 +447,14 @@ one content-view wait before they return.
 
 Burn state survives tombstones so replay and encrypted snapshots preserve
 consumed sessions and per-sender/per-room permanence acknowledgements. Normal
-metadata reads expose no burn URLs. Binary access first catches the local asset
+metadata reads expose no original burn URLs. The captured audio/video-duration policy
+resolves verified processing duration when a session is claimed; video adds
+10 seconds to press Play, audio does not. Unavailable duration fails before
+claiming. `AssetProcessingSucceededEvent.audio_duration_ms` records audio-only
+probe results without derivatives. Eligible image/video recipients may receive
+a blurred preview URL, authorized independently of session consumption. A
+video preview uses the current, source-bound thumbnail, with fresh source and
+thumbnail checks before cached bytes are read. Binary access first catches the local asset
 projection up to that asset's authoritative tail, including all derivative
 ancestors, before evaluating the account-bound session and fixed deadline.
 

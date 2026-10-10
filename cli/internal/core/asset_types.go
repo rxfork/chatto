@@ -17,7 +17,7 @@ type MessageAssetRef struct {
 }
 
 // VideoAttachmentManifest is the projection's current processing state for one
-// original video attachment. Started fires when processing is enqueued;
+// video attachment or burn-audio duration probe. Started fires when processing is enqueued;
 // Succeeded or Failed fires on terminal outcome.
 type VideoAttachmentManifest struct {
 	Started   *evtv1.AssetProcessingStartedEvent

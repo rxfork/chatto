@@ -30,6 +30,7 @@ func (s *HTTPServer) setupAssetRoutes() {
 	s.router.GET("/assets/server/*path", s.serveServerAsset)
 	s.router.GET("/assets/neighborhood/:name", s.serveNeighborhoodImage)
 	s.router.GET("/assets/files/:assetID", s.serveStableAttachment)
+	s.router.GET("/assets/files/:assetID/burn-preview", s.serveBurnPreview)
 	s.router.GET("/assets/files/:assetID/image/:dimensions/:fit", s.serveStableTransformedAttachment)
 	s.router.GET("/assets/hls/:assetID/master.m3u8", s.serveHLSMasterPlaylist)
 	s.router.GET("/assets/hls/:assetID/renditions/:rendition/playlist.m3u8", s.serveHLSMediaPlaylist)
@@ -371,6 +372,10 @@ func (s *HTTPServer) resolveStableAttachment(c *gin.Context, ctx context.Context
 }
 
 func (s *HTTPServer) resolveAttachmentForViewer(c *gin.Context, ctx context.Context, assetID, userID string) (*evtv1.Attachment, bool) {
+	return s.resolveAttachmentWithPolicy(c, ctx, assetID, userID, false)
+}
+
+func (s *HTTPServer) resolveAttachmentWithPolicy(c *gin.Context, ctx context.Context, assetID, userID string, preview bool) (*evtv1.Attachment, bool) {
 	state := s.core.GetAssetState(assetID)
 	declared := state.Creation
 	if declared == nil {
@@ -411,7 +416,13 @@ func (s *HTTPServer) resolveAttachmentForViewer(c *gin.Context, ctx context.Cont
 		return nil, false
 	}
 
-	burning, err := s.core.AuthorizeAssetBinary(ctx, assetID, userID, c.Query("burn_session"), c.Query("download") == "1")
+	var burning bool
+	var attachment *evtv1.Attachment
+	if preview {
+		attachment, err = s.core.AuthorizeBurnPreview(ctx, assetID, userID)
+	} else {
+		burning, err = s.core.AuthorizeAssetBinary(ctx, assetID, userID, c.Query("burn_session"), c.Query("download") == "1")
+	}
 	if err != nil {
 		if errors.Is(err, core.ErrNotFound) {
 			c.JSON(http.StatusNotFound, gin.H{"error": "Attachment not found"})
@@ -424,7 +435,9 @@ func (s *HTTPServer) resolveAttachmentForViewer(c *gin.Context, ctx context.Cont
 	}
 	c.Set("burn_attachment", burning)
 
-	attachment := core.AttachmentFromAsset(declared.GetAsset())
+	if !preview {
+		attachment = core.AttachmentFromAsset(declared.GetAsset())
+	}
 	if attachment == nil {
 		c.JSON(http.StatusNotFound, gin.H{"error": "Attachment not found"})
 		return nil, false

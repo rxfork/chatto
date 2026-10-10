@@ -119,7 +119,7 @@ func apiAsset(ctx context.Context, api *API, attachment *evtv1.Attachment, viewe
 		ThumbnailAssetUrl: api.assetURLView(ctx, api.core.GetStableTransformedAttachmentAssetURL(attachment.Id, viewerID, thumbnail.width, thumbnail.height, thumbnail.fit)),
 		VideoProcessing:   apiVideoProcessing(ctx, api, viewerID, attachment),
 	}
-	asset.Burn = apiBurnAttachment(api, attachment.Id, viewerID)
+	asset.Burn = apiBurnAttachment(ctx, api, attachment.Id, viewerID)
 	if asset.Burn != nil && asset.Burn.GetViewerStatus() != apiv1.BurnAttachmentViewerStatus_BURN_ATTACHMENT_VIEWER_STATUS_PERMANENT {
 		asset.AssetUrl, asset.ThumbnailAssetUrl, asset.VideoProcessing = nil, nil, nil
 	}

@@ -40,6 +40,7 @@ var connectErrorCodes = []struct {
 		core.ErrNotMessageAuthor,
 	}},
 	{connect.CodeFailedPrecondition, []error{
+		core.ErrBurnMediaNotReady,
 		core.ErrEmailDisabled,
 		core.ErrHumanAccountRequired,
 		core.ErrPrivilegedModeUnavailable,

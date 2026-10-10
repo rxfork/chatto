@@ -282,8 +282,12 @@ Only used when `storage_backend` is set to `s3`. See the [S3 Storage guide](/gui
   Expiry of sessions that have not started. Captured when each attachment is sent.
 </EnvVar>
 
-<EnvVar name="CHATTO_CORE_ASSETS_BURN_VIEW_TTL" toml="core.assets.burn.view_ttl" default="5m">
-  Maximum duration of one viewing session, including a lost browser close.
+<EnvVar name="CHATTO_CORE_ASSETS_BURN_VIEW_TTL" toml="core.assets.burn.view_ttl" default="0s">
+  Timeout for images and other non-audio/video files. Zero selects 10 seconds
+  for images and 5 minutes for other files; a nonzero value overrides them.
+  Audio always uses its verified duration; video uses its verified duration
+  plus 10 seconds. The timer starts on Open and continues during buffering,
+  pauses, or a lost close.
 </EnvVar>
 
 <EnvVar name="CHATTO_CORE_ASSETS_BURN_RECOVERY_TTL" toml="core.assets.burn.recovery_ttl" default="1h">

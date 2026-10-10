@@ -58,7 +58,10 @@ const (
 // AssetServiceClient is a client for the chatto.api.v1.AssetService service.
 type AssetServiceClient interface {
 	// Deliberately opens one session. Membership and current message-read access
-	// are required. The server's configured session limit bounds crash recovery.
+	// are required. Audio uses its verified duration; video adds 10 seconds to
+	// its verified duration to press Play. Other files use the configured limit.
+	// Missing media duration returns failed_precondition without claiming a
+	// session. Timers start on Open and continue during buffering or pauses.
 	OpenBurnAttachment(context.Context, *connect.Request[v1.OpenBurnAttachmentRequest]) (*connect.Response[v1.OpenBurnAttachmentResponse], error)
 	// End on viewer close, navigation, or privacy reset. A lost close is bounded
 	// by the original session deadline; it does not create a new session.
@@ -188,7 +191,10 @@ func (c *assetServiceClient) BatchGetAssets(ctx context.Context, req *connect.Re
 // AssetServiceHandler is an implementation of the chatto.api.v1.AssetService service.
 type AssetServiceHandler interface {
 	// Deliberately opens one session. Membership and current message-read access
-	// are required. The server's configured session limit bounds crash recovery.
+	// are required. Audio uses its verified duration; video adds 10 seconds to
+	// its verified duration to press Play. Other files use the configured limit.
+	// Missing media duration returns failed_precondition without claiming a
+	// session. Timers start on Open and continue during buffering or pauses.
 	OpenBurnAttachment(context.Context, *connect.Request[v1.OpenBurnAttachmentRequest]) (*connect.Response[v1.OpenBurnAttachmentResponse], error)
 	// End on viewer close, navigation, or privacy reset. A lost close is bounded
 	// by the original session deadline; it does not create a new session.

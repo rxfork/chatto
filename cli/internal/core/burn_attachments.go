@@ -6,6 +6,7 @@ import (
 	"encoding/hex"
 	"errors"
 	"fmt"
+	"math"
 	"mime"
 	"slices"
 	"strings"
@@ -19,6 +20,8 @@ import (
 )
 
 const attachmentPermanenceUndoTTL = 15 * time.Second
+const burnVideoPlayPadding = 10 * time.Second
+const burnPendingMediaDuration = time.Millisecond
 
 // BurnAttachmentSupported reports file types that the bundled controlled
 // viewer can display without handing the file to an external application.
@@ -59,6 +62,7 @@ type BurnAttachmentView struct {
 	Status                                                                                     string
 	UnopenedExpiresAt, DeleteAt, ViewExpiresAt                                                 *timestamppb.Timestamp
 	CanMakePermanent, CanRequestPermanent, PermanenceRequested, RequiresPermanenceConfirmation bool
+	HasPreview                                                                                 bool
 	RequesterIDs                                                                               []string
 }
 
@@ -205,6 +209,7 @@ func (c *AssetModel) BurnAttachmentMetadata(assetID, viewerID string) *BurnAttac
 		view.RequiresPermanenceConfirmation = !c.assets.Projection().permanenceAcknowledged(viewerID, burn.GetRoomId())
 	}
 	eligible := slices.Contains(burn.GetRecipientIds(), viewerID)
+	view.HasPreview = retained && eligible && burnPreviewSupported(state)
 	view.CanRequestPermanent = retained && eligible && viewerID != burn.GetUserId()
 	view.PermanenceRequested = slices.Contains(burn.GetRequesterIds(), viewerID)
 	switch {
@@ -311,7 +316,28 @@ func (c *AssetModel) OpenBurnAttachment(ctx context.Context, input BurnAttachmen
 		if !state.GetUnopenedExpiresAt().AsTime().After(now) {
 			return false, ErrPermissionDenied
 		}
-		state.Views = append(state.Views, &evtv1.AssetBurnView{UserId: input.ActorID, SessionHash: hash, ExpiresAt: timestamppb.New(now.Add(time.Duration(state.GetViewDurationMs()) * time.Millisecond))})
+		durationMs := state.GetViewDurationMs()
+		if state.GetUseVideoDuration() || state.GetUseAudioDuration() {
+			manifest := c.AssetState(input.AssetID).VideoManifest
+			if manifest == nil {
+				return false, ErrBurnMediaNotReady
+			}
+			if state.GetUseAudioDuration() {
+				durationMs = manifest.Succeeded.GetAudioDurationMs()
+			} else {
+				durationMs = manifest.Succeeded.GetVideo().GetDurationMs()
+			}
+			if durationMs <= 0 || durationMs > math.MaxInt64/int64(time.Millisecond) {
+				return false, ErrBurnMediaNotReady
+			}
+			if state.GetUseVideoDuration() {
+				if durationMs > math.MaxInt64/int64(time.Millisecond)-burnVideoPlayPadding.Milliseconds() {
+					return false, ErrBurnMediaNotReady
+				}
+				durationMs += burnVideoPlayPadding.Milliseconds()
+			}
+		}
+		state.Views = append(state.Views, &evtv1.AssetBurnView{UserId: input.ActorID, SessionHash: hash, ExpiresAt: timestamppb.New(now.Add(time.Duration(durationMs) * time.Millisecond))})
 		return true, nil
 	})
 }
@@ -500,4 +526,65 @@ func (s *AssetModel) runBurnExpiry(ctx context.Context) error {
 		case <-ticker.C:
 		}
 	}
+}
+
+// AuthorizeBurnPreview returns only the image source for a fixed blurred preview.
+// Source and thumbnail authority are checked before every cache read.
+func (c *AssetModel) AuthorizeBurnPreview(ctx context.Context, assetID, userID string) (*evtv1.Attachment, error) {
+	state, err := c.FreshAssetState(ctx, assetID)
+	if err != nil {
+		return nil, err
+	}
+	if state.Deleted || state.Creation == nil {
+		return nil, ErrNotFound
+	}
+	if state.Burn == nil || state.Burn.GetPermanent() || !burnRetained(state.Burn, time.Now()) || !slices.Contains(state.Burn.GetRecipientIds(), userID) || !burnPreviewSupported(state) {
+		return nil, ErrPermissionDenied
+	}
+	source := state
+	mediaType, _, _ := mime.ParseMediaType(state.Creation.GetAsset().GetContentType())
+	if strings.HasPrefix(mediaType, "video/") {
+		thumbnailID := state.VideoManifest.Succeeded.GetVideo().GetThumbnailAssetId()
+		source, err = c.FreshAssetState(ctx, thumbnailID)
+		if err != nil {
+			return nil, err
+		}
+		if source.Deleted || source.Creation == nil {
+			return nil, ErrNotFound
+		}
+		if source.RoomID != state.RoomID || source.Creation.GetParentAssetId() != assetID || source.Creation.GetDerivativeRole() != evtv1.AssetDerivativeRole_ASSET_DERIVATIVE_ROLE_THUMBNAIL || !strings.HasPrefix(source.Creation.GetAsset().GetContentType(), "image/") || !burnPreviewSupported(source) {
+			return nil, ErrPermissionDenied
+		}
+	}
+	attachment := attachmentFromAsset(source.Creation.GetAsset())
+	attachment.RoomId = state.RoomID
+	return attachment, nil
+}
+
+func burnPreviewSupported(state AssetState) bool {
+	asset := state.Creation.GetAsset()
+	mediaType, _, _ := mime.ParseMediaType(asset.GetContentType())
+	if strings.HasPrefix(mediaType, "image/") {
+		return BurnAttachmentSupported(mediaType, asset.GetFilename())
+	}
+	return strings.HasPrefix(mediaType, "video/") && state.VideoManifest != nil && state.VideoManifest.Succeeded.GetVideo().GetThumbnailAssetId() != ""
+}
+
+// Audio/video lifetimes come from processing; the configured timeout applies
+// only to non-media attachments. The fallback stays positive for pending states.
+func burnViewingPolicy(contentType string, override, fallback time.Duration) (time.Duration, bool, bool) {
+	mediaType, _, _ := mime.ParseMediaType(contentType)
+	if strings.HasPrefix(mediaType, "video/") {
+		return burnPendingMediaDuration, true, false
+	}
+	if strings.HasPrefix(mediaType, "audio/") {
+		return burnPendingMediaDuration, false, true
+	}
+	if override != 0 {
+		return override, false, false
+	}
+	if strings.HasPrefix(mediaType, "image/") {
+		return 10 * time.Second, false, false
+	}
+	return fallback, false, false
 }

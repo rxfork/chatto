@@ -174,7 +174,10 @@ Reads room-scoped asset metadata and freshly signed asset URLs.
 ### OpenBurnAttachment
 
 Deliberately opens one session. Membership and current message-read access
-are required. The server's configured session limit bounds crash recovery.
+are required. Audio uses its verified duration; video adds 10 seconds to
+its verified duration to press Play. Other files use the configured limit.
+Missing media duration returns failed_precondition without claiming a
+session. Timers start on Open and continue during buffering or pauses.
 
 ```http
 POST /api/connect/chatto.api.v1.AssetService/OpenBurnAttachment
@@ -5351,6 +5354,7 @@ Membership and message-read permission remain required for every operation.
 | `permanence_requested` | `bool` | True when this viewer has an active permanence request. |
 | `requester_ids` | `repeated string` | Present only for the sender. Request IDs never grant access to the file. |
 | `requires_permanence_confirmation` | `bool` | The sender must acknowledge the explanation once in this room. |
+| `preview_asset_url` | [`MessageAssetUrl`](#chatto-api-v1-MessageAssetUrl) | Server-generated blurred image or video still. Never grants an original viewing session. |
 
 
 
