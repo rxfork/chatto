@@ -101,7 +101,11 @@ socket.
 
 `AssetService` also owns deliberate burn viewing, session close, permanence
 requests, sender-only conversion, and conversion-specific Undo. Ordinary asset
-and timeline reads return burn metadata without byte URLs. Only Open returns
+and timeline reads return burn metadata without original byte URLs. Eligible
+image recipients also receive `burn.preview_asset_url` for the fixed
+`/assets/files/:assetID/burn-preview` transform. It applies current membership,
+message-read, frozen-audience, and fresh asset-retention gates before the cache;
+it never reserves a session or redirects to storage. Only Open returns
 session-bound URLs; every binary request rechecks current burn authority.
 
 | Package               | Public services                                                                                                                                                                                                                                                                                                                                                  | Auth policy                                                                                                |

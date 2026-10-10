@@ -853,10 +853,11 @@ func (c *ChattoCore) PostMessage(ctx context.Context, kind RoomKind, room_id, us
 				return nil, invalidArgument("view-once attachments require a supported inline preview")
 			}
 			unopened, recovery, view := c.config.Assets.Burn.Lifetimes()
+			view, useVideoDuration := burnViewingPolicy(state.Creation.GetAsset().GetContentType(), c.config.Assets.Burn.ViewTTL.Duration(), view)
 			attachedEvent.GetAssetAttached().Burn = &evtv1.AssetBurnState{
 				AssetId: assetID, RoomId: room_id, MessageEventId: eventID, UserId: user_id,
 				UnopenedExpiresAt: timestamppb.New(now.Add(unopened)),
-				ViewDurationMs:    view.Milliseconds(), RecoveryDurationMs: recovery.Milliseconds(),
+				ViewDurationMs:    view.Milliseconds(), RecoveryDurationMs: recovery.Milliseconds(), UseVideoDuration: useVideoDuration,
 			}
 		}
 		assetAttachedEvents = append(assetAttachedEvents, attachedEvent)

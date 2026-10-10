@@ -132,6 +132,8 @@ message AssetBurnState {
   google.protobuf.Timestamp undo_expires_at = 13;
   // Successful first-use explanation, retained across undo and deletion.
   bool permanence_acknowledged = 14;
+  // Resolve the verified processed video duration when claiming a session.
+  bool use_video_duration = 15;
 }
 
 // AssetBurnView reserves a single logical viewing session for one recipient.

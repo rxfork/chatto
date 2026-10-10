@@ -10,7 +10,7 @@ import (
 	apiv1 "hmans.de/chatto/internal/pb/chatto/api/v1"
 )
 
-func apiBurnAttachment(api *API, assetID, viewerID string) *apiv1.BurnAttachment {
+func apiBurnAttachment(ctx context.Context, api *API, assetID, viewerID string) *apiv1.BurnAttachment {
 	view := api.core.BurnAttachmentMetadata(assetID, viewerID)
 	if view == nil {
 		return nil
@@ -24,8 +24,13 @@ func apiBurnAttachment(api *API, assetID, viewerID string) *apiv1.BurnAttachment
 		"purged":     apiv1.BurnAttachmentViewerStatus_BURN_ATTACHMENT_VIEWER_STATUS_PURGED,
 		"permanent":  apiv1.BurnAttachmentViewerStatus_BURN_ATTACHMENT_VIEWER_STATUS_PERMANENT,
 	}
+	var preview *apiv1.MessageAssetUrl
+	if view.HasPreview {
+		preview = api.assetURLView(ctx, api.core.GetStableBurnPreviewAssetURL(assetID, viewerID))
+	}
 	return &apiv1.BurnAttachment{
-		ViewerStatus: statuses[view.Status], UnopenedExpiresAt: view.UnopenedExpiresAt, DeleteAt: view.DeleteAt,
+		PreviewAssetUrl: preview,
+		ViewerStatus:    statuses[view.Status], UnopenedExpiresAt: view.UnopenedExpiresAt, DeleteAt: view.DeleteAt,
 		ViewExpiresAt: view.ViewExpiresAt, CanMakePermanent: view.CanMakePermanent,
 		CanRequestPermanent: view.CanRequestPermanent, PermanenceRequested: view.PermanenceRequested,
 		RequesterIds: view.RequesterIDs, RequiresPermanenceConfirmation: view.RequiresPermanenceConfirmation,

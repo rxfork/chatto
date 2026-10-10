@@ -38,6 +38,9 @@ func TestBurnAttachmentAudienceAndIndependentSessions(t *testing.T) {
 			assetID := postBurnTestAttachment(t, c, ctx, owner.Id, room.Id)
 			state := c.GetAssetState(assetID).Burn
 			require.ElementsMatch(t, []string{owner.Id, recipient.Id}, state.RecipientIds)
+			require.Equal(t, int64(10000), state.ViewDurationMs)
+			require.NoError(t, c.AuthorizeBurnPreview(ctx, assetID, recipient.Id))
+			require.Empty(t, c.GetAssetState(assetID).Burn.Views)
 			require.Equal(t, "available", c.BurnAttachmentMetadata(assetID, recipient.Id).Status)
 			input := BurnAttachmentInput{ActorID: recipient.Id, RoomID: room.Id, AssetID: assetID, SessionID: "recipient-session-123"}
 			_, err := c.OpenBurnAttachment(ctx, input)
@@ -72,6 +75,8 @@ func TestBurnAttachmentAudienceAndIndependentSessions(t *testing.T) {
 				_, err = c.OpenBurnAttachment(ctx, input)
 				require.ErrorIs(t, err, ErrPermissionDenied)
 				require.Equal(t, "ineligible", c.BurnAttachmentMetadata(assetID, late.Id).Status)
+				require.False(t, c.BurnAttachmentMetadata(assetID, late.Id).HasPreview)
+				require.ErrorIs(t, c.AuthorizeBurnPreview(ctx, assetID, late.Id), ErrPermissionDenied)
 				input.Requested = true
 				_, err = c.RequestAttachmentPermanence(ctx, input)
 				require.ErrorIs(t, err, ErrPermissionDenied)
@@ -204,6 +209,7 @@ func TestBurnExpiryAndPermanenceUseSameAssetFence(t *testing.T) {
 	require.NoError(t, err)
 	require.NoError(t, c.assetModel.expireBurnAttachment(ctx, assetID, deadline.Add(time.Second)))
 	require.True(t, c.GetAssetState(assetID).Deleted)
+	require.ErrorIs(t, c.AuthorizeBurnPreview(ctx, assetID, owner.Id), ErrNotFound)
 	_, err = c.AuthorizeAssetBinary(ctx, child.Id, owner.Id, "", false)
 	require.ErrorIs(t, err, ErrNotFound)
 	require.NoError(t, consumeAssetCleanupForTest(ctx, restartAssetModel(t, c)))
@@ -234,7 +240,7 @@ func TestBurnExpiryAndPermanenceUseSameAssetFence(t *testing.T) {
 func TestBurnProjectionReplaySnapshotAndDeletionKeepConsumedSessions(t *testing.T) {
 	p := NewAssetProjection()
 	state := &evtv1.AssetBurnState{AssetId: "A1", RoomId: "R1", UserId: "U1", MessageEventId: "M1", RecipientIds: []string{"U1", "U2"},
-		UnopenedExpiresAt: timestamppb.New(time.Now().Add(time.Hour)), ViewDurationMs: 300000, RecoveryDurationMs: 3600000}
+		UnopenedExpiresAt: timestamppb.New(time.Now().Add(time.Hour)), ViewDurationMs: 300000, RecoveryDurationMs: 3600000, UseVideoDuration: true}
 	created := testCoreAssetCreatedEvent("R1", "A1", "image/png")
 	attached := &evtv1.Event{Id: "attached", Event: &evtv1.Event_AssetAttached{AssetAttached: &evtv1.AssetAttachedEvent{AssetId: "A1", RoomId: "R1", UserId: "U1", MessageEventId: "M1", Burn: state}}}
 	require.NoError(t, p.Apply(created, 1))
@@ -277,4 +283,70 @@ func TestBurnAttachmentSupportedTypes(t *testing.T) {
 	for _, typ := range []string{"image/svg+xml", "text/html", "application/xhtml+xml", "application/zip"} {
 		require.False(t, BurnAttachmentSupported(typ, "file"), typ)
 	}
+}
+
+func TestBurnViewingPolicy(t *testing.T) {
+	for _, tt := range []struct {
+		content        string
+		override, want time.Duration
+		video          bool
+	}{
+		{"image/png", 0, 10 * time.Second, false}, {"image/png; charset=utf-8", 0, 10 * time.Second, false},
+		{"video/mp4", 0, 5 * time.Minute, true}, {"audio/mp3", 0, 5 * time.Minute, false},
+		{"application/pdf", 0, 5 * time.Minute, false}, {"video/mp4", 42 * time.Second, 42 * time.Second, false},
+		{"image/png", 42 * time.Second, 42 * time.Second, false},
+	} {
+		t.Run(tt.content+tt.override.String(), func(t *testing.T) {
+			duration, video := burnViewingPolicy(tt.content, tt.override, 5*time.Minute)
+			require.Equal(t, tt.want, duration)
+			require.Equal(t, tt.video, video)
+		})
+	}
+}
+
+func TestBurnVideoDurationWaitDoesNotConsumeSession(t *testing.T) {
+	c, _ := setupTestCore(t)
+	ctx := testContext(t)
+	owner, recipient, room := setupAttachmentOwnershipUsers(t, c, ctx, "burn-duration")
+	asset, err := c.UploadAttachment(ctx, owner.Id, room.Id, "clip.mp4", "video/mp4", bytes.NewReader([]byte("video fixture")))
+	require.NoError(t, err)
+	_, err = c.Messages().PostMessage(ctx, MessagePostInput{ActorID: owner.Id, RoomID: room.Id,
+		AttachmentAssetIDs: []string{asset.Id}, BurnAttachmentAssetIDs: []string{asset.Id}})
+	require.NoError(t, err)
+	id := asset.Id
+	require.True(t, c.GetAssetState(id).Burn.UseVideoDuration)
+	require.False(t, c.BurnAttachmentMetadata(id, recipient.Id).HasPreview)
+	// Later configuration changes cannot replace the policy captured at send.
+	c.config.Assets.Burn.ViewTTL = config.Duration(time.Second)
+	input := BurnAttachmentInput{ActorID: recipient.Id, RoomID: room.Id, AssetID: id, SessionID: "duration-session-12345"}
+	_, err = c.OpenBurnAttachment(ctx, input)
+	require.ErrorIs(t, err, ErrBurnVideoNotReady)
+	require.Empty(t, c.GetAssetState(id).Burn.Views)
+	event := newEvent(SystemActorID, &evtv1.Event{Event: &evtv1.Event_AssetProcessingSucceeded{AssetProcessingSucceeded: &evtv1.AssetProcessingSucceededEvent{AssetId: id, Video: &evtv1.AssetProcessedVideo{DurationMs: 12345}}}})
+	require.NoError(t, c.assetModel.publishAssetProcessing(ctx, room.Id, event))
+	before := time.Now()
+	result, err := c.OpenBurnAttachment(ctx, input)
+	require.NoError(t, err)
+	deadline := result.Burn.Views[0].ExpiresAt.AsTime()
+	require.WithinDuration(t, before.Add(12345*time.Millisecond), deadline, time.Second)
+	result, err = c.OpenBurnAttachment(ctx, input)
+	require.NoError(t, err)
+	require.Equal(t, deadline, result.Burn.Views[0].ExpiresAt.AsTime())
+}
+
+func TestBurnVideoExplicitOverrideIsCaptured(t *testing.T) {
+	c, _ := setupTestCore(t)
+	ctx := testContext(t)
+	owner, recipient, room := setupAttachmentOwnershipUsers(t, c, ctx, "burn-override")
+	c.config.Assets.Burn.ViewTTL = config.Duration(42 * time.Second)
+	asset, err := c.UploadAttachment(ctx, owner.Id, room.Id, "clip.mp4", "video/mp4", bytes.NewReader([]byte("video fixture")))
+	require.NoError(t, err)
+	_, err = c.Messages().PostMessage(ctx, MessagePostInput{ActorID: owner.Id, RoomID: room.Id, AttachmentAssetIDs: []string{asset.Id}, BurnAttachmentAssetIDs: []string{asset.Id}})
+	require.NoError(t, err)
+	require.False(t, c.GetAssetState(asset.Id).Burn.UseVideoDuration)
+	c.config.Assets.Burn.ViewTTL = 0
+	before := time.Now()
+	result, err := c.OpenBurnAttachment(ctx, BurnAttachmentInput{ActorID: recipient.Id, RoomID: room.Id, AssetID: asset.Id, SessionID: "override-session-12345"})
+	require.NoError(t, err)
+	require.WithinDuration(t, before.Add(42*time.Second), result.Burn.Views[0].ExpiresAt.AsTime(), time.Second)
 }

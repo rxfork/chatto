@@ -422,8 +422,10 @@ type AssetBurnState struct {
 	UndoExpiresAt      *timestamppb.Timestamp `protobuf:"bytes,13,opt,name=undo_expires_at,json=undoExpiresAt,proto3" json:"undo_expires_at,omitempty"`
 	// Successful first-use explanation, retained across undo and deletion.
 	PermanenceAcknowledged bool `protobuf:"varint,14,opt,name=permanence_acknowledged,json=permanenceAcknowledged,proto3" json:"permanence_acknowledged,omitempty"`
-	unknownFields          protoimpl.UnknownFields
-	sizeCache              protoimpl.SizeCache
+	// Resolve the verified processed video duration when claiming a session.
+	UseVideoDuration bool `protobuf:"varint,15,opt,name=use_video_duration,json=useVideoDuration,proto3" json:"use_video_duration,omitempty"`
+	unknownFields    protoimpl.UnknownFields
+	sizeCache        protoimpl.SizeCache
 }
 
 func (x *AssetBurnState) Reset() {
@@ -550,6 +552,13 @@ func (x *AssetBurnState) GetUndoExpiresAt() *timestamppb.Timestamp {
 func (x *AssetBurnState) GetPermanenceAcknowledged() bool {
 	if x != nil {
 		return x.PermanenceAcknowledged
+	}
+	return false
+}
+
+func (x *AssetBurnState) GetUseVideoDuration() bool {
+	if x != nil {
+		return x.UseVideoDuration
 	}
 	return false
 }
@@ -1194,7 +1203,7 @@ const file_chatto_core_evt_v1_asset_events_proto_rawDesc = "" +
 	"\aroom_id\x18\x02 \x01(\tR\x06roomId\x12(\n" +
 	"\x10message_event_id\x18\x03 \x01(\tR\x0emessageEventId\x12\x17\n" +
 	"\auser_id\x18\x04 \x01(\tR\x06userId\x126\n" +
-	"\x04burn\x18\x05 \x01(\v2\".chatto.core.evt.v1.AssetBurnStateR\x04burn\"\xfb\x04\n" +
+	"\x04burn\x18\x05 \x01(\v2\".chatto.core.evt.v1.AssetBurnStateR\x04burn\"\xa9\x05\n" +
 	"\x0eAssetBurnState\x12\x19\n" +
 	"\basset_id\x18\x01 \x01(\tR\aassetId\x12\x17\n" +
 	"\aroom_id\x18\x02 \x01(\tR\x06roomId\x12(\n" +
@@ -1210,7 +1219,8 @@ const file_chatto_core_evt_v1_asset_events_proto_rawDesc = "" +
 	"\tpermanent\x18\v \x01(\bR\tpermanent\x12,\n" +
 	"\x12permanent_event_id\x18\f \x01(\tR\x10permanentEventId\x12B\n" +
 	"\x0fundo_expires_at\x18\r \x01(\v2\x1a.google.protobuf.TimestampR\rundoExpiresAt\x127\n" +
-	"\x17permanence_acknowledged\x18\x0e \x01(\bR\x16permanenceAcknowledged\"\xbf\x01\n" +
+	"\x17permanence_acknowledged\x18\x0e \x01(\bR\x16permanenceAcknowledged\x12,\n" +
+	"\x12use_video_duration\x18\x0f \x01(\bR\x10useVideoDuration\"\xbf\x01\n" +
 	"\rAssetBurnView\x12\x17\n" +
 	"\auser_id\x18\x01 \x01(\tR\x06userId\x12!\n" +
 	"\fsession_hash\x18\x02 \x01(\tR\vsessionHash\x129\n" +

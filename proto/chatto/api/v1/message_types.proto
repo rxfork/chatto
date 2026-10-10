@@ -146,6 +146,8 @@ message BurnAttachment {
   repeated string requester_ids = 8;
   // The sender must acknowledge the explanation once in this room.
   bool requires_permanence_confirmation = 9;
+  // Server-reduced, heavily blurred image. Never grants an original viewing session.
+  MessageAssetUrl preview_asset_url = 10;
 }
 
 // Aggregated reaction state for one emoji on one message.

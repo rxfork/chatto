@@ -616,8 +616,10 @@ type BurnAttachment struct {
 	RequesterIds []string `protobuf:"bytes,8,rep,name=requester_ids,json=requesterIds,proto3" json:"requester_ids,omitempty"`
 	// The sender must acknowledge the explanation once in this room.
 	RequiresPermanenceConfirmation bool `protobuf:"varint,9,opt,name=requires_permanence_confirmation,json=requiresPermanenceConfirmation,proto3" json:"requires_permanence_confirmation,omitempty"`
-	unknownFields                  protoimpl.UnknownFields
-	sizeCache                      protoimpl.SizeCache
+	// Server-reduced, heavily blurred image. Never grants an original viewing session.
+	PreviewAssetUrl *MessageAssetUrl `protobuf:"bytes,10,opt,name=preview_asset_url,json=previewAssetUrl,proto3" json:"preview_asset_url,omitempty"`
+	unknownFields   protoimpl.UnknownFields
+	sizeCache       protoimpl.SizeCache
 }
 
 func (x *BurnAttachment) Reset() {
@@ -711,6 +713,13 @@ func (x *BurnAttachment) GetRequiresPermanenceConfirmation() bool {
 		return x.RequiresPermanenceConfirmation
 	}
 	return false
+}
+
+func (x *BurnAttachment) GetPreviewAssetUrl() *MessageAssetUrl {
+	if x != nil {
+		return x.PreviewAssetUrl
+	}
+	return nil
 }
 
 // Aggregated reaction state for one emoji on one message.
@@ -1238,7 +1247,7 @@ const file_chatto_api_v1_message_types_proto_rawDesc = "" +
 	"\vdescription\x18\t \x01(\tH\x00R\vdescription\x88\x01\x01\x121\n" +
 	"\x04burn\x18\n" +
 	" \x01(\v2\x1d.chatto.api.v1.BurnAttachmentR\x04burnB\x0e\n" +
-	"\f_description\"\xad\x04\n" +
+	"\f_description\"\xf9\x04\n" +
 	"\x0eBurnAttachment\x12N\n" +
 	"\rviewer_status\x18\x01 \x01(\x0e2).chatto.api.v1.BurnAttachmentViewerStatusR\fviewerStatus\x12J\n" +
 	"\x13unopened_expires_at\x18\x02 \x01(\v2\x1a.google.protobuf.TimestampR\x11unopenedExpiresAt\x127\n" +
@@ -1248,7 +1257,9 @@ const file_chatto_api_v1_message_types_proto_rawDesc = "" +
 	"\x15can_request_permanent\x18\x06 \x01(\bR\x13canRequestPermanent\x121\n" +
 	"\x14permanence_requested\x18\a \x01(\bR\x13permanenceRequested\x12#\n" +
 	"\rrequester_ids\x18\b \x03(\tR\frequesterIds\x12H\n" +
-	" requires_permanence_confirmation\x18\t \x01(\bR\x1erequiresPermanenceConfirmation\"\x88\x01\n" +
+	" requires_permanence_confirmation\x18\t \x01(\bR\x1erequiresPermanenceConfirmation\x12J\n" +
+	"\x11preview_asset_url\x18\n" +
+	" \x01(\v2\x1e.chatto.api.v1.MessageAssetUrlR\x0fpreviewAssetUrl\"\x88\x01\n" +
 	"\x0fMessageReaction\x12\x14\n" +
 	"\x05emoji\x18\x01 \x01(\tR\x05emoji\x12\x14\n" +
 	"\x05count\x18\x02 \x01(\x05R\x05count\x12\x1f\n" +
@@ -1358,21 +1369,22 @@ var file_chatto_api_v1_message_types_proto_depIdxs = []int32{
 	13, // 12: chatto.api.v1.BurnAttachment.unopened_expires_at:type_name -> google.protobuf.Timestamp
 	13, // 13: chatto.api.v1.BurnAttachment.delete_at:type_name -> google.protobuf.Timestamp
 	13, // 14: chatto.api.v1.BurnAttachment.view_expires_at:type_name -> google.protobuf.Timestamp
-	13, // 15: chatto.api.v1.ThreadSummary.last_reply_at:type_name -> google.protobuf.Timestamp
-	9,  // 16: chatto.api.v1.ThreadSummary.viewer_state:type_name -> chatto.api.v1.ThreadViewerState
-	13, // 17: chatto.api.v1.Message.created_at:type_name -> google.protobuf.Timestamp
-	6,  // 18: chatto.api.v1.Message.attachments:type_name -> chatto.api.v1.MessageAttachment
-	14, // 19: chatto.api.v1.Message.link_preview:type_name -> chatto.api.v1.LinkPreview
-	13, // 20: chatto.api.v1.Message.updated_at:type_name -> google.protobuf.Timestamp
-	8,  // 21: chatto.api.v1.Message.reactions:type_name -> chatto.api.v1.MessageReaction
-	10, // 22: chatto.api.v1.Message.thread:type_name -> chatto.api.v1.ThreadSummary
-	13, // 23: chatto.api.v1.Message.deleted_at:type_name -> google.protobuf.Timestamp
-	11, // 24: chatto.api.v1.Message.viewer_state:type_name -> chatto.api.v1.MessageViewerState
-	25, // [25:25] is the sub-list for method output_type
-	25, // [25:25] is the sub-list for method input_type
-	25, // [25:25] is the sub-list for extension type_name
-	25, // [25:25] is the sub-list for extension extendee
-	0,  // [0:25] is the sub-list for field type_name
+	2,  // 15: chatto.api.v1.BurnAttachment.preview_asset_url:type_name -> chatto.api.v1.MessageAssetUrl
+	13, // 16: chatto.api.v1.ThreadSummary.last_reply_at:type_name -> google.protobuf.Timestamp
+	9,  // 17: chatto.api.v1.ThreadSummary.viewer_state:type_name -> chatto.api.v1.ThreadViewerState
+	13, // 18: chatto.api.v1.Message.created_at:type_name -> google.protobuf.Timestamp
+	6,  // 19: chatto.api.v1.Message.attachments:type_name -> chatto.api.v1.MessageAttachment
+	14, // 20: chatto.api.v1.Message.link_preview:type_name -> chatto.api.v1.LinkPreview
+	13, // 21: chatto.api.v1.Message.updated_at:type_name -> google.protobuf.Timestamp
+	8,  // 22: chatto.api.v1.Message.reactions:type_name -> chatto.api.v1.MessageReaction
+	10, // 23: chatto.api.v1.Message.thread:type_name -> chatto.api.v1.ThreadSummary
+	13, // 24: chatto.api.v1.Message.deleted_at:type_name -> google.protobuf.Timestamp
+	11, // 25: chatto.api.v1.Message.viewer_state:type_name -> chatto.api.v1.MessageViewerState
+	26, // [26:26] is the sub-list for method output_type
+	26, // [26:26] is the sub-list for method input_type
+	26, // [26:26] is the sub-list for extension type_name
+	26, // [26:26] is the sub-list for extension extendee
+	0,  // [0:26] is the sub-list for field type_name
 }
 
 func init() { file_chatto_api_v1_message_types_proto_init() }

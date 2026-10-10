@@ -1,7 +1,7 @@
 # FDR-008: File Attachments & Video Processing
 
 **Status:** Active
-**Last reviewed:** 2026-10-09
+**Last reviewed:** 2026-10-10
 
 ## Overview
 
@@ -169,10 +169,15 @@ Fresh servers seed `message.attach` for `everyone` so new deployments keep uploa
   Current room membership and message-read permission are still required.
 - Opening the viewer starts the session. Closing it or reaching its deadline
   ends access. A second device cannot claim another session. Metadata reads,
-  history, file lists, and scrolling never open a session or expose a preview.
+  history, file lists, and scrolling never open a session. Original recipients
+  can see a heavily blurred image preview while the file is retained. It
+  reveals coarse colors and shapes, and cannot be removed to reveal detail.
 - Unopened sessions expire after 24 hours by default. A viewing session lasts
-  at most 5 minutes. After every session ends or expires, the server keeps the
-  file for 1 more hour by default. Operators configure these durations in TOML.
+  10 seconds for images, the processed video duration for videos, and 5 minutes
+  for audio and documents. Videos wait for processing before opening; waiting
+  does not consume a session. The timer starts on Open, including playback
+  buffering or pauses. An explicit viewing lifetime overrides these defaults.
+  After every session ends or expires, the server keeps the file for 1 more hour by default. Operators configure these durations in TOML.
   Each file keeps the durations in effect when it was sent.
 - Original recipients can request permanent access, cancel that request, and
   see their own request state. Requests do not extend retention. The sender

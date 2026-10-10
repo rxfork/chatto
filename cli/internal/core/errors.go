@@ -8,6 +8,9 @@ import (
 
 // Sentinel errors for common error conditions in ChattoCore.
 var (
+	// ErrBurnVideoNotReady leaves the viewing session unclaimed until duration is verified.
+	ErrBurnVideoNotReady = errors.New("video processing must finish before opening")
+
 	// ErrNotFound is returned when a requested resource does not exist.
 	ErrNotFound = errors.New("not found")
 

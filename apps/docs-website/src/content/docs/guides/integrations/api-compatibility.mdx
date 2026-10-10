@@ -63,8 +63,9 @@ burn mode. An older binary does not enforce the stored session policy. Do not
 roll back those replicas while burn attachments remain in storage.
 
 `Asset.burn` and `MessageAttachment.burn` contain viewer-specific
-metadata. Non-permanent burn files have no preview or download URLs in normal
-reads. Older clients can display their metadata but cannot view them.
+metadata. Non-permanent burn files have no original or download URLs in normal
+reads. `burn.preview_asset_url` is a separately authorized, reduced and blurred
+image for original recipients; it does not start or grant a viewing session. Older clients can display their metadata but cannot view them.
 
 Open a session only after a deliberate user action with
 `AssetService.OpenBurnAttachment`. Generate a random `session_id` before the

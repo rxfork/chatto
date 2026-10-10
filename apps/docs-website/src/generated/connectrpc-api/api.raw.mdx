@@ -5351,6 +5351,7 @@ Membership and message-read permission remain required for every operation.
 | `permanence_requested` | `bool` | True when this viewer has an active permanence request. |
 | `requester_ids` | `repeated string` | Present only for the sender. Request IDs never grant access to the file. |
 | `requires_permanence_confirmation` | `bool` | The sender must acknowledge the explanation once in this room. |
+| `preview_asset_url` | [`MessageAssetUrl`](#chatto-api-v1-MessageAssetUrl) | Server-reduced, heavily blurred image. Never grants an original viewing session. |
 
 
 

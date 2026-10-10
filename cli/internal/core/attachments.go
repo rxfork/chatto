@@ -927,6 +927,7 @@ func (c *MediaModel) StoreCachedResize(ctx context.Context, key string, data []b
 // remain unaddressable and age out through the configured TTL.
 func (c *MediaModel) DeleteCachedResizesForAttachment(ctx context.Context, attachmentID string) (int, error) {
 	prefixes := []string{
+		BurnPreviewCacheResource,
 		AttachmentDerivativeCacheResource,
 		AttachmentSignResource,
 		attachmentLegacyStableCacheResource,
@@ -1033,4 +1034,15 @@ func (c *ChattoCore) attachmentBinaryStatus(ctx context.Context, attachment *evt
 		return AttachmentBinaryMissing
 	}
 	return AttachmentBinaryUnknown
+}
+
+// BurnPreviewCacheResource contains only reduced, blurred JPEGs.
+const BurnPreviewCacheResource = "attachment-burn-preview-v1"
+
+func (c *MediaModel) GetStableBurnPreviewAssetURL(assetID, userID string) StableAssetURL {
+	if assetID == "" || userID == "" {
+		return StableAssetURL{}
+	}
+	expiresAt := c.assetAccessTicketExpiry()
+	return StableAssetURL{URL: c.stableAttachmentPathWithAccess(assetID, userID, "/assets/files/"+url.PathEscape(assetID)+"/burn-preview", nil, expiresAt), ExpiresAt: expiresAt}
 }
