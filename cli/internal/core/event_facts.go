@@ -193,6 +193,9 @@ func (c *ChattoCore) MessageReadProtectedEventRoomID(event *evtv1.Event) (string
 	case *evtv1.Event_AssetAttached:
 		roomID := event.GetAssetAttached().GetRoomId()
 		return roomID, roomID != ""
+	case *evtv1.Event_AssetBurnUpdated:
+		roomID := event.GetAssetBurnUpdated().GetState().GetRoomId()
+		return roomID, roomID != ""
 	case *evtv1.Event_AssetProcessingStarted,
 		*evtv1.Event_AssetProcessingSucceeded,
 		*evtv1.Event_AssetProcessingFailed,
@@ -269,6 +272,8 @@ func (c *ChattoCore) MessageEventSourceMessageID(roomID string, event *evtv1.Eve
 		messageEventID = payload.ReactionRemoved.GetMessageEventId()
 	case *evtv1.Event_AssetAttached:
 		messageEventID = payload.AssetAttached.GetMessageEventId()
+	case *evtv1.Event_AssetBurnUpdated:
+		messageEventID = payload.AssetBurnUpdated.GetState().GetMessageEventId()
 	case *evtv1.Event_AssetProcessingStarted,
 		*evtv1.Event_AssetProcessingSucceeded,
 		*evtv1.Event_AssetProcessingFailed,
@@ -311,6 +316,8 @@ func assetIDOfLifecycleEvent(event *evtv1.Event) string {
 		return ev.AssetDeleted.GetAssetId()
 	case *evtv1.Event_AssetAttached:
 		return ev.AssetAttached.GetAssetId()
+	case *evtv1.Event_AssetBurnUpdated:
+		return ev.AssetBurnUpdated.GetState().GetAssetId()
 	default:
 		return ""
 	}
@@ -323,6 +330,7 @@ func isAssetLifecycleEvent(event *evtv1.Event) bool {
 		*evtv1.Event_AssetProcessingSucceeded,
 		*evtv1.Event_AssetProcessingFailed,
 		*evtv1.Event_AssetDeleted,
+		*evtv1.Event_AssetBurnUpdated,
 		*evtv1.Event_AssetAttached:
 		return true
 	default:
@@ -431,6 +439,7 @@ func isDeliverableLiveEVTRoomEventType(eventType string) bool {
 		evtstream.EventAssetProcessingSucceeded,
 		evtstream.EventAssetProcessingFailed,
 		evtstream.EventAssetDeleted,
+		evtstream.EventAssetBurnUpdated,
 		evtstream.EventCallStarted,
 		evtstream.EventCallParticipantJoined,
 		evtstream.EventCallParticipantLeft,
@@ -451,6 +460,8 @@ func isDeliverableLiveEVTAssetEventType(eventType string) bool {
 		evtstream.EventAssetProcessingSucceeded,
 		evtstream.EventAssetProcessingFailed,
 		evtstream.EventAssetDeleted:
+		return true
+	case evtstream.EventAssetBurnUpdated:
 		return true
 	default:
 		return false

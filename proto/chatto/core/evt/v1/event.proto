@@ -2,23 +2,23 @@ syntax = "proto3";
 
 package chatto.core.evt.v1;
 
-import "google/protobuf/timestamp.proto";
-import "chatto/core/evt/v1/auth_events.proto";
-import "chatto/core/evt/v1/setup_events.proto";
-import "chatto/core/evt/v1/authorization_events.proto";
 import "chatto/core/evt/v1/asset_events.proto";
+import "chatto/core/evt/v1/auth_events.proto";
+import "chatto/core/evt/v1/authorization_events.proto";
+import "chatto/core/evt/v1/bot_webhook_events.proto";
+import "chatto/core/evt/v1/config_events.proto";
+import "chatto/core/evt/v1/invitation_events.proto";
 import "chatto/core/evt/v1/message_events.proto";
 import "chatto/core/evt/v1/moderation_events.proto";
+import "chatto/core/evt/v1/oauth_client_events.proto";
 import "chatto/core/evt/v1/rbac_events.proto";
 import "chatto/core/evt/v1/reaction_events.proto";
 import "chatto/core/evt/v1/room_events.proto";
 import "chatto/core/evt/v1/room_group_events.proto";
-import "chatto/core/evt/v1/config_events.proto";
+import "chatto/core/evt/v1/setup_events.proto";
 import "chatto/core/evt/v1/thread_events.proto";
 import "chatto/core/evt/v1/user_events.proto";
-import "chatto/core/evt/v1/invitation_events.proto";
-import "chatto/core/evt/v1/oauth_client_events.proto";
-import "chatto/core/evt/v1/bot_webhook_events.proto";
+import "google/protobuf/timestamp.proto";
 
 option go_package = "hmans.de/chatto/internal/pb/chatto/core/evt/v1;evtv1";
 
@@ -122,6 +122,7 @@ message Event {
     AssetProcessingFailedEvent asset_processing_failed = 453;
     AssetDeletedEvent asset_deleted = 454;
     AssetAttachedEvent asset_attached = 455;
+    AssetBurnUpdatedEvent asset_burn_updated = 456;
 
     // ----- Config / preferences (500-599, durable) -----
     // These variants live on the EVT stream (subjects under evt.config.>)

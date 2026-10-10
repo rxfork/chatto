@@ -234,6 +234,7 @@
   <ComposerAttachmentPreviews
     attachments={composer.attachments}
     disabled={composer.submission.loading}
+    burnEnabled={serverInfo.burnAttachmentsEnabled}
     getSubmissionStatus={(file) => composer.submission.attachmentStatus(file)}
     onremove={(index) => composer.attachments.removeFile(index)}
     ondescription={openAttachmentDescription}

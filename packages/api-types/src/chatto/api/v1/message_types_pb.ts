@@ -50,6 +50,79 @@ proto3.util.setEnumType(MessageVideoProcessingStatus, "chatto.api.v1.MessageVide
 ]);
 
 /**
+ * BurnAttachmentViewerStatus describes the current viewer's access, independent
+ * of other recipients. Server time owns every deadline.
+ *
+ * @generated from enum chatto.api.v1.BurnAttachmentViewerStatus
+ */
+export enum BurnAttachmentViewerStatus {
+  /**
+   * @generated from enum value: BURN_ATTACHMENT_VIEWER_STATUS_UNSPECIFIED = 0;
+   */
+  UNSPECIFIED = 0,
+
+  /**
+   * The original recipient has one unused session.
+   *
+   * @generated from enum value: BURN_ATTACHMENT_VIEWER_STATUS_AVAILABLE = 1;
+   */
+  AVAILABLE = 1,
+
+  /**
+   * The original recipient has an active viewing session.
+   *
+   * @generated from enum value: BURN_ATTACHMENT_VIEWER_STATUS_VIEWING = 2;
+   */
+  VIEWING = 2,
+
+  /**
+   * The recipient's session ended and cannot be opened again.
+   *
+   * @generated from enum value: BURN_ATTACHMENT_VIEWER_STATUS_BURNED = 3;
+   */
+  BURNED = 3,
+
+  /**
+   * The unopened session expired.
+   *
+   * @generated from enum value: BURN_ATTACHMENT_VIEWER_STATUS_EXPIRED = 4;
+   */
+  EXPIRED = 4,
+
+  /**
+   * The viewer was not a member when the attachment was sent.
+   *
+   * @generated from enum value: BURN_ATTACHMENT_VIEWER_STATUS_INELIGIBLE = 5;
+   */
+  INELIGIBLE = 5,
+
+  /**
+   * Recovery ended or the source file was deleted. Access cannot be restored.
+   *
+   * @generated from enum value: BURN_ATTACHMENT_VIEWER_STATUS_PURGED = 6;
+   */
+  PURGED = 6,
+
+  /**
+   * The sender converted the attachment to normal message access.
+   *
+   * @generated from enum value: BURN_ATTACHMENT_VIEWER_STATUS_PERMANENT = 7;
+   */
+  PERMANENT = 7,
+}
+// Retrieve enum metadata with: proto3.getEnumType(BurnAttachmentViewerStatus)
+proto3.util.setEnumType(BurnAttachmentViewerStatus, "chatto.api.v1.BurnAttachmentViewerStatus", [
+  { no: 0, name: "BURN_ATTACHMENT_VIEWER_STATUS_UNSPECIFIED" },
+  { no: 1, name: "BURN_ATTACHMENT_VIEWER_STATUS_AVAILABLE" },
+  { no: 2, name: "BURN_ATTACHMENT_VIEWER_STATUS_VIEWING" },
+  { no: 3, name: "BURN_ATTACHMENT_VIEWER_STATUS_BURNED" },
+  { no: 4, name: "BURN_ATTACHMENT_VIEWER_STATUS_EXPIRED" },
+  { no: 5, name: "BURN_ATTACHMENT_VIEWER_STATUS_INELIGIBLE" },
+  { no: 6, name: "BURN_ATTACHMENT_VIEWER_STATUS_PURGED" },
+  { no: 7, name: "BURN_ATTACHMENT_VIEWER_STATUS_PERMANENT" },
+]);
+
+/**
  * Time-limited URL for an asset attached to a message.
  *
  * Clients should expect these URLs to expire and refresh the asset through
@@ -399,6 +472,14 @@ export class MessageAttachment extends Message$1<MessageAttachment> {
    */
   description?: string;
 
+  /**
+   * Viewer-specific view-once policy. Absent on ordinary attachments. File
+   * URLs are absent until OpenBurnAttachment grants a viewing session.
+   *
+   * @generated from field: chatto.api.v1.BurnAttachment burn = 10;
+   */
+  burn?: BurnAttachment;
+
   constructor(data?: PartialMessage<MessageAttachment>) {
     super();
     proto3.util.initPartial(data, this);
@@ -416,6 +497,7 @@ export class MessageAttachment extends Message$1<MessageAttachment> {
     { no: 7, name: "thumbnail_asset_url", kind: "message", T: MessageAssetUrl },
     { no: 8, name: "video_processing", kind: "message", T: MessageVideoProcessing },
     { no: 9, name: "description", kind: "scalar", T: 9 /* ScalarType.STRING */, opt: true },
+    { no: 10, name: "burn", kind: "message", T: BurnAttachment },
   ]);
 
   static fromBinary(bytes: Uint8Array, options?: Partial<BinaryReadOptions>): MessageAttachment {
@@ -432,6 +514,112 @@ export class MessageAttachment extends Message$1<MessageAttachment> {
 
   static equals(a: MessageAttachment | PlainMessage<MessageAttachment> | undefined, b: MessageAttachment | PlainMessage<MessageAttachment> | undefined): boolean {
     return proto3.util.equals(MessageAttachment, a, b);
+  }
+}
+
+/**
+ * BurnAttachment contains metadata only. Reading it does not consume a session.
+ * Membership and message-read permission remain required for every operation.
+ *
+ * @generated from message chatto.api.v1.BurnAttachment
+ */
+export class BurnAttachment extends Message$1<BurnAttachment> {
+  /**
+   * Current viewer's session state. Other recipients' views are private.
+   *
+   * @generated from field: chatto.api.v1.BurnAttachmentViewerStatus viewer_status = 1;
+   */
+  viewerStatus = BurnAttachmentViewerStatus.UNSPECIFIED;
+
+  /**
+   * Time when unused sessions expire.
+   *
+   * @generated from field: google.protobuf.Timestamp unopened_expires_at = 2;
+   */
+  unopenedExpiresAt?: Timestamp;
+
+  /**
+   * Fixed deletion deadline after all original sessions end or expire.
+   *
+   * @generated from field: google.protobuf.Timestamp delete_at = 3;
+   */
+  deleteAt?: Timestamp;
+
+  /**
+   * Active session deadline. Clients clear displayed bytes when it passes.
+   *
+   * @generated from field: google.protobuf.Timestamp view_expires_at = 4;
+   */
+  viewExpiresAt?: Timestamp;
+
+  /**
+   * True only for the sender while the file is retained and not permanent.
+   *
+   * @generated from field: bool can_make_permanent = 5;
+   */
+  canMakePermanent = false;
+
+  /**
+   * True for an original recipient other than the sender while retained.
+   *
+   * @generated from field: bool can_request_permanent = 6;
+   */
+  canRequestPermanent = false;
+
+  /**
+   * True when this viewer has an active permanence request.
+   *
+   * @generated from field: bool permanence_requested = 7;
+   */
+  permanenceRequested = false;
+
+  /**
+   * Present only for the sender. Request IDs never grant access to the file.
+   *
+   * @generated from field: repeated string requester_ids = 8;
+   */
+  requesterIds: string[] = [];
+
+  /**
+   * The sender must acknowledge the explanation once in this room.
+   *
+   * @generated from field: bool requires_permanence_confirmation = 9;
+   */
+  requiresPermanenceConfirmation = false;
+
+  constructor(data?: PartialMessage<BurnAttachment>) {
+    super();
+    proto3.util.initPartial(data, this);
+  }
+
+  static readonly runtime: typeof proto3 = proto3;
+  static readonly typeName = "chatto.api.v1.BurnAttachment";
+  static readonly fields: FieldList = proto3.util.newFieldList(() => [
+    { no: 1, name: "viewer_status", kind: "enum", T: proto3.getEnumType(BurnAttachmentViewerStatus) },
+    { no: 2, name: "unopened_expires_at", kind: "message", T: Timestamp },
+    { no: 3, name: "delete_at", kind: "message", T: Timestamp },
+    { no: 4, name: "view_expires_at", kind: "message", T: Timestamp },
+    { no: 5, name: "can_make_permanent", kind: "scalar", T: 8 /* ScalarType.BOOL */ },
+    { no: 6, name: "can_request_permanent", kind: "scalar", T: 8 /* ScalarType.BOOL */ },
+    { no: 7, name: "permanence_requested", kind: "scalar", T: 8 /* ScalarType.BOOL */ },
+    { no: 8, name: "requester_ids", kind: "scalar", T: 9 /* ScalarType.STRING */, repeated: true },
+    { no: 9, name: "requires_permanence_confirmation", kind: "scalar", T: 8 /* ScalarType.BOOL */ },
+  ]);
+
+  static fromBinary(bytes: Uint8Array, options?: Partial<BinaryReadOptions>): BurnAttachment {
+    return new BurnAttachment().fromBinary(bytes, options);
+  }
+
+  static fromJson(jsonValue: JsonValue, options?: Partial<JsonReadOptions>): BurnAttachment {
+    return new BurnAttachment().fromJson(jsonValue, options);
+  }
+
+  static fromJsonString(jsonString: string, options?: Partial<JsonReadOptions>): BurnAttachment {
+    return new BurnAttachment().fromJsonString(jsonString, options);
+  }
+
+  static equals(a: BurnAttachment | PlainMessage<BurnAttachment> | undefined, b: BurnAttachment | PlainMessage<BurnAttachment> | undefined): boolean {
+    return proto3.util.equals(BurnAttachment, a, b);
   }
 }
 

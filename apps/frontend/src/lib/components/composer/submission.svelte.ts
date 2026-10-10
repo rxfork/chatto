@@ -25,6 +25,8 @@ export type PreparedPost = {
   filesToSend: File[] | null;
   attachmentDescriptions?: Array<{ file: File; description: string }>;
   attachmentAssetIds?: string[];
+  burnAttachments?: File[];
+  burnAttachmentAssetIds?: string[];
   threadRootEventId: string | null;
   inReplyTo: string | null;
   linkPreviewToken: string | null;
@@ -159,6 +161,8 @@ export class ComposerSubmissionState {
           roomId: post.roomId,
           body: post.bodyToSend,
           attachmentAssetIds: post.attachmentAssetIds,
+          burnAttachments: post.burnAttachments,
+          burnAttachmentAssetIds: post.burnAttachmentAssetIds,
           attachments: post.attachmentAssetIds?.length ? null : post.filesToSend,
           attachmentDescriptions: post.attachmentDescriptions,
           onAttachmentUploadUpdate: (update) => this.updateAttachmentStatus(update),

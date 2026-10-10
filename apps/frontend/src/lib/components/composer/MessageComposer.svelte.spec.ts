@@ -358,9 +358,14 @@ async function openFormattingShelf(container: HTMLElement) {
 }
 
 /** The fixture's plain server info, whose runtime settings the tests change. */
-function testServerInfo(): { videoProcessingEnabled: boolean; maxUploadSize: number } {
+function testServerInfo(): {
+  videoProcessingEnabled: boolean;
+  maxUploadSize: number;
+  burnAttachmentsEnabled: boolean;
+} {
   return server.scope.store.serverInfo as unknown as {
     videoProcessingEnabled: boolean;
+    burnAttachmentsEnabled: boolean;
     maxUploadSize: number;
   };
 }
@@ -373,6 +378,7 @@ describe('MessageComposer', () => {
       viewer: { id: 'test-user', login: 'testuser' },
       serverInfo: {
         videoProcessingEnabled: false,
+        burnAttachmentsEnabled: false,
         maxUploadSize: 25 * 1024 * 1024,
         maxVideoUploadSize: 25 * 1024 * 1024
       },
@@ -1408,6 +1414,24 @@ describe('MessageComposer', () => {
       await expect
         .poll(() => q(container, '[data-testid="file-attachment-preview"]')?.textContent)
         .toBe('pdf');
+    });
+
+    it('disables burn selection without an affirmative server capability', async () => {
+      const { container } = renderMessageComposer({ roomId: 'room_456' });
+      selectFirstAttachment(q(container, 'input[type="file"]') as HTMLInputElement);
+      await expect.poll(() => q(container, 'input[id*="-burn-"]')).toBeTruthy();
+      expect(q(container, 'input[id*="-burn-"]')).toBeDisabled();
+      expect(container.textContent).toContain(
+        'Burn-after-reading attachments are unavailable on this server.'
+      );
+    });
+
+    it('allows burn selection when the server enables enforced sessions', async () => {
+      testServerInfo().burnAttachmentsEnabled = true;
+      const { container } = renderMessageComposer({ roomId: 'room_456' });
+      selectFirstAttachment(q(container, 'input[type="file"]') as HTMLInputElement);
+      await expect.poll(() => q(container, 'input[id*="-burn-"]')).toBeTruthy();
+      expect(q(container, 'input[id*="-burn-"]')).not.toBeDisabled();
     });
 
     it('allows multiple file selection', async () => {

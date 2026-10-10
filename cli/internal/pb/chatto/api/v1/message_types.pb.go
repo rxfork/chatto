@@ -79,6 +79,79 @@ func (MessageVideoProcessingStatus) EnumDescriptor() ([]byte, []int) {
 	return file_chatto_api_v1_message_types_proto_rawDescGZIP(), []int{0}
 }
 
+// BurnAttachmentViewerStatus describes the current viewer's access, independent
+// of other recipients. Server time owns every deadline.
+type BurnAttachmentViewerStatus int32
+
+const (
+	BurnAttachmentViewerStatus_BURN_ATTACHMENT_VIEWER_STATUS_UNSPECIFIED BurnAttachmentViewerStatus = 0
+	// The original recipient has one unused session.
+	BurnAttachmentViewerStatus_BURN_ATTACHMENT_VIEWER_STATUS_AVAILABLE BurnAttachmentViewerStatus = 1
+	// The original recipient has an active viewing session.
+	BurnAttachmentViewerStatus_BURN_ATTACHMENT_VIEWER_STATUS_VIEWING BurnAttachmentViewerStatus = 2
+	// The recipient's session ended and cannot be opened again.
+	BurnAttachmentViewerStatus_BURN_ATTACHMENT_VIEWER_STATUS_BURNED BurnAttachmentViewerStatus = 3
+	// The unopened session expired.
+	BurnAttachmentViewerStatus_BURN_ATTACHMENT_VIEWER_STATUS_EXPIRED BurnAttachmentViewerStatus = 4
+	// The viewer was not a member when the attachment was sent.
+	BurnAttachmentViewerStatus_BURN_ATTACHMENT_VIEWER_STATUS_INELIGIBLE BurnAttachmentViewerStatus = 5
+	// Recovery ended or the source file was deleted. Access cannot be restored.
+	BurnAttachmentViewerStatus_BURN_ATTACHMENT_VIEWER_STATUS_PURGED BurnAttachmentViewerStatus = 6
+	// The sender converted the attachment to normal message access.
+	BurnAttachmentViewerStatus_BURN_ATTACHMENT_VIEWER_STATUS_PERMANENT BurnAttachmentViewerStatus = 7
+)
+
+// Enum value maps for BurnAttachmentViewerStatus.
+var (
+	BurnAttachmentViewerStatus_name = map[int32]string{
+		0: "BURN_ATTACHMENT_VIEWER_STATUS_UNSPECIFIED",
+		1: "BURN_ATTACHMENT_VIEWER_STATUS_AVAILABLE",
+		2: "BURN_ATTACHMENT_VIEWER_STATUS_VIEWING",
+		3: "BURN_ATTACHMENT_VIEWER_STATUS_BURNED",
+		4: "BURN_ATTACHMENT_VIEWER_STATUS_EXPIRED",
+		5: "BURN_ATTACHMENT_VIEWER_STATUS_INELIGIBLE",
+		6: "BURN_ATTACHMENT_VIEWER_STATUS_PURGED",
+		7: "BURN_ATTACHMENT_VIEWER_STATUS_PERMANENT",
+	}
+	BurnAttachmentViewerStatus_value = map[string]int32{
+		"BURN_ATTACHMENT_VIEWER_STATUS_UNSPECIFIED": 0,
+		"BURN_ATTACHMENT_VIEWER_STATUS_AVAILABLE":   1,
+		"BURN_ATTACHMENT_VIEWER_STATUS_VIEWING":     2,
+		"BURN_ATTACHMENT_VIEWER_STATUS_BURNED":      3,
+		"BURN_ATTACHMENT_VIEWER_STATUS_EXPIRED":     4,
+		"BURN_ATTACHMENT_VIEWER_STATUS_INELIGIBLE":  5,
+		"BURN_ATTACHMENT_VIEWER_STATUS_PURGED":      6,
+		"BURN_ATTACHMENT_VIEWER_STATUS_PERMANENT":   7,
+	}
+)
+
+func (x BurnAttachmentViewerStatus) Enum() *BurnAttachmentViewerStatus {
+	p := new(BurnAttachmentViewerStatus)
+	*p = x
+	return p
+}
+
+func (x BurnAttachmentViewerStatus) String() string {
+	return protoimpl.X.EnumStringOf(x.Descriptor(), protoreflect.EnumNumber(x))
+}
+
+func (BurnAttachmentViewerStatus) Descriptor() protoreflect.EnumDescriptor {
+	return file_chatto_api_v1_message_types_proto_enumTypes[1].Descriptor()
+}
+
+func (BurnAttachmentViewerStatus) Type() protoreflect.EnumType {
+	return &file_chatto_api_v1_message_types_proto_enumTypes[1]
+}
+
+func (x BurnAttachmentViewerStatus) Number() protoreflect.EnumNumber {
+	return protoreflect.EnumNumber(x)
+}
+
+// Deprecated: Use BurnAttachmentViewerStatus.Descriptor instead.
+func (BurnAttachmentViewerStatus) EnumDescriptor() ([]byte, []int) {
+	return file_chatto_api_v1_message_types_proto_rawDescGZIP(), []int{1}
+}
+
 // Time-limited URL for an asset attached to a message.
 //
 // Clients should expect these URLs to expire and refresh the asset through
@@ -413,7 +486,10 @@ type MessageAttachment struct {
 	VideoProcessing *MessageVideoProcessing `protobuf:"bytes,8,opt,name=video_processing,json=videoProcessing,proto3" json:"video_processing,omitempty"`
 	// User-provided description for accessibility and attachment details.
 	// Absent when the attachment has no description.
-	Description   *string `protobuf:"bytes,9,opt,name=description,proto3,oneof" json:"description,omitempty"`
+	Description *string `protobuf:"bytes,9,opt,name=description,proto3,oneof" json:"description,omitempty"`
+	// Viewer-specific view-once policy. Absent on ordinary attachments. File
+	// URLs are absent until OpenBurnAttachment grants a viewing session.
+	Burn          *BurnAttachment `protobuf:"bytes,10,opt,name=burn,proto3" json:"burn,omitempty"`
 	unknownFields protoimpl.UnknownFields
 	sizeCache     protoimpl.SizeCache
 }
@@ -511,6 +587,132 @@ func (x *MessageAttachment) GetDescription() string {
 	return ""
 }
 
+func (x *MessageAttachment) GetBurn() *BurnAttachment {
+	if x != nil {
+		return x.Burn
+	}
+	return nil
+}
+
+// BurnAttachment contains metadata only. Reading it does not consume a session.
+// Membership and message-read permission remain required for every operation.
+type BurnAttachment struct {
+	state protoimpl.MessageState `protogen:"open.v1"`
+	// Current viewer's session state. Other recipients' views are private.
+	ViewerStatus BurnAttachmentViewerStatus `protobuf:"varint,1,opt,name=viewer_status,json=viewerStatus,proto3,enum=chatto.api.v1.BurnAttachmentViewerStatus" json:"viewer_status,omitempty"`
+	// Time when unused sessions expire.
+	UnopenedExpiresAt *timestamppb.Timestamp `protobuf:"bytes,2,opt,name=unopened_expires_at,json=unopenedExpiresAt,proto3" json:"unopened_expires_at,omitempty"`
+	// Fixed deletion deadline after all original sessions end or expire.
+	DeleteAt *timestamppb.Timestamp `protobuf:"bytes,3,opt,name=delete_at,json=deleteAt,proto3" json:"delete_at,omitempty"`
+	// Active session deadline. Clients clear displayed bytes when it passes.
+	ViewExpiresAt *timestamppb.Timestamp `protobuf:"bytes,4,opt,name=view_expires_at,json=viewExpiresAt,proto3" json:"view_expires_at,omitempty"`
+	// True only for the sender while the file is retained and not permanent.
+	CanMakePermanent bool `protobuf:"varint,5,opt,name=can_make_permanent,json=canMakePermanent,proto3" json:"can_make_permanent,omitempty"`
+	// True for an original recipient other than the sender while retained.
+	CanRequestPermanent bool `protobuf:"varint,6,opt,name=can_request_permanent,json=canRequestPermanent,proto3" json:"can_request_permanent,omitempty"`
+	// True when this viewer has an active permanence request.
+	PermanenceRequested bool `protobuf:"varint,7,opt,name=permanence_requested,json=permanenceRequested,proto3" json:"permanence_requested,omitempty"`
+	// Present only for the sender. Request IDs never grant access to the file.
+	RequesterIds []string `protobuf:"bytes,8,rep,name=requester_ids,json=requesterIds,proto3" json:"requester_ids,omitempty"`
+	// The sender must acknowledge the explanation once in this room.
+	RequiresPermanenceConfirmation bool `protobuf:"varint,9,opt,name=requires_permanence_confirmation,json=requiresPermanenceConfirmation,proto3" json:"requires_permanence_confirmation,omitempty"`
+	unknownFields                  protoimpl.UnknownFields
+	sizeCache                      protoimpl.SizeCache
+}
+
+func (x *BurnAttachment) Reset() {
+	*x = BurnAttachment{}
+	mi := &file_chatto_api_v1_message_types_proto_msgTypes[5]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *BurnAttachment) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*BurnAttachment) ProtoMessage() {}
+
+func (x *BurnAttachment) ProtoReflect() protoreflect.Message {
+	mi := &file_chatto_api_v1_message_types_proto_msgTypes[5]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use BurnAttachment.ProtoReflect.Descriptor instead.
+func (*BurnAttachment) Descriptor() ([]byte, []int) {
+	return file_chatto_api_v1_message_types_proto_rawDescGZIP(), []int{5}
+}
+
+func (x *BurnAttachment) GetViewerStatus() BurnAttachmentViewerStatus {
+	if x != nil {
+		return x.ViewerStatus
+	}
+	return BurnAttachmentViewerStatus_BURN_ATTACHMENT_VIEWER_STATUS_UNSPECIFIED
+}
+
+func (x *BurnAttachment) GetUnopenedExpiresAt() *timestamppb.Timestamp {
+	if x != nil {
+		return x.UnopenedExpiresAt
+	}
+	return nil
+}
+
+func (x *BurnAttachment) GetDeleteAt() *timestamppb.Timestamp {
+	if x != nil {
+		return x.DeleteAt
+	}
+	return nil
+}
+
+func (x *BurnAttachment) GetViewExpiresAt() *timestamppb.Timestamp {
+	if x != nil {
+		return x.ViewExpiresAt
+	}
+	return nil
+}
+
+func (x *BurnAttachment) GetCanMakePermanent() bool {
+	if x != nil {
+		return x.CanMakePermanent
+	}
+	return false
+}
+
+func (x *BurnAttachment) GetCanRequestPermanent() bool {
+	if x != nil {
+		return x.CanRequestPermanent
+	}
+	return false
+}
+
+func (x *BurnAttachment) GetPermanenceRequested() bool {
+	if x != nil {
+		return x.PermanenceRequested
+	}
+	return false
+}
+
+func (x *BurnAttachment) GetRequesterIds() []string {
+	if x != nil {
+		return x.RequesterIds
+	}
+	return nil
+}
+
+func (x *BurnAttachment) GetRequiresPermanenceConfirmation() bool {
+	if x != nil {
+		return x.RequiresPermanenceConfirmation
+	}
+	return false
+}
+
 // Aggregated reaction state for one emoji on one message.
 //
 // This state is scoped to the current message and includes whether the current
@@ -531,7 +733,7 @@ type MessageReaction struct {
 
 func (x *MessageReaction) Reset() {
 	*x = MessageReaction{}
-	mi := &file_chatto_api_v1_message_types_proto_msgTypes[5]
+	mi := &file_chatto_api_v1_message_types_proto_msgTypes[6]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -543,7 +745,7 @@ func (x *MessageReaction) String() string {
 func (*MessageReaction) ProtoMessage() {}
 
 func (x *MessageReaction) ProtoReflect() protoreflect.Message {
-	mi := &file_chatto_api_v1_message_types_proto_msgTypes[5]
+	mi := &file_chatto_api_v1_message_types_proto_msgTypes[6]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -556,7 +758,7 @@ func (x *MessageReaction) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use MessageReaction.ProtoReflect.Descriptor instead.
 func (*MessageReaction) Descriptor() ([]byte, []int) {
-	return file_chatto_api_v1_message_types_proto_rawDescGZIP(), []int{5}
+	return file_chatto_api_v1_message_types_proto_rawDescGZIP(), []int{6}
 }
 
 func (x *MessageReaction) GetEmoji() string {
@@ -601,7 +803,7 @@ type ThreadViewerState struct {
 
 func (x *ThreadViewerState) Reset() {
 	*x = ThreadViewerState{}
-	mi := &file_chatto_api_v1_message_types_proto_msgTypes[6]
+	mi := &file_chatto_api_v1_message_types_proto_msgTypes[7]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -613,7 +815,7 @@ func (x *ThreadViewerState) String() string {
 func (*ThreadViewerState) ProtoMessage() {}
 
 func (x *ThreadViewerState) ProtoReflect() protoreflect.Message {
-	mi := &file_chatto_api_v1_message_types_proto_msgTypes[6]
+	mi := &file_chatto_api_v1_message_types_proto_msgTypes[7]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -626,7 +828,7 @@ func (x *ThreadViewerState) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use ThreadViewerState.ProtoReflect.Descriptor instead.
 func (*ThreadViewerState) Descriptor() ([]byte, []int) {
-	return file_chatto_api_v1_message_types_proto_rawDescGZIP(), []int{6}
+	return file_chatto_api_v1_message_types_proto_rawDescGZIP(), []int{7}
 }
 
 func (x *ThreadViewerState) GetIsFollowing() bool {
@@ -666,7 +868,7 @@ type ThreadSummary struct {
 
 func (x *ThreadSummary) Reset() {
 	*x = ThreadSummary{}
-	mi := &file_chatto_api_v1_message_types_proto_msgTypes[7]
+	mi := &file_chatto_api_v1_message_types_proto_msgTypes[8]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -678,7 +880,7 @@ func (x *ThreadSummary) String() string {
 func (*ThreadSummary) ProtoMessage() {}
 
 func (x *ThreadSummary) ProtoReflect() protoreflect.Message {
-	mi := &file_chatto_api_v1_message_types_proto_msgTypes[7]
+	mi := &file_chatto_api_v1_message_types_proto_msgTypes[8]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -691,7 +893,7 @@ func (x *ThreadSummary) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use ThreadSummary.ProtoReflect.Descriptor instead.
 func (*ThreadSummary) Descriptor() ([]byte, []int) {
-	return file_chatto_api_v1_message_types_proto_rawDescGZIP(), []int{7}
+	return file_chatto_api_v1_message_types_proto_rawDescGZIP(), []int{8}
 }
 
 func (x *ThreadSummary) GetThreadRootEventId() string {
@@ -750,7 +952,7 @@ type MessageViewerState struct {
 
 func (x *MessageViewerState) Reset() {
 	*x = MessageViewerState{}
-	mi := &file_chatto_api_v1_message_types_proto_msgTypes[8]
+	mi := &file_chatto_api_v1_message_types_proto_msgTypes[9]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -762,7 +964,7 @@ func (x *MessageViewerState) String() string {
 func (*MessageViewerState) ProtoMessage() {}
 
 func (x *MessageViewerState) ProtoReflect() protoreflect.Message {
-	mi := &file_chatto_api_v1_message_types_proto_msgTypes[8]
+	mi := &file_chatto_api_v1_message_types_proto_msgTypes[9]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -775,7 +977,7 @@ func (x *MessageViewerState) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use MessageViewerState.ProtoReflect.Descriptor instead.
 func (*MessageViewerState) Descriptor() ([]byte, []int) {
-	return file_chatto_api_v1_message_types_proto_rawDescGZIP(), []int{8}
+	return file_chatto_api_v1_message_types_proto_rawDescGZIP(), []int{9}
 }
 
 func (x *MessageViewerState) GetCanReplyInThread() bool {
@@ -841,7 +1043,7 @@ type Message struct {
 
 func (x *Message) Reset() {
 	*x = Message{}
-	mi := &file_chatto_api_v1_message_types_proto_msgTypes[9]
+	mi := &file_chatto_api_v1_message_types_proto_msgTypes[10]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -853,7 +1055,7 @@ func (x *Message) String() string {
 func (*Message) ProtoMessage() {}
 
 func (x *Message) ProtoReflect() protoreflect.Message {
-	mi := &file_chatto_api_v1_message_types_proto_msgTypes[9]
+	mi := &file_chatto_api_v1_message_types_proto_msgTypes[10]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -866,7 +1068,7 @@ func (x *Message) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use Message.ProtoReflect.Descriptor instead.
 func (*Message) Descriptor() ([]byte, []int) {
-	return file_chatto_api_v1_message_types_proto_rawDescGZIP(), []int{9}
+	return file_chatto_api_v1_message_types_proto_rawDescGZIP(), []int{10}
 }
 
 func (x *Message) GetId() string {
@@ -1023,7 +1225,7 @@ const file_chatto_api_v1_message_types_proto_rawDesc = "" +
 	"reasonCode\x12N\n" +
 	"\x13thumbnail_asset_url\x18\a \x01(\v2\x1e.chatto.api.v1.MessageAssetUrlR\x11thumbnailAssetUrl\x12>\n" +
 	"\bvariants\x18\b \x03(\v2\".chatto.api.v1.MessageVideoVariantR\bvariants\x120\n" +
-	"\x03hls\x18\t \x01(\v2\x1e.chatto.api.v1.MessageVideoHLSR\x03hls\"\xa6\x03\n" +
+	"\x03hls\x18\t \x01(\v2\x1e.chatto.api.v1.MessageVideoHLSR\x03hls\"\xd9\x03\n" +
 	"\x11MessageAttachment\x12\x0e\n" +
 	"\x02id\x18\x01 \x01(\tR\x02id\x12\x1a\n" +
 	"\bfilename\x18\x02 \x01(\tR\bfilename\x12!\n" +
@@ -1033,8 +1235,20 @@ const file_chatto_api_v1_message_types_proto_rawDesc = "" +
 	"\tasset_url\x18\x06 \x01(\v2\x1e.chatto.api.v1.MessageAssetUrlR\bassetUrl\x12N\n" +
 	"\x13thumbnail_asset_url\x18\a \x01(\v2\x1e.chatto.api.v1.MessageAssetUrlR\x11thumbnailAssetUrl\x12P\n" +
 	"\x10video_processing\x18\b \x01(\v2%.chatto.api.v1.MessageVideoProcessingR\x0fvideoProcessing\x12%\n" +
-	"\vdescription\x18\t \x01(\tH\x00R\vdescription\x88\x01\x01B\x0e\n" +
-	"\f_description\"\x88\x01\n" +
+	"\vdescription\x18\t \x01(\tH\x00R\vdescription\x88\x01\x01\x121\n" +
+	"\x04burn\x18\n" +
+	" \x01(\v2\x1d.chatto.api.v1.BurnAttachmentR\x04burnB\x0e\n" +
+	"\f_description\"\xad\x04\n" +
+	"\x0eBurnAttachment\x12N\n" +
+	"\rviewer_status\x18\x01 \x01(\x0e2).chatto.api.v1.BurnAttachmentViewerStatusR\fviewerStatus\x12J\n" +
+	"\x13unopened_expires_at\x18\x02 \x01(\v2\x1a.google.protobuf.TimestampR\x11unopenedExpiresAt\x127\n" +
+	"\tdelete_at\x18\x03 \x01(\v2\x1a.google.protobuf.TimestampR\bdeleteAt\x12B\n" +
+	"\x0fview_expires_at\x18\x04 \x01(\v2\x1a.google.protobuf.TimestampR\rviewExpiresAt\x12,\n" +
+	"\x12can_make_permanent\x18\x05 \x01(\bR\x10canMakePermanent\x122\n" +
+	"\x15can_request_permanent\x18\x06 \x01(\bR\x13canRequestPermanent\x121\n" +
+	"\x14permanence_requested\x18\a \x01(\bR\x13permanenceRequested\x12#\n" +
+	"\rrequester_ids\x18\b \x03(\tR\frequesterIds\x12H\n" +
+	" requires_permanence_confirmation\x18\t \x01(\bR\x1erequiresPermanenceConfirmation\"\x88\x01\n" +
 	"\x0fMessageReaction\x12\x14\n" +
 	"\x05emoji\x18\x01 \x01(\tR\x05emoji\x12\x14\n" +
 	"\x05count\x18\x02 \x01(\x05R\x05count\x12\x1f\n" +
@@ -1085,7 +1299,16 @@ const file_chatto_api_v1_message_types_proto_rawDesc = "" +
 	"+MESSAGE_VIDEO_PROCESSING_STATUS_UNSPECIFIED\x10\x00\x12.\n" +
 	"*MESSAGE_VIDEO_PROCESSING_STATUS_PROCESSING\x10\x01\x12-\n" +
 	")MESSAGE_VIDEO_PROCESSING_STATUS_COMPLETED\x10\x02\x12*\n" +
-	"&MESSAGE_VIDEO_PROCESSING_STATUS_FAILED\x10\x03B\xad\x01\n" +
+	"&MESSAGE_VIDEO_PROCESSING_STATUS_FAILED\x10\x03*\xfd\x02\n" +
+	"\x1aBurnAttachmentViewerStatus\x12-\n" +
+	")BURN_ATTACHMENT_VIEWER_STATUS_UNSPECIFIED\x10\x00\x12+\n" +
+	"'BURN_ATTACHMENT_VIEWER_STATUS_AVAILABLE\x10\x01\x12)\n" +
+	"%BURN_ATTACHMENT_VIEWER_STATUS_VIEWING\x10\x02\x12(\n" +
+	"$BURN_ATTACHMENT_VIEWER_STATUS_BURNED\x10\x03\x12)\n" +
+	"%BURN_ATTACHMENT_VIEWER_STATUS_EXPIRED\x10\x04\x12,\n" +
+	"(BURN_ATTACHMENT_VIEWER_STATUS_INELIGIBLE\x10\x05\x12(\n" +
+	"$BURN_ATTACHMENT_VIEWER_STATUS_PURGED\x10\x06\x12+\n" +
+	"'BURN_ATTACHMENT_VIEWER_STATUS_PERMANENT\x10\aB\xad\x01\n" +
 	"\x11com.chatto.api.v1B\x11MessageTypesProtoP\x01Z/hmans.de/chatto/internal/pb/chatto/api/v1;apiv1\xa2\x02\x03CAX\xaa\x02\rChatto.Api.V1\xca\x02\rChatto\\Api\\V1\xe2\x02\x19Chatto\\Api\\V1\\GPBMetadata\xea\x02\x0fChatto::Api::V1b\x06proto3"
 
 var (
@@ -1100,49 +1323,56 @@ func file_chatto_api_v1_message_types_proto_rawDescGZIP() []byte {
 	return file_chatto_api_v1_message_types_proto_rawDescData
 }
 
-var file_chatto_api_v1_message_types_proto_enumTypes = make([]protoimpl.EnumInfo, 1)
-var file_chatto_api_v1_message_types_proto_msgTypes = make([]protoimpl.MessageInfo, 10)
+var file_chatto_api_v1_message_types_proto_enumTypes = make([]protoimpl.EnumInfo, 2)
+var file_chatto_api_v1_message_types_proto_msgTypes = make([]protoimpl.MessageInfo, 11)
 var file_chatto_api_v1_message_types_proto_goTypes = []any{
 	(MessageVideoProcessingStatus)(0), // 0: chatto.api.v1.MessageVideoProcessingStatus
-	(*MessageAssetUrl)(nil),           // 1: chatto.api.v1.MessageAssetUrl
-	(*MessageVideoVariant)(nil),       // 2: chatto.api.v1.MessageVideoVariant
-	(*MessageVideoHLS)(nil),           // 3: chatto.api.v1.MessageVideoHLS
-	(*MessageVideoProcessing)(nil),    // 4: chatto.api.v1.MessageVideoProcessing
-	(*MessageAttachment)(nil),         // 5: chatto.api.v1.MessageAttachment
-	(*MessageReaction)(nil),           // 6: chatto.api.v1.MessageReaction
-	(*ThreadViewerState)(nil),         // 7: chatto.api.v1.ThreadViewerState
-	(*ThreadSummary)(nil),             // 8: chatto.api.v1.ThreadSummary
-	(*MessageViewerState)(nil),        // 9: chatto.api.v1.MessageViewerState
-	(*Message)(nil),                   // 10: chatto.api.v1.Message
-	(*timestamppb.Timestamp)(nil),     // 11: google.protobuf.Timestamp
-	(*LinkPreview)(nil),               // 12: chatto.api.v1.LinkPreview
+	(BurnAttachmentViewerStatus)(0),   // 1: chatto.api.v1.BurnAttachmentViewerStatus
+	(*MessageAssetUrl)(nil),           // 2: chatto.api.v1.MessageAssetUrl
+	(*MessageVideoVariant)(nil),       // 3: chatto.api.v1.MessageVideoVariant
+	(*MessageVideoHLS)(nil),           // 4: chatto.api.v1.MessageVideoHLS
+	(*MessageVideoProcessing)(nil),    // 5: chatto.api.v1.MessageVideoProcessing
+	(*MessageAttachment)(nil),         // 6: chatto.api.v1.MessageAttachment
+	(*BurnAttachment)(nil),            // 7: chatto.api.v1.BurnAttachment
+	(*MessageReaction)(nil),           // 8: chatto.api.v1.MessageReaction
+	(*ThreadViewerState)(nil),         // 9: chatto.api.v1.ThreadViewerState
+	(*ThreadSummary)(nil),             // 10: chatto.api.v1.ThreadSummary
+	(*MessageViewerState)(nil),        // 11: chatto.api.v1.MessageViewerState
+	(*Message)(nil),                   // 12: chatto.api.v1.Message
+	(*timestamppb.Timestamp)(nil),     // 13: google.protobuf.Timestamp
+	(*LinkPreview)(nil),               // 14: chatto.api.v1.LinkPreview
 }
 var file_chatto_api_v1_message_types_proto_depIdxs = []int32{
-	11, // 0: chatto.api.v1.MessageAssetUrl.expires_at:type_name -> google.protobuf.Timestamp
-	1,  // 1: chatto.api.v1.MessageVideoVariant.asset_url:type_name -> chatto.api.v1.MessageAssetUrl
-	1,  // 2: chatto.api.v1.MessageVideoHLS.master_playlist_url:type_name -> chatto.api.v1.MessageAssetUrl
+	13, // 0: chatto.api.v1.MessageAssetUrl.expires_at:type_name -> google.protobuf.Timestamp
+	2,  // 1: chatto.api.v1.MessageVideoVariant.asset_url:type_name -> chatto.api.v1.MessageAssetUrl
+	2,  // 2: chatto.api.v1.MessageVideoHLS.master_playlist_url:type_name -> chatto.api.v1.MessageAssetUrl
 	0,  // 3: chatto.api.v1.MessageVideoProcessing.status:type_name -> chatto.api.v1.MessageVideoProcessingStatus
-	1,  // 4: chatto.api.v1.MessageVideoProcessing.thumbnail_asset_url:type_name -> chatto.api.v1.MessageAssetUrl
-	2,  // 5: chatto.api.v1.MessageVideoProcessing.variants:type_name -> chatto.api.v1.MessageVideoVariant
-	3,  // 6: chatto.api.v1.MessageVideoProcessing.hls:type_name -> chatto.api.v1.MessageVideoHLS
-	1,  // 7: chatto.api.v1.MessageAttachment.asset_url:type_name -> chatto.api.v1.MessageAssetUrl
-	1,  // 8: chatto.api.v1.MessageAttachment.thumbnail_asset_url:type_name -> chatto.api.v1.MessageAssetUrl
-	4,  // 9: chatto.api.v1.MessageAttachment.video_processing:type_name -> chatto.api.v1.MessageVideoProcessing
-	11, // 10: chatto.api.v1.ThreadSummary.last_reply_at:type_name -> google.protobuf.Timestamp
-	7,  // 11: chatto.api.v1.ThreadSummary.viewer_state:type_name -> chatto.api.v1.ThreadViewerState
-	11, // 12: chatto.api.v1.Message.created_at:type_name -> google.protobuf.Timestamp
-	5,  // 13: chatto.api.v1.Message.attachments:type_name -> chatto.api.v1.MessageAttachment
-	12, // 14: chatto.api.v1.Message.link_preview:type_name -> chatto.api.v1.LinkPreview
-	11, // 15: chatto.api.v1.Message.updated_at:type_name -> google.protobuf.Timestamp
-	6,  // 16: chatto.api.v1.Message.reactions:type_name -> chatto.api.v1.MessageReaction
-	8,  // 17: chatto.api.v1.Message.thread:type_name -> chatto.api.v1.ThreadSummary
-	11, // 18: chatto.api.v1.Message.deleted_at:type_name -> google.protobuf.Timestamp
-	9,  // 19: chatto.api.v1.Message.viewer_state:type_name -> chatto.api.v1.MessageViewerState
-	20, // [20:20] is the sub-list for method output_type
-	20, // [20:20] is the sub-list for method input_type
-	20, // [20:20] is the sub-list for extension type_name
-	20, // [20:20] is the sub-list for extension extendee
-	0,  // [0:20] is the sub-list for field type_name
+	2,  // 4: chatto.api.v1.MessageVideoProcessing.thumbnail_asset_url:type_name -> chatto.api.v1.MessageAssetUrl
+	3,  // 5: chatto.api.v1.MessageVideoProcessing.variants:type_name -> chatto.api.v1.MessageVideoVariant
+	4,  // 6: chatto.api.v1.MessageVideoProcessing.hls:type_name -> chatto.api.v1.MessageVideoHLS
+	2,  // 7: chatto.api.v1.MessageAttachment.asset_url:type_name -> chatto.api.v1.MessageAssetUrl
+	2,  // 8: chatto.api.v1.MessageAttachment.thumbnail_asset_url:type_name -> chatto.api.v1.MessageAssetUrl
+	5,  // 9: chatto.api.v1.MessageAttachment.video_processing:type_name -> chatto.api.v1.MessageVideoProcessing
+	7,  // 10: chatto.api.v1.MessageAttachment.burn:type_name -> chatto.api.v1.BurnAttachment
+	1,  // 11: chatto.api.v1.BurnAttachment.viewer_status:type_name -> chatto.api.v1.BurnAttachmentViewerStatus
+	13, // 12: chatto.api.v1.BurnAttachment.unopened_expires_at:type_name -> google.protobuf.Timestamp
+	13, // 13: chatto.api.v1.BurnAttachment.delete_at:type_name -> google.protobuf.Timestamp
+	13, // 14: chatto.api.v1.BurnAttachment.view_expires_at:type_name -> google.protobuf.Timestamp
+	13, // 15: chatto.api.v1.ThreadSummary.last_reply_at:type_name -> google.protobuf.Timestamp
+	9,  // 16: chatto.api.v1.ThreadSummary.viewer_state:type_name -> chatto.api.v1.ThreadViewerState
+	13, // 17: chatto.api.v1.Message.created_at:type_name -> google.protobuf.Timestamp
+	6,  // 18: chatto.api.v1.Message.attachments:type_name -> chatto.api.v1.MessageAttachment
+	14, // 19: chatto.api.v1.Message.link_preview:type_name -> chatto.api.v1.LinkPreview
+	13, // 20: chatto.api.v1.Message.updated_at:type_name -> google.protobuf.Timestamp
+	8,  // 21: chatto.api.v1.Message.reactions:type_name -> chatto.api.v1.MessageReaction
+	10, // 22: chatto.api.v1.Message.thread:type_name -> chatto.api.v1.ThreadSummary
+	13, // 23: chatto.api.v1.Message.deleted_at:type_name -> google.protobuf.Timestamp
+	11, // 24: chatto.api.v1.Message.viewer_state:type_name -> chatto.api.v1.MessageViewerState
+	25, // [25:25] is the sub-list for method output_type
+	25, // [25:25] is the sub-list for method input_type
+	25, // [25:25] is the sub-list for extension type_name
+	25, // [25:25] is the sub-list for extension extendee
+	0,  // [0:25] is the sub-list for field type_name
 }
 
 func init() { file_chatto_api_v1_message_types_proto_init() }
@@ -1152,16 +1382,16 @@ func file_chatto_api_v1_message_types_proto_init() {
 	}
 	file_chatto_api_v1_link_previews_proto_init()
 	file_chatto_api_v1_message_types_proto_msgTypes[4].OneofWrappers = []any{}
-	file_chatto_api_v1_message_types_proto_msgTypes[6].OneofWrappers = []any{}
-	file_chatto_api_v1_message_types_proto_msgTypes[8].OneofWrappers = []any{}
+	file_chatto_api_v1_message_types_proto_msgTypes[7].OneofWrappers = []any{}
 	file_chatto_api_v1_message_types_proto_msgTypes[9].OneofWrappers = []any{}
+	file_chatto_api_v1_message_types_proto_msgTypes[10].OneofWrappers = []any{}
 	type x struct{}
 	out := protoimpl.TypeBuilder{
 		File: protoimpl.DescBuilder{
 			GoPackagePath: reflect.TypeOf(x{}).PkgPath(),
 			RawDescriptor: unsafe.Slice(unsafe.StringData(file_chatto_api_v1_message_types_proto_rawDesc), len(file_chatto_api_v1_message_types_proto_rawDesc)),
-			NumEnums:      1,
-			NumMessages:   10,
+			NumEnums:      2,
+			NumMessages:   11,
 			NumExtensions: 0,
 			NumServices:   0,
 		},

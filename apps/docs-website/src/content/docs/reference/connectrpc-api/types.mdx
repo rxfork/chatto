@@ -321,6 +321,25 @@ Bounded, provider-neutral social-post data used for native preview cards.
 | `url` | `string` | Canonical URL for this post. Always set for quoted posts; the outer post may also use LinkPreview.url. |
 | `quoted_post` | [`SocialPostPreview`](#chatto-api-v1-SocialPostPreview) | Post quoted by this post, when present. Quotes inside this snapshot are omitted so preview size and rendering depth remain bounded. |
 
+<a id="chatto-api-v1-BurnAttachment"></a>
+
+### BurnAttachment
+
+BurnAttachment contains metadata only. Reading it does not consume a session.
+Membership and message-read permission remain required for every operation.
+
+| Field | Type | Description |
+| --- | --- | --- |
+| `viewer_status` | [`BurnAttachmentViewerStatus`](#chatto-api-v1-BurnAttachmentViewerStatus) | Current viewer's session state. Other recipients' views are private. |
+| `unopened_expires_at` | `google.protobuf.Timestamp` | Time when unused sessions expire. |
+| `delete_at` | `google.protobuf.Timestamp` | Fixed deletion deadline after all original sessions end or expire. |
+| `view_expires_at` | `google.protobuf.Timestamp` | Active session deadline. Clients clear displayed bytes when it passes. |
+| `can_make_permanent` | `bool` | True only for the sender while the file is retained and not permanent. |
+| `can_request_permanent` | `bool` | True for an original recipient other than the sender while retained. |
+| `permanence_requested` | `bool` | True when this viewer has an active permanence request. |
+| `requester_ids` | `repeated string` | Present only for the sender. Request IDs never grant access to the file. |
+| `requires_permanence_confirmation` | `bool` | The sender must acknowledge the explanation once in this room. |
+
 <a id="chatto-api-v1-Message"></a>
 
 ### Message
@@ -387,6 +406,7 @@ be absent while processing is pending or when the source is unavailable.
 | `thumbnail_asset_url` | [`MessageAssetUrl`](#chatto-api-v1-MessageAssetUrl) | Signed URL for a thumbnail image, when available. |
 | `video_processing` | [`MessageVideoProcessing`](#chatto-api-v1-MessageVideoProcessing) | Video-specific processing metadata, when this attachment is a video. |
 | `description` | `optional string` | User-provided description for accessibility and attachment details. Absent when the attachment has no description. |
+| `burn` | [`BurnAttachment`](#chatto-api-v1-BurnAttachment) | Viewer-specific view-once policy. Absent on ordinary attachments. File URLs are absent until OpenBurnAttachment grants a viewing session. |
 
 <a id="chatto-api-v1-MessageReaction"></a>
 
@@ -504,6 +524,7 @@ Room-scoped binary asset metadata and freshly signed URLs.
 | `asset_url` | [`MessageAssetUrl`](#chatto-api-v1-MessageAssetUrl) | Signed URL for the original asset bytes. |
 | `thumbnail_asset_url` | [`MessageAssetUrl`](#chatto-api-v1-MessageAssetUrl) | Signed URL for a transformed image thumbnail. |
 | `video_processing` | [`MessageVideoProcessing`](#chatto-api-v1-MessageVideoProcessing) | Video processing state when this asset is a video attachment. |
+| `burn` | [`BurnAttachment`](#chatto-api-v1-BurnAttachment) | Viewer-specific view-once policy. Absent on ordinary attachments. |
 
 <a id="chatto-api-v1-RoomAttachmentListItem"></a>
 
@@ -1324,6 +1345,7 @@ Authenticated server runtime settings used by clients.
 | `max_upload_size` | `int64` | Maximum general upload size in bytes. |
 | `max_video_upload_size` | `int64` | Maximum video upload size in bytes. |
 | `message_edit_window_seconds` | `int32` | Message edit window in seconds. |
+| `burn_attachments_enabled` | `bool` | Whether view-once attachment commands and binary enforcement are supported. Check this before uploading or posting a burn attachment. Older servers leave it false and can ignore unknown CreateMessage fields. |
 
 <a id="chatto-api-v1-FollowedThread"></a>
 
@@ -1957,6 +1979,24 @@ Direct-message rooms do not support threads and use UNSPECIFIED.
 | `ROOM_THREADING_MODE_ENCOURAGED` | `2` | Clients should steer replies into threads, but the server accepts both threaded and ordinary in-room replies. |
 | `ROOM_THREADING_MODE_ENABLED` | `3` | Threads are available and clients may freely choose whether to use them. |
 | `ROOM_THREADING_MODE_DISABLED` | `4` | New threads, thread replies, and channel echoes are rejected. Existing threads and echoes remain readable and ordinary in-room reply attribution remains available. |
+
+<a id="chatto-api-v1-BurnAttachmentViewerStatus"></a>
+
+### BurnAttachmentViewerStatus
+
+BurnAttachmentViewerStatus describes the current viewer's access, independent
+of other recipients. Server time owns every deadline.
+
+| Name | Number | Description |
+| --- | --- | --- |
+| `BURN_ATTACHMENT_VIEWER_STATUS_UNSPECIFIED` | `0` | No value description provided. |
+| `BURN_ATTACHMENT_VIEWER_STATUS_AVAILABLE` | `1` | The original recipient has one unused session. |
+| `BURN_ATTACHMENT_VIEWER_STATUS_VIEWING` | `2` | The original recipient has an active viewing session. |
+| `BURN_ATTACHMENT_VIEWER_STATUS_BURNED` | `3` | The recipient's session ended and cannot be opened again. |
+| `BURN_ATTACHMENT_VIEWER_STATUS_EXPIRED` | `4` | The unopened session expired. |
+| `BURN_ATTACHMENT_VIEWER_STATUS_INELIGIBLE` | `5` | The viewer was not a member when the attachment was sent. |
+| `BURN_ATTACHMENT_VIEWER_STATUS_PURGED` | `6` | Recovery ended or the source file was deleted. Access cannot be restored. |
+| `BURN_ATTACHMENT_VIEWER_STATUS_PERMANENT` | `7` | The sender converted the attachment to normal message access. |
 
 <a id="chatto-api-v1-MessageVideoProcessingStatus"></a>
 

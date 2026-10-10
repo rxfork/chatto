@@ -30,6 +30,48 @@ Browsers upload message attachments in chunks of up to 10 MiB. If your reverse
 proxy limits the request body size, allow at least 11 MiB for each request.
 Avatar and branding uploads can need larger request bodies.
 
+## Burn After Reading
+
+```toml
+[core.assets.burn]
+unopened_ttl = "24h"
+view_ttl = "5m"
+recovery_ttl = "1h"
+```
+
+Select **Burn after reading** on an attachment before you send it. Each member
+in the channel or DM at send time gets one viewing session. People who join
+later cannot open it. Opening starts the timer. Closing the viewer or reaching
+the deadline ends that person's access. Scrolling and reading message history
+do not start a session.
+
+The settings above are the defaults. Zero selects the default; other values
+must be at least 1 millisecond. A sent attachment keeps its original settings.
+`unopened_ttl` expires sessions that have not started. `view_ttl` bounds a
+session even when the browser disconnects without closing it. `recovery_ttl`
+keeps the file after the last session ends or expires.
+
+Recipients can select **Request permanent access** under the attachment. The
+sender sees the request count and names. A request does not extend retention.
+The sender can select **Make permanent** while the file is retained. This
+converts the whole file to an ordinary attachment, including normal access for
+future members. The first conversion in each channel or DM explains this.
+
+The toast provides **Undo** for 15 seconds. Undo restores the original audience,
+used sessions, and deadlines. It cannot recall a saved copy. Burn mode controls
+future access; it cannot prevent screenshots or copying delivered bytes.
+Backups and storage-provider object versions follow your retention policy.
+See [Backup & Restore](/guides/operations/backup-restore/#retention-and-account-deletion).
+
+Burn mode supports images, audio, video, PDF, Markdown, plain text, JSON, and
+XML. HTML and files that require an external application stay ordinary files.
+S3-backed burn attachments stream through Chatto, so their delivery uses server
+bandwidth instead of a storage redirect.
+
+Upgrade every API and asset-serving replica before using burn mode. Older
+binaries do not enforce its session policy. Do not roll back those replicas
+while burn attachments remain in storage.
+
 ## Attachment Descriptions
 
 Members add a description in the attachment preview before they send a

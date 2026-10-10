@@ -6,6 +6,7 @@ Room-scoped file list for the room sidebar.
 <script lang="ts">
   import { pushState } from '$app/navigation';
   import { VideoProcessingStatus } from '@chatto/client/timeline/messageAttachments';
+  import { isBurnAttachment } from '@chatto/client/timeline/messageAttachments';
   import { useLoadMoreWhenVisible } from '$lib/hooks/useLoadMoreWhenVisible.svelte';
   import type { RoomFileItem, RoomFilesStore } from '$lib/state/room';
   import { assetUrlForServer } from '@chatto/client/util/assetUrls';
@@ -90,6 +91,7 @@ Room-scoped file list for the room sidebar.
   }
 
   function thumbnailUrl(item: RoomFileItem): string | null {
+    if (isBurnAttachment(item.attachment)) return null;
     return normalizeUrl(store.thumbnailAssetUrlFor(item)?.url);
   }
 
@@ -110,6 +112,10 @@ Room-scoped file list for the room sidebar.
   }
 
   function openFile(item: RoomFileItem): void {
+    if (isBurnAttachment(item.attachment)) {
+      onOpenFileMessage?.(item.messageEventId, item.threadRootEventId ?? null);
+      return;
+    }
     const processing = item.attachment.videoProcessing;
     pushState('', {
       modal: {

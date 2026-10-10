@@ -51,7 +51,8 @@ const SEARCHABLE_MESSAGE_EVENTS = new Set<string | undefined>([
   'reactionRemoved',
   'messagePinned',
   'messageUnpinned',
-  'assetDeleted'
+  'assetDeleted',
+  'attachmentChanged'
 ]);
 
 /** The viewer's call permissions in a room. Missing permission data denies access. */

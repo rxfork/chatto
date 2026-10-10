@@ -23,11 +23,22 @@ const (
 )
 
 type postMessageOptions struct {
+	burnAssetIDs            map[string]struct{}
 	videoProcessingAssetIDs map[string]struct{}
 	attachmentDescriptions  map[string]string
 	createThread            bool
 	commitAuthorize         func(context.Context, string) error
 	messageAttemptPrepared  func(context.Context) error
+}
+
+// withBurnAttachments enables per-recipient viewing sessions for selected IDs.
+func withBurnAttachments(assetIDs []string) PostMessageOption {
+	return func(options *postMessageOptions) {
+		options.burnAssetIDs = make(map[string]struct{}, len(assetIDs))
+		for _, assetID := range assetIDs {
+			options.burnAssetIDs[assetID] = struct{}{}
+		}
+	}
 }
 
 func withAttachmentDescriptions(descriptions map[string]string) PostMessageOption {
@@ -252,6 +263,22 @@ func (c *ChattoCore) prepareMessageAssetBatchEntries(
 		}
 		if err := c.assetModel.validateAssetAttachment(assetID, attached.GetUserId(), attached.GetRoomId(), attached.GetMessageEventId(), time.Now()); err != nil {
 			return nil, err
+		}
+		if attached.GetBurn() != nil {
+			// The enclosing room OCC boundary fences membership changes with this
+			// message. Recompute the audience inside each message append attempt.
+			room, err := c.FindRoomByID(ctx, attached.GetRoomId())
+			if err != nil || room == nil {
+				return nil, ErrNotFound
+			}
+			members, err := c.GetRoomMembersList(ctx, KindOfRoom(room), room.Id)
+			if err != nil {
+				return nil, err
+			}
+			attached.Burn.RecipientIds = nil
+			for _, member := range members {
+				attached.Burn.RecipientIds = append(attached.Burn.RecipientIds, member.GetUserId())
+			}
 		}
 		entries = append(entries, evtstream.BatchEntry{
 			Subject:       agg.SubjectFor(attachedEvent),
@@ -810,7 +837,7 @@ func (c *ChattoCore) PostMessage(ctx context.Context, kind RoomKind, room_id, us
 	}
 	assetAttachedEvents := make([]*evtv1.Event, 0, len(resolvedAssetIDs))
 	for _, assetID := range resolvedAssetIDs {
-		assetAttachedEvents = append(assetAttachedEvents, newEvent(user_id, &evtv1.Event{
+		attachedEvent := newEvent(user_id, &evtv1.Event{
 			Event: &evtv1.Event_AssetAttached{
 				AssetAttached: &evtv1.AssetAttachedEvent{
 					AssetId:        assetID,
@@ -819,7 +846,20 @@ func (c *ChattoCore) PostMessage(ctx context.Context, kind RoomKind, room_id, us
 					UserId:         user_id,
 				},
 			},
-		}))
+		})
+		if _, burn := options.burnAssetIDs[assetID]; burn {
+			state := c.assetModel.AssetState(assetID)
+			if state.Creation == nil || !BurnAttachmentSupported(state.Creation.GetAsset().GetContentType(), state.Creation.GetAsset().GetFilename()) {
+				return nil, invalidArgument("view-once attachments require a supported inline preview")
+			}
+			unopened, recovery, view := c.config.Assets.Burn.Lifetimes()
+			attachedEvent.GetAssetAttached().Burn = &evtv1.AssetBurnState{
+				AssetId: assetID, RoomId: room_id, MessageEventId: eventID, UserId: user_id,
+				UnopenedExpiresAt: timestamppb.New(now.Add(unopened)),
+				ViewDurationMs:    view.Milliseconds(), RecoveryDurationMs: recovery.Milliseconds(),
+			}
+		}
+		assetAttachedEvents = append(assetAttachedEvents, attachedEvent)
 	}
 	var threadCreatedEvent *evtv1.Event
 	if inThread != "" && !c.roomModel.threadExists(inThread) {

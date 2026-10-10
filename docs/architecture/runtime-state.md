@@ -256,6 +256,13 @@ S2 compression is enabled for `SERVER_ASSETS`. `MediaModel` owns binary storage
 and serving helpers. `AssetModel` owns durable lifecycle facts and shared
 durable message-asset deletion recovery.
 
+Burn sessions, requests, permanence, Undo, and first-use acknowledgements live
+in EVT-derived asset state, not runtime KV. The viewer holds its raw session
+capability only in memory; EVT stores its SHA-256 hash. Each attachment captures
+its TOML lifetimes at send time. Requests do not renew any deadline.
+S3 redirects are also suppressed during reversible permanence, preventing an
+external byte-access grant from surviving a successful Undo.
+
 Asset metadata is created in `AssetCreatedEvent` on
 `evt.asset.{assetId}.asset_created`. Room scope and ownership context live on
 the event as `message`, `derivative`, `user_avatar`, or `server_branding`, not

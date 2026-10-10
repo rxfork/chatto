@@ -108,7 +108,7 @@ func apiAsset(ctx context.Context, api *API, attachment *evtv1.Attachment, viewe
 	if attachment == nil {
 		return nil
 	}
-	return &apiv1.Asset{
+	asset := &apiv1.Asset{
 		Id:                attachment.Id,
 		Filename:          attachment.Filename,
 		ContentType:       attachment.ContentType,
@@ -119,6 +119,11 @@ func apiAsset(ctx context.Context, api *API, attachment *evtv1.Attachment, viewe
 		ThumbnailAssetUrl: api.assetURLView(ctx, api.core.GetStableTransformedAttachmentAssetURL(attachment.Id, viewerID, thumbnail.width, thumbnail.height, thumbnail.fit)),
 		VideoProcessing:   apiVideoProcessing(ctx, api, viewerID, attachment),
 	}
+	asset.Burn = apiBurnAttachment(api, attachment.Id, viewerID)
+	if asset.Burn != nil && asset.Burn.GetViewerStatus() != apiv1.BurnAttachmentViewerStatus_BURN_ATTACHMENT_VIEWER_STATUS_PERMANENT {
+		asset.AssetUrl, asset.ThumbnailAssetUrl, asset.VideoProcessing = nil, nil, nil
+	}
+	return asset
 }
 
 func apiVideoProcessing(ctx context.Context, api *API, viewerID string, attachment *evtv1.Attachment) *apiv1.MessageVideoProcessing {

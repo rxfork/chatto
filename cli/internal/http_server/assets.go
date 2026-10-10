@@ -201,7 +201,8 @@ func (s *HTTPServer) serveStableAttachment(c *gin.Context) {
 	}
 
 	download := c.Query("download") == "1"
-	if !download && protectedAssetDeliveryMode(attachment) == deliveryS3Redirect {
+	// A direct storage URL would remain usable after a viewing session closes.
+	if !download && !c.GetBool("burn_attachment") && protectedAssetDeliveryMode(attachment) == deliveryS3Redirect {
 		if presignedURL, err := s.core.TryPresignedAttachmentURL(ctx, attachment, core.S3AssetRedirectTTL); err == nil {
 			c.Header("Cache-Control", protectedAssetCacheControl)
 			c.Redirect(http.StatusFound, presignedURL)
@@ -410,6 +411,19 @@ func (s *HTTPServer) resolveAttachmentForViewer(c *gin.Context, ctx context.Cont
 		return nil, false
 	}
 
+	burning, err := s.core.AuthorizeAssetBinary(ctx, assetID, userID, c.Query("burn_session"), c.Query("download") == "1")
+	if err != nil {
+		if errors.Is(err, core.ErrNotFound) {
+			c.JSON(http.StatusNotFound, gin.H{"error": "Attachment not found"})
+		} else if errors.Is(err, core.ErrPermissionDenied) {
+			c.JSON(http.StatusForbidden, gin.H{"error": "Viewing session is unavailable"})
+		} else {
+			c.JSON(http.StatusServiceUnavailable, gin.H{"error": "Failed to verify attachment access"})
+		}
+		return nil, false
+	}
+	c.Set("burn_attachment", burning)
+
 	attachment := core.AttachmentFromAsset(declared.GetAsset())
 	if attachment == nil {
 		c.JSON(http.StatusNotFound, gin.H{"error": "Attachment not found"})
@@ -464,6 +478,14 @@ func hlsChildPath(assetID, access, suffix string) string {
 	values := url.Values{}
 	values.Set("access", access)
 	return fmt.Sprintf("/assets/hls/%s/%s?%s", url.PathEscape(assetID), suffix, values.Encode())
+}
+
+func hlsChildSessionPath(assetID, access, suffix, sessionID string) string {
+	path := hlsChildPath(assetID, access, suffix)
+	if sessionID != "" {
+		path += "&burn_session=" + url.QueryEscape(sessionID)
+	}
+	return path
 }
 
 func renderHLSMasterPlaylist(hls *evtv1.AssetProcessedHLS, childURL func(index int) string) ([]byte, error) {
@@ -536,7 +558,7 @@ func (s *HTTPServer) serveHLSMasterPlaylist(c *gin.Context) {
 	}
 	assetID := c.Param("assetID")
 	playlist, err := renderHLSMasterPlaylist(hls, func(index int) string {
-		return hlsChildPath(assetID, access, fmt.Sprintf("renditions/%d/playlist.m3u8", index))
+		return hlsChildSessionPath(assetID, access, fmt.Sprintf("renditions/%d/playlist.m3u8", index), c.Query("burn_session"))
 	})
 	s.serveGeneratedHLSPlaylist(c, playlist, err)
 }
@@ -553,7 +575,7 @@ func (s *HTTPServer) serveHLSMediaPlaylist(c *gin.Context) {
 	assetID := c.Param("assetID")
 	rendition := hls.GetRenditions()[renditionIndex]
 	playlist, err := renderHLSMediaPlaylist(rendition, func(index int) string {
-		return hlsChildPath(assetID, access, fmt.Sprintf("renditions/%d/segments/%d.ts", renditionIndex, index))
+		return hlsChildSessionPath(assetID, access, fmt.Sprintf("renditions/%d/segments/%d.ts", renditionIndex, index), c.Query("burn_session"))
 	})
 	s.serveGeneratedHLSPlaylist(c, playlist, err)
 }

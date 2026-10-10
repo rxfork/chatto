@@ -110,6 +110,44 @@ message AssetAttachedEvent {
   string message_event_id = 3;
   // User ID of the uploader and message author.
   string user_id = 4;
+  // Frozen audience and lifetimes for an opt-in view-once attachment.
+  AssetBurnState burn = 5;
+}
+
+// AssetBurnState is the durable access history of one view-once attachment.
+// Lifetimes are captured at send time; configuration changes do not reset them.
+message AssetBurnState {
+  string asset_id = 1;
+  string room_id = 2;
+  string message_event_id = 3;
+  string user_id = 4;
+  repeated string recipient_ids = 5;
+  google.protobuf.Timestamp unopened_expires_at = 6;
+  int64 view_duration_ms = 7;
+  int64 recovery_duration_ms = 8;
+  repeated AssetBurnView views = 9;
+  repeated string requester_ids = 10;
+  bool permanent = 11;
+  string permanent_event_id = 12;
+  google.protobuf.Timestamp undo_expires_at = 13;
+  // Successful first-use explanation, retained across undo and deletion.
+  bool permanence_acknowledged = 14;
+}
+
+// AssetBurnView reserves a single logical viewing session for one recipient.
+message AssetBurnView {
+  string user_id = 1;
+  // SHA-256 verifier for the caller-generated viewing-session capability.
+  string session_hash = 2;
+  google.protobuf.Timestamp expires_at = 3;
+  google.protobuf.Timestamp closed_at = 4;
+}
+
+// AssetBurnUpdatedEvent records a view, request, conversion, or undo under the
+// complete asset aggregate's OCC boundary. It never contains file bytes or a
+// raw viewing-session capability.
+message AssetBurnUpdatedEvent {
+  AssetBurnState state = 1;
 }
 
 // AssetProcessingStartedEvent signals that derivative processing has been
@@ -173,7 +211,7 @@ message AssetProcessedVideo {
 }
 
 message AssetVideoVariant {
-  string quality = 1;  // e.g., "720p", "480p"
+  string quality = 1; // e.g., "720p", "480p"
   string asset_id = 2;
 }
 

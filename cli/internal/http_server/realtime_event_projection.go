@@ -129,6 +129,11 @@ func projectRealtimeEvent(viewerID string, source *evtv1.Event) *realtimev1.Real
 		target.Event = &realtimev1.RealtimeEvent_AssetProcessingFailed{AssetProcessingFailed: &realtimev1.AssetProcessingFailedEvent{AssetId: v.GetAssetId(), FailureCode: realtimeAssetProcessingFailureCode(v.GetFailureCode()), MessageEventId: v.GetMessageEventId()}}
 	case *evtv1.Event_AssetDeleted:
 		target.Event = &realtimev1.RealtimeEvent_AssetDeleted{AssetDeleted: &realtimev1.AssetDeletedEvent{AssetId: e.AssetDeleted.GetAssetId()}}
+	case *evtv1.Event_AssetBurnUpdated:
+		// A convergence invalidation must not reveal who opened or closed a file.
+		target.ActorId = nil
+		v := e.AssetBurnUpdated.GetState()
+		target.Event = &realtimev1.RealtimeEvent_AttachmentChanged{AttachmentChanged: &realtimev1.AttachmentChangedEvent{AssetId: v.GetAssetId(), RoomId: v.GetRoomId(), MessageEventId: v.GetMessageEventId()}}
 	case *evtv1.Event_ServerMotdChanged:
 		target.Event = &realtimev1.RealtimeEvent_ServerMotdChanged{ServerMotdChanged: &realtimev1.ServerMotdChangedEvent{Motd: e.ServerMotdChanged.GetMotd()}}
 	case *evtv1.Event_ServerNameChanged,

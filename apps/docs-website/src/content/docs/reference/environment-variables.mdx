@@ -276,6 +276,22 @@ Only used when `storage_backend` is set to `s3`. See the [S3 Storage guide](/gui
   Time-to-live for cached images. Supports durations like `7d`, `1w`, `168h`.
 </EnvVar>
 
+### Burn After Reading
+
+<EnvVar name="CHATTO_CORE_ASSETS_BURN_UNOPENED_TTL" toml="core.assets.burn.unopened_ttl" default="24h">
+  Expiry of sessions that have not started. Captured when each attachment is sent.
+</EnvVar>
+
+<EnvVar name="CHATTO_CORE_ASSETS_BURN_VIEW_TTL" toml="core.assets.burn.view_ttl" default="5m">
+  Maximum duration of one viewing session, including a lost browser close.
+</EnvVar>
+
+<EnvVar name="CHATTO_CORE_ASSETS_BURN_RECOVERY_TTL" toml="core.assets.burn.recovery_ttl" default="1h">
+  Keep the file after all original sessions end or expire, so the sender can make
+  it permanent. Requests do not extend this duration. Zero selects the default;
+  other burn durations must be at least 1 millisecond.
+</EnvVar>
+
 ## NATS
 
 <EnvVar name="CHATTO_NATS_REPLICAS" toml="nats.replicas" default="1">

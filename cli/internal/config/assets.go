@@ -126,11 +126,35 @@ func (c *AssetsCacheConfig) TTLOrDefault() time.Duration {
 
 // AssetsConfig contains settings for asset storage (attachments, thumbnails, etc.).
 type AssetsConfig struct {
-	SigningSecret  string            `toml:"signing_secret" env:"CHATTO_CORE_ASSETS_SIGNING_SECRET" comment:"Secret for signing asset URLs. NEVER SHARE THIS!\nIf it leaks, regenerate it. Existing signed URLs will become invalid but will be regenerated on next request."`
-	MaxUploadSize  datasize.ByteSize `toml:"max_upload_size" env:"CHATTO_CORE_ASSETS_MAX_UPLOAD_SIZE" comment:"Maximum size for uploaded files. Supports human-readable formats like '25 MB', '25MB', '25MiB'."`
-	StorageBackend StorageBackend    `toml:"storage_backend" env:"CHATTO_CORE_ASSETS_STORAGE_BACKEND" comment:"Where to store new uploads: 'nats' (default) or 's3'. Existing assets are served from their original location regardless of this setting."`
-	S3             S3Config          `toml:"s3,commented" comment:"S3-compatible storage configuration. Only used when storage_backend = 's3'."`
-	Cache          AssetsCacheConfig `toml:"cache" comment:"Caching configuration for resized images."`
+	Burn           BurnAttachmentsConfig `toml:"burn" comment:"View-once attachment lifetimes. All serving replicas must support this policy."`
+	SigningSecret  string                `toml:"signing_secret" env:"CHATTO_CORE_ASSETS_SIGNING_SECRET" comment:"Secret for signing asset URLs. NEVER SHARE THIS!\nIf it leaks, regenerate it. Existing signed URLs will become invalid but will be regenerated on next request."`
+	MaxUploadSize  datasize.ByteSize     `toml:"max_upload_size" env:"CHATTO_CORE_ASSETS_MAX_UPLOAD_SIZE" comment:"Maximum size for uploaded files. Supports human-readable formats like '25 MB', '25MB', '25MiB'."`
+	StorageBackend StorageBackend        `toml:"storage_backend" env:"CHATTO_CORE_ASSETS_STORAGE_BACKEND" comment:"Where to store new uploads: 'nats' (default) or 's3'. Existing assets are served from their original location regardless of this setting."`
+	S3             S3Config              `toml:"s3,commented" comment:"S3-compatible storage configuration. Only used when storage_backend = 's3'."`
+	Cache          AssetsCacheConfig     `toml:"cache" comment:"Caching configuration for resized images."`
+}
+
+// BurnAttachmentsConfig sets lifetimes captured by new view-once attachments.
+// Zero selects the default. Existing attachments retain their send-time values.
+type BurnAttachmentsConfig struct {
+	UnopenedTTL Duration `toml:"unopened_ttl" env:"CHATTO_CORE_ASSETS_BURN_UNOPENED_TTL" comment:"Lifetime of unopened viewing sessions. Default: 24h."`
+	RecoveryTTL Duration `toml:"recovery_ttl" env:"CHATTO_CORE_ASSETS_BURN_RECOVERY_TTL" comment:"Keep files after all sessions end so the sender can make them permanent. Default: 1h."`
+	ViewTTL     Duration `toml:"view_ttl" env:"CHATTO_CORE_ASSETS_BURN_VIEW_TTL" comment:"Maximum lifetime of one viewing session, including a lost close. Default: 5m."`
+}
+
+// Lifetimes returns the effective unopened, recovery, and viewing durations.
+func (c BurnAttachmentsConfig) Lifetimes() (time.Duration, time.Duration, time.Duration) {
+	unopened, recovery, view := c.UnopenedTTL.Duration(), c.RecoveryTTL.Duration(), c.ViewTTL.Duration()
+	if unopened == 0 {
+		unopened = 24 * time.Hour
+	}
+	if recovery == 0 {
+		recovery = time.Hour
+	}
+	if view == 0 {
+		view = 5 * time.Minute
+	}
+	return unopened, recovery, view
 }
 
 // CoreConfig contains settings for the Chatto core service.

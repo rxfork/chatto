@@ -8,6 +8,7 @@ import {
   BatchGetAssetsResponse,
   RoomAttachmentListItem
 } from '@chatto/api-types/api/v1/attachments_pb';
+import { BurnAttachmentViewerStatus } from '@chatto/api-types/api/v1/message_types_pb';
 import { ImageFitMode } from '@chatto/api-types/api/v1/common_pb';
 import { ListRoomAttachmentsResponse } from '@chatto/api-types/api/v1/rooms_pb';
 import {
@@ -40,6 +41,81 @@ function assetUrl(url: string) {
 describe('createAttachmentAPI', () => {
   beforeEach(() => {
     vi.resetAllMocks();
+  });
+
+  it('opens and closes the same explicit burn session without losing its bound URL', async () => {
+    const asset = new Asset({
+      id: 'burn',
+      filename: 'secret.png',
+      contentType: 'image/png',
+      assetUrl: assetUrl('/assets/files/burn?burn_session=session'),
+      burn: { viewerStatus: BurnAttachmentViewerStatus.VIEWING }
+    });
+    assets.openBurnAttachment.mockReturnValue({
+      asset,
+      viewExpiresAt: Timestamp.fromDate(new Date('2026-06-01T13:00:00Z'))
+    });
+    assets.closeBurnAttachment.mockReturnValue({
+      asset: new Asset({
+        ...asset,
+        assetUrl: undefined,
+        burn: { viewerStatus: BurnAttachmentViewerStatus.BURNED }
+      })
+    });
+    const api = attachmentAPI();
+    const opened = await api.openBurnAttachment('room', 'burn', 'session');
+    expect(opened.attachment.assetUrl?.url).toContain('burn_session=session');
+    expect(opened.viewExpiresAt).toBe('2026-06-01T13:00:00.000Z');
+    expect(receivedRequest(assets.openBurnAttachment)).toMatchObject({
+      roomId: 'room',
+      assetId: 'burn',
+      sessionId: 'session'
+    });
+    expect((await api.closeBurnAttachment('room', 'burn', 'session')).burn?.viewerStatus).toBe(
+      'burned'
+    );
+    expect(receivedRequest(assets.closeBurnAttachment)).toMatchObject({ sessionId: 'session' });
+  });
+
+  it('uses authoritative permanence, request and Undo RPCs and propagates cancellation', async () => {
+    const asset = new Asset({
+      id: 'burn',
+      burn: {
+        viewerStatus: BurnAttachmentViewerStatus.BURNED,
+        canRequestPermanent: true,
+        permanenceRequested: true
+      }
+    });
+    assets.requestAttachmentPermanence.mockReturnValue({ asset });
+    assets.makeAttachmentPermanent.mockReturnValue({
+      asset: new Asset({
+        id: 'burn',
+        burn: { viewerStatus: BurnAttachmentViewerStatus.PERMANENT }
+      }),
+      undoToken: 'undo-token',
+      undoExpiresAt: Timestamp.fromDate(new Date('2026-06-01T13:00:00Z'))
+    });
+    assets.undoAttachmentPermanence.mockReturnValue({ asset });
+    const api = attachmentAPI();
+    expect(
+      (await api.requestAttachmentPermanence('room', 'burn', true)).burn?.permanenceRequested
+    ).toBe(true);
+    expect(receivedRequest(assets.requestAttachmentPermanence)).toMatchObject({ requested: true });
+    const permanent = await api.makeAttachmentPermanent('room', 'burn', true);
+    expect(permanent).toMatchObject({
+      attachment: { burn: { viewerStatus: 'permanent' } },
+      undoToken: 'undo-token'
+    });
+    expect(receivedRequest(assets.makeAttachmentPermanent)).toMatchObject({ acknowledge: true });
+    expect(
+      (await api.undoAttachmentPermanence('room', 'burn', permanent.undoToken)).burn?.viewerStatus
+    ).toBe('burned');
+    expect(receivedRequest(assets.undoAttachmentPermanence)).toMatchObject({
+      undoToken: 'undo-token'
+    });
+    await expect(
+      api.openBurnAttachment('room', 'burn', 'session', { signal: AbortSignal.abort() })
+    ).rejects.toMatchObject({ code: Code.Canceled });
   });
 
   it('reads file size metadata and forwards cancellation', async () => {

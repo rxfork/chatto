@@ -121,6 +121,24 @@ through projected reads. Auth email delivery is also outside this inventory:
 registration, verification, and reset credentials live in `RUNTIME_STATE`, with
 durable EVT records serving as security audit facts rather than an email queue.
 
+## Burn attachment expiry
+
+Each `AssetModel` checks projected expired burn candidates at startup and every
+30 seconds. An authoritative asset-tail read and asset-aggregate OCC fence the
+deletion decision against Open, Close, conversion, and Undo. Absolute send-time
+and session deadlines reject binary access independently of worker timing.
+Conversion removes the file from expiry candidates. Undo restores its original
+deadlines. No local lock or worker election establishes correctness.
+
+The resulting ordinary `AssetDeletedEvent` goes through the shared durable
+cleanup consumer. Cleanup reconstructs children from retained live creation
+facts even after a parent tombstone removed the child index. It tombstones
+children before deleting bytes; each child's durable delivery recursively
+handles further derivatives. Interrupted deletion is therefore recoverable.
+The periodic pass also tombstones orphan derivatives created by a slow worker
+after source cleanup. Backups and storage-provider versioning remain outside
+active-store cleanup.
+
 ## Best-effort outbound bot webhook delivery
 
 The [webhook worker](../../cli/internal/core/bot_webhook_worker.go) consumes EVT

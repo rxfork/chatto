@@ -1,6 +1,11 @@
 <script lang="ts">
   import { trackScrollEdges, type ScrollEdges } from '$lib/ui/scrollEdges';
   import { LoadingFog, LoadRetry } from '$lib/ui';
+  import { Button } from '$lib/ui/form';
+  import { isBurnAttachment } from '@chatto/client/timeline/messageAttachments';
+  import BurnAttachmentControls from './BurnAttachmentControls.svelte';
+  import Deadline from '$lib/lifecycle/Deadline.svelte';
+  import { onMount, onDestroy } from 'svelte';
   import { type MessageAttachmentView } from '@chatto/client/timeline/messageAttachments';
 
   type RawAttachment = MessageAttachmentView;
@@ -8,6 +13,8 @@
   import { pushState } from '$app/navigation';
   import { useServerScope } from '$lib/state/server/scope.svelte';
   import { m } from '$lib/i18n/messages';
+  import { getLocale } from '$lib/i18n/runtime';
+  import { formatDateTime, timeFormatSettingsFor } from '$lib/utils/formatTime';
   import {
     assetUrlNeedsRefresh,
     createAssetUrlRetainer,
@@ -53,8 +60,15 @@
   } = $props();
 
   let refreshedAttachmentUrls = $state.raw(new Map<string, RefreshedAttachmentUrls>());
+  const changedAttachments = new SvelteMap<string, MessageAttachmentView>();
   const assetRetrySalts = new SvelteMap<string, number>();
   let refreshPromise: Promise<Map<string, RefreshedAttachmentUrls>> | null = null;
+  let attachmentRevision = 0;
+  let active = true;
+  onDestroy(() => {
+    active = false;
+    attachmentRevision++;
+  });
   const failedAssetRefreshKeys = new SvelteSet<string>();
   // Retain only the latest settled URL per attachment as signed URLs rotate.
   const settledImageUrls = new SvelteMap<string, string>();
@@ -88,7 +102,10 @@
   }
 
   function normalizeAttachment(attachment: RawAttachment) {
+    attachment = changedAttachments.get(attachment.id) ?? attachment;
     const refreshed = refreshedAttachmentUrls.get(attachment.id);
+    const burn = refreshed?.burn === undefined ? attachment.burn : refreshed.burn;
+    const restricted = !!burn && burn.viewerStatus !== 'permanent';
     const resolveUrl = (
       role: string,
       value: ExpiringAssetUrl | null | undefined,
@@ -99,24 +116,36 @@
         withRetrySalt(normalizeAssetUrl(value), attachment.id, retryRole),
         refreshed !== undefined || assetRetrySalts.has(`${attachment.id}:${retryRole}`)
       );
-    const assetUrl = resolveUrl('asset', refreshed ? refreshed.assetUrl : attachment.assetUrl);
+    const assetUrl = resolveUrl(
+      'asset',
+      restricted ? null : refreshed ? refreshed.assetUrl : attachment.assetUrl
+    );
     const thumbnailAssetUrl = resolveUrl(
       'thumbnail',
-      refreshed ? refreshed.thumbnailAssetUrl : attachment.thumbnailAssetUrl
+      restricted ? null : refreshed ? refreshed.thumbnailAssetUrl : attachment.thumbnailAssetUrl
     );
     const videoThumbnailAssetUrl = resolveUrl(
       'video-thumbnail',
-      refreshed ? refreshed.videoThumbnailAssetUrl : attachment.videoProcessing?.thumbnailAssetUrl,
+      restricted
+        ? null
+        : refreshed
+          ? refreshed.videoThumbnailAssetUrl
+          : attachment.videoProcessing?.thumbnailAssetUrl,
       'video'
     );
     const hlsMasterPlaylistUrl = resolveUrl(
       'hls',
-      refreshed ? refreshed.hlsMasterPlaylistUrl : attachment.videoProcessing?.hlsMasterPlaylistUrl,
+      restricted
+        ? null
+        : refreshed
+          ? refreshed.hlsMasterPlaylistUrl
+          : attachment.videoProcessing?.hlsMasterPlaylistUrl,
       'hls'
     );
 
     return {
       ...attachment,
+      burn,
       assetUrl,
       url: assetUrl?.url ?? null,
       thumbnailAssetUrl,
@@ -131,7 +160,9 @@
             variants: attachment.videoProcessing.variants.flatMap((variant) => {
               const variantAssetUrl = resolveUrl(
                 `variant:${variant.quality}`,
-                refreshedVariantAssetUrl(refreshed, variant.quality, variant.assetUrl),
+                restricted
+                  ? null
+                  : refreshedVariantAssetUrl(refreshed, variant.quality, variant.assetUrl),
                 'video'
               );
               if (!variantAssetUrl) return [];
@@ -232,6 +263,7 @@
 
   function isGalleryImageAttachment(attachment: Attachment): boolean {
     return (
+      !attachment.burn &&
       attachment.contentType.startsWith('image/') &&
       !(attachment.contentType === 'image/gif' && attachment.videoProcessing)
     );
@@ -260,6 +292,59 @@
 
   const serverScope = useServerScope();
 
+  onMount(() =>
+    serverScope.store.onUpdate(({ event }) => {
+      if (
+        (event?.event.case !== 'attachmentChanged' && event?.event.case !== 'assetDeleted') ||
+        event.event.value.roomId !== roomId
+      )
+        return;
+      const assetId = event.event.value.assetId;
+      if (!rawAttachments.some((attachment) => attachment.id === assetId)) return;
+      attachmentRevision++;
+      changedAttachments.delete(assetId);
+      refreshedAttachmentUrls = new Map();
+      void refreshAndApplyUrls();
+    })
+  );
+
+  function attachmentChanged(attachment: MessageAttachmentView) {
+    attachmentRevision++;
+    refreshedAttachmentUrls = new Map(
+      [...refreshedAttachmentUrls].filter(([id]) => id !== attachment.id)
+    );
+    changedAttachments.set(attachment.id, {
+      ...attachment,
+      description: rawAttachments.find((item) => item.id === attachment.id)?.description
+    });
+  }
+
+  function expireAttachment(attachment: Attachment, viewerStatus: 'purged' | 'expired' | 'burned') {
+    const burn = attachment.burn;
+    if (!burn || burn.viewerStatus === 'permanent') return;
+    attachmentChanged({
+      ...attachment,
+      burn: {
+        ...burn,
+        viewerStatus,
+        viewExpiresAt: null,
+        canMakePermanent: viewerStatus === 'purged' ? false : burn.canMakePermanent,
+        canRequestPermanent: viewerStatus === 'purged' ? false : burn.canRequestPermanent
+      }
+    });
+    void refreshAndApplyUrls();
+  }
+
+  function burnStatus(attachment: Attachment): string {
+    const status = attachment.burn?.viewerStatus;
+    if (status === 'available') return m('room.attachment.burn.view_once');
+    if (status === 'viewing') return m('room.attachment.burn.viewing');
+    if (status === 'ineligible') return m('room.attachment.burn.ineligible');
+    if (status === 'purged') return m('room.attachment.burn.deleted');
+    if (status === 'expired') return m('room.attachment.burn.expired');
+    return m('room.attachment.burn.view_ended');
+  }
+
   function attachmentAssetUrls(attachment: Attachment) {
     return [
       attachment.assetUrl,
@@ -284,9 +369,15 @@
 
   async function refreshAndApplyUrls(): Promise<Map<string, RefreshedAttachmentUrls>> {
     if (refreshPromise) return refreshPromise;
-
+    const revision = attachmentRevision;
+    let superseded = false;
     refreshPromise = refreshUrlsForMessage()
       .then((freshUrls) => {
+        if (!active) return new Map();
+        if (revision !== attachmentRevision) {
+          superseded = true;
+          return new Map();
+        }
         if (freshUrls.size > 0) {
           refreshedAttachmentUrls = mergeRefreshedAttachmentUrls(
             refreshedAttachmentUrls,
@@ -297,6 +388,7 @@
       })
       .finally(() => {
         refreshPromise = null;
+        if (active && superseded) void refreshAndApplyUrls();
       });
 
     return refreshPromise;
@@ -352,10 +444,30 @@
   }
 
   function openAttachmentModal(attachment: Attachment) {
+    if (isBurnAttachment(attachment)) {
+      if (attachment.burn?.viewerStatus !== 'available') return;
+      pushState('', {
+        modal: {
+          type: 'burnAttachmentViewer',
+          serverId,
+          roomId,
+          eventId,
+          attachment: {
+            ...attachment,
+            assetUrl: null,
+            thumbnailAssetUrl: null,
+            videoProcessing: null
+          }
+        }
+      });
+      return;
+    }
     // Capture file identities and URLs; media state stays local to the viewer.
     const items =
       attachment.contentType.startsWith('image/') && !attachment.videoProcessing
-        ? attachments.filter((a) => a.contentType.startsWith('image/') && !a.videoProcessing)
+        ? attachments.filter(
+            (a) => !isBurnAttachment(a) && a.contentType.startsWith('image/') && !a.videoProcessing
+          )
         : attachments.filter((a) => a.id === attachment.id);
     pushState('', {
       modal: {
@@ -537,7 +649,46 @@
 
   {#snippet attachmentItem(attachment: Attachment)}
     <div class="flex max-w-full min-w-0 flex-col items-start">
-      {#if attachment.videoProcessing && (attachment.contentType === 'image/gif' || attachment.contentType.startsWith('video/'))}
+      {#if isBurnAttachment(attachment)}
+        <div
+          class="group/attachment embed-frame attachment-card min-w-[min(18rem,100%)] flex-wrap"
+          data-testid="burn-attachment-card"
+        >
+          <span class="iconify icon-[uil--fire] shrink-0 text-xl text-muted" aria-hidden="true"
+          ></span>
+          <div class="min-w-0 flex-1 text-sm">
+            <bdi class="block truncate font-medium">{attachment.filename}</bdi>
+            <span class="block text-muted">{burnStatus(attachment)}</span>
+            {#if attachment.burn?.deleteAt}<span class="block text-muted"
+                >{m('room.attachment.burn.deletes_at', {
+                  time: formatDateTime(
+                    attachment.burn.deleteAt,
+                    timeFormatSettingsFor(serverScope.store.currentUser.user?.settings),
+                    getLocale()
+                  )
+                })}</span
+              >{/if}
+          </div>
+          {#if attachment.burn?.viewerStatus === 'available'}
+            <Button size="sm" variant="secondary" onclick={() => openAttachmentModal(attachment)}
+              >{m('room.attachment.burn.open')}</Button
+            >
+          {/if}
+          {@render attachmentControls(attachment, false, 'row')}
+        </div>
+        {#if attachment.burn?.deleteAt}<Deadline
+            at={attachment.burn.deleteAt}
+            onreached={() => expireAttachment(attachment, 'purged')}
+          />
+        {:else if attachment.burn?.viewerStatus === 'available' && attachment.burn.unopenedExpiresAt}<Deadline
+            at={attachment.burn.unopenedExpiresAt}
+            onreached={() => expireAttachment(attachment, 'expired')}
+          />
+        {:else if attachment.burn?.viewerStatus === 'viewing' && attachment.burn.viewExpiresAt}<Deadline
+            at={attachment.burn.viewExpiresAt}
+            onreached={() => expireAttachment(attachment, 'burned')}
+          />{/if}
+      {:else if attachment.videoProcessing && (attachment.contentType === 'image/gif' || attachment.contentType.startsWith('video/'))}
         {@const autoLoop = attachment.contentType === 'image/gif'}
         <div
           class="group/attachment attachment-video-frame"
@@ -656,6 +807,11 @@
       {#if attachment.description && !isGalleryImageAttachment(attachment)}
         <span id={descriptionID(attachment)} class="sr-only">{attachment.description}</span>
       {/if}
+      {#if attachment.burn}<BurnAttachmentControls
+          {attachment}
+          {roomId}
+          onchange={attachmentChanged}
+        />{/if}
     </div>
   {/snippet}
 

@@ -1,6 +1,7 @@
 import { ImageFitMode } from '@chatto/api-types/api/v1/common_pb';
 
 import type { AttachmentAPI } from '../api/attachments.js';
+import type { BurnAttachmentView } from '../timeline/messageAttachments.js';
 
 export type ExpiringAssetUrl = {
   url: string;
@@ -8,6 +9,7 @@ export type ExpiringAssetUrl = {
 };
 
 export type RefreshedAttachmentUrls = {
+  burn?: BurnAttachmentView | null;
   assetUrl: ExpiringAssetUrl | null;
   thumbnailAssetUrl: ExpiringAssetUrl | null;
   videoThumbnailAssetUrl: ExpiringAssetUrl | null;

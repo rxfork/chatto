@@ -3,7 +3,7 @@
 /* eslint-disable */
 // @ts-nocheck
 
-import { BatchGetAssetsRequest, BatchGetAssetsResponse, GetAssetRequest, GetAssetResponse } from "./attachments_pb.js";
+import { BatchGetAssetsRequest, BatchGetAssetsResponse, CloseBurnAttachmentRequest, CloseBurnAttachmentResponse, GetAssetRequest, GetAssetResponse, MakeAttachmentPermanentRequest, MakeAttachmentPermanentResponse, OpenBurnAttachmentRequest, OpenBurnAttachmentResponse, RequestAttachmentPermanenceRequest, RequestAttachmentPermanenceResponse, UndoAttachmentPermanenceRequest, UndoAttachmentPermanenceResponse } from "./attachments_pb.js";
 import { MethodKind } from "@bufbuild/protobuf";
 
 /**
@@ -14,6 +14,63 @@ import { MethodKind } from "@bufbuild/protobuf";
 export const AssetService = {
   typeName: "chatto.api.v1.AssetService",
   methods: {
+    /**
+     * Deliberately opens one session. Membership and current message-read access
+     * are required. The server's configured session limit bounds crash recovery.
+     *
+     * @generated from rpc chatto.api.v1.AssetService.OpenBurnAttachment
+     */
+    openBurnAttachment: {
+      name: "OpenBurnAttachment",
+      I: OpenBurnAttachmentRequest,
+      O: OpenBurnAttachmentResponse,
+      kind: MethodKind.Unary,
+    },
+    /**
+     * End on viewer close, navigation, or privacy reset. A lost close is bounded
+     * by the original session deadline; it does not create a new session.
+     *
+     * @generated from rpc chatto.api.v1.AssetService.CloseBurnAttachment
+     */
+    closeBurnAttachment: {
+      name: "CloseBurnAttachment",
+      I: CloseBurnAttachmentRequest,
+      O: CloseBurnAttachmentResponse,
+      kind: MethodKind.Unary,
+    },
+    /**
+     * Request or cancel normal access while the file is retained.
+     *
+     * @generated from rpc chatto.api.v1.AssetService.RequestAttachmentPermanence
+     */
+    requestAttachmentPermanence: {
+      name: "RequestAttachmentPermanence",
+      I: RequestAttachmentPermanenceRequest,
+      O: RequestAttachmentPermanenceResponse,
+      kind: MethodKind.Unary,
+    },
+    /**
+     * Sender-only conversion, including during the recovery window.
+     *
+     * @generated from rpc chatto.api.v1.AssetService.MakeAttachmentPermanent
+     */
+    makeAttachmentPermanent: {
+      name: "MakeAttachmentPermanent",
+      I: MakeAttachmentPermanentRequest,
+      O: MakeAttachmentPermanentResponse,
+      kind: MethodKind.Unary,
+    },
+    /**
+     * Sender-only undo during the returned deadline.
+     *
+     * @generated from rpc chatto.api.v1.AssetService.UndoAttachmentPermanence
+     */
+    undoAttachmentPermanence: {
+      name: "UndoAttachmentPermanence",
+      I: UndoAttachmentPermanenceRequest,
+      O: UndoAttachmentPermanenceResponse,
+      kind: MethodKind.Unary,
+    },
     /**
      * Reads one asset. Authentication and room membership are required.
      * Assets also require message.read or a matching thread relationship with
