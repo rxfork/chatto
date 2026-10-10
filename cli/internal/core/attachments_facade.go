@@ -9,6 +9,46 @@ import (
 	evtv1 "hmans.de/chatto/internal/pb/chatto/core/evt/v1"
 )
 
+// FreshAssetState returns state caught up to the authoritative asset tail.
+func (c *ChattoCore) FreshAssetState(ctx context.Context, assetID string) (AssetState, error) {
+	return c.assetModel.FreshAssetState(ctx, assetID)
+}
+
+// BurnAttachmentMetadata returns viewer-specific metadata without opening a session.
+func (c *ChattoCore) BurnAttachmentMetadata(assetID, viewerID string) *BurnAttachmentView {
+	return c.assetModel.BurnAttachmentMetadata(assetID, viewerID)
+}
+
+// OpenBurnAttachment reserves this account's one viewing session.
+func (c *ChattoCore) OpenBurnAttachment(ctx context.Context, input BurnAttachmentInput) (*BurnAttachmentResult, error) {
+	return c.assetModel.OpenBurnAttachment(ctx, input)
+}
+
+// CloseBurnAttachment consumes the matching session without resetting history.
+func (c *ChattoCore) CloseBurnAttachment(ctx context.Context, input BurnAttachmentInput) (*BurnAttachmentResult, error) {
+	return c.assetModel.CloseBurnAttachment(ctx, input)
+}
+
+// RequestAttachmentPermanence creates or cancels a recipient's request.
+func (c *ChattoCore) RequestAttachmentPermanence(ctx context.Context, input BurnAttachmentInput) (*BurnAttachmentResult, error) {
+	return c.assetModel.RequestAttachmentPermanence(ctx, input)
+}
+
+// MakeAttachmentPermanent converts a retained file to normal message access.
+func (c *ChattoCore) MakeAttachmentPermanent(ctx context.Context, input BurnAttachmentInput) (*BurnAttachmentResult, error) {
+	return c.assetModel.MakeAttachmentPermanent(ctx, input)
+}
+
+// UndoAttachmentPermanence restores original burn access for one conversion.
+func (c *ChattoCore) UndoAttachmentPermanence(ctx context.Context, input BurnAttachmentInput) (*BurnAttachmentResult, error) {
+	return c.assetModel.UndoAttachmentPermanence(ctx, input)
+}
+
+// AuthorizeAssetBinary checks the latest source and ancestor burn policies.
+func (c *ChattoCore) AuthorizeAssetBinary(ctx context.Context, assetID, userID, sessionID string, download bool) (bool, error) {
+	return c.assetModel.AuthorizeAssetBinary(ctx, assetID, userID, sessionID, download)
+}
+
 func (c *ChattoCore) UploadAttachment(
 	ctx context.Context,
 	actorID string,
@@ -137,6 +177,8 @@ func (c *ChattoCore) AssetEventTimelineTarget(event *evtv1.Event) (roomID, messa
 	switch payload := event.GetEvent().(type) {
 	case *evtv1.Event_AssetProcessingStarted:
 		messageEventID = payload.AssetProcessingStarted.GetMessageEventId()
+	case *evtv1.Event_AssetBurnUpdated:
+		messageEventID = payload.AssetBurnUpdated.GetState().GetMessageEventId()
 	case *evtv1.Event_AssetProcessingSucceeded:
 		messageEventID = payload.AssetProcessingSucceeded.GetMessageEventId()
 	case *evtv1.Event_AssetProcessingFailed:

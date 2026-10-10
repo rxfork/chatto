@@ -53,6 +53,9 @@ func (p *AssetProjection) Snapshot() ([]byte, error) {
 		})
 	}
 	snapshot.PublicLinkPreviewAssetIds = sortedMapKeys(p.publicLinkPreviewAssets)
+	for _, id := range sortedMapKeys(p.burnStates) {
+		snapshot.BurnStates = append(snapshot.BurnStates, proto.Clone(p.burnStates[id]).(*evtv1.AssetBurnState))
+	}
 	return proto.MarshalOptions{Deterministic: true}.Marshal(snapshot)
 }
 
@@ -162,7 +165,45 @@ func (p *AssetProjection) Restore(data []byte) error {
 		}
 		publicLinkPreviewAssets[assetID] = struct{}{}
 	}
+	burns := make(map[string]*evtv1.AssetBurnState, len(snapshot.GetBurnStates()))
+	for _, burn := range snapshot.GetBurnStates() {
+		if burn.GetAssetId() == "" || burn.GetRoomId() == "" || burn.GetUserId() == "" || burn.GetMessageEventId() == "" || burn.GetUnopenedExpiresAt() == nil || burn.GetUnopenedExpiresAt().CheckValid() != nil || burn.GetViewDurationMs() <= 0 || burn.GetRecoveryDurationMs() <= 0 {
+			return fmt.Errorf("asset snapshot has invalid burn state")
+		}
+		audience := make(map[string]bool)
+		for _, id := range burn.GetRecipientIds() {
+			if id == "" || audience[id] {
+				return fmt.Errorf("asset snapshot has invalid burn audience")
+			}
+			audience[id] = true
+		}
+		views := make(map[string]bool)
+		for _, view := range burn.GetViews() {
+			if !audience[view.GetUserId()] || views[view.GetUserId()] || len(view.GetSessionHash()) != 64 || view.GetExpiresAt() == nil || view.GetExpiresAt().CheckValid() != nil {
+				return fmt.Errorf("asset snapshot has invalid burn session")
+			}
+			if view.GetClosedAt() != nil && (view.GetClosedAt().CheckValid() != nil || view.GetClosedAt().AsTime().After(view.GetExpiresAt().AsTime())) {
+				return fmt.Errorf("asset snapshot has invalid burn close")
+			}
+			views[view.GetUserId()] = true
+		}
+		requests := make(map[string]bool)
+		for _, id := range burn.GetRequesterIds() {
+			if !audience[id] || id == burn.GetUserId() || requests[id] {
+				return fmt.Errorf("asset snapshot has invalid permanence request")
+			}
+			requests[id] = true
+		}
+		if burn.GetPermanent() && (burn.GetPermanentEventId() == "" || burn.GetUndoExpiresAt() == nil || burn.GetUndoExpiresAt().CheckValid() != nil || !burn.GetPermanenceAcknowledged()) {
+			return fmt.Errorf("asset snapshot has invalid permanence state")
+		}
+		if _, duplicate := burns[burn.GetAssetId()]; duplicate {
+			return fmt.Errorf("asset snapshot repeats burn state")
+		}
+		burns[burn.GetAssetId()] = proto.Clone(burn).(*evtv1.AssetBurnState)
+	}
 	p.Lock()
+	p.burnStates = burns
 	p.assetCreations, p.assetChildren, p.videoManifests, p.deletedAssets, p.deletedAssetRoom, p.messageOwners, p.publicLinkPreviewAssets, p.replayGuard = creations, children, manifests, deleted, deletedRooms, messageOwners, publicLinkPreviewAssets, guard
 	p.Unlock()
 	return nil

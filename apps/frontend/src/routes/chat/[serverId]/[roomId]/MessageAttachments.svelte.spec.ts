@@ -9,6 +9,7 @@ import {
   type MessageAttachmentView
 } from '@chatto/client/timeline/messageAttachments';
 import type { RefreshedAttachmentUrls } from '@chatto/client/attachments/attachmentUrls';
+import { createTestServerScope } from '$lib/test-utils/serverScope.svelte';
 
 const attachmentMocks = vi.hoisted(() => ({
   pushState: vi.fn(),
@@ -36,19 +37,10 @@ vi.mock('$lib/components/chat/VideoPlayer.svelte', async () => {
   };
 });
 
-vi.mock('$lib/state/server/scope.svelte', () => ({
-  useServerScope: () => ({
-    serverId: 'server_1',
-    store: {},
-    connection: {
-      serverId: 'server_1',
-      connectBaseUrl: 'https://chat.example.test/api/connect',
-      bearerToken: null,
-      getAPI: (factory: (config: never) => unknown) => factory({} as never)
-    },
-    isCurrent: () => true
-  })
-}));
+vi.mock(
+  '$lib/state/server/scope.svelte',
+  async () => (await import('$lib/test-utils/serverScope.svelte')).serverScopeModule
+);
 
 const transparentGif = 'data:image/gif;base64,R0lGODlhAQABAIAAAAAAAP///ywAAAAAAQABAAACAUwAOw==';
 
@@ -157,10 +149,88 @@ function imageFrame(container: HTMLElement, filename: string) {
 
 describe('MessageAttachments', () => {
   beforeEach(() => {
+    createTestServerScope({ serverId: 'server_1' });
     attachmentMocks.pushState.mockReset();
     attachmentMocks.refreshAssetUrls.mockReset();
     attachmentMocks.videoPlayerModuleLoaded.mockReset();
     attachmentMocks.refreshAssetUrls.mockResolvedValue(new Map());
+  });
+
+  it('never loads burn media or places session credentials into viewer history', async () => {
+    const view = renderAttachment(
+      imageAttachment({
+        burn: {
+          viewerStatus: 'available',
+          unopenedExpiresAt: '2099-01-01',
+          deleteAt: null,
+          viewExpiresAt: null,
+          canMakePermanent: false,
+          canRequestPermanent: true,
+          permanenceRequested: false,
+          requesterIds: [],
+          requiresPermanenceConfirmation: false
+        }
+      })
+    );
+    expect(view.container.querySelector('img, video, audio')).toBeNull();
+    await view.getByRole('button', { name: 'Open', exact: true }).click();
+    expect(attachmentMocks.pushState).toHaveBeenCalledWith('', {
+      modal: expect.objectContaining({
+        type: 'burnAttachmentViewer',
+        attachment: expect.objectContaining({
+          assetUrl: null,
+          thumbnailAssetUrl: null,
+          videoProcessing: null
+        })
+      })
+    });
+    expect(attachmentMocks.refreshAssetUrls).not.toHaveBeenCalled();
+  });
+
+  it('does not offer another opening to a burned or ineligible recipient', async () => {
+    const view = renderAttachments(
+      ['burned', 'ineligible'].map((viewerStatus, index) =>
+        imageAttachment({
+          id: String(index),
+          burn: {
+            viewerStatus: viewerStatus as 'burned' | 'ineligible',
+            unopenedExpiresAt: null,
+            deleteAt: null,
+            viewExpiresAt: null,
+            canMakePermanent: false,
+            canRequestPermanent: false,
+            permanenceRequested: false,
+            requesterIds: [],
+            requiresPermanenceConfirmation: false
+          }
+        })
+      )
+    );
+    expect(view.container.querySelector('img, video, audio')).toBeNull();
+    expect(view.container.querySelectorAll('button')).toHaveLength(0);
+    expect(view.container.textContent).toContain('Viewing ended');
+    expect(view.container.textContent).toContain('You were not a recipient');
+  });
+
+  it('expires a viewing card after a lost close when its session deadline has elapsed', async () => {
+    const view = renderAttachment(
+      imageAttachment({
+        burn: {
+          viewerStatus: 'viewing',
+          unopenedExpiresAt: null,
+          viewExpiresAt: new Date(Date.now() - 1000).toISOString(),
+          deleteAt: null,
+          canMakePermanent: false,
+          canRequestPermanent: false,
+          permanenceRequested: false,
+          requesterIds: [],
+          requiresPermanenceConfirmation: false
+        }
+      })
+    );
+    await expect.poll(() => view.container.textContent).toContain('Viewing ended');
+    expect(view.container.querySelector('img, video, audio')).toBeNull();
+    expect(attachmentMocks.refreshAssetUrls).toHaveBeenCalledOnce();
   });
 
   it.each([

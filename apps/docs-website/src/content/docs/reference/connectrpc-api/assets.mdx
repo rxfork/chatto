@@ -20,6 +20,186 @@ Shared message and enum definitions are documented in [Shared Types And Enums](/
 
 Reads room-scoped asset metadata and freshly signed asset URLs.
 
+<a id="chatto-api-v1-AssetService-OpenBurnAttachment"></a>
+
+### OpenBurnAttachment
+
+Deliberately opens one session. Membership and current message-read access
+are required. The server's configured session limit bounds crash recovery.
+
+```http
+POST /api/connect/chatto.api.v1.AssetService/OpenBurnAttachment
+```
+
+<a id="chatto-api-v1-OpenBurnAttachmentRequest"></a>
+
+#### Input: OpenBurnAttachmentRequest
+
+Starts or retries one logical session. Generate a random session_id before
+the first attempt and reuse it only for retries of that opening. Closing,
+expiry, or an attempt with a different ID cannot restore a consumed session.
+
+| Field | Type | Description |
+| --- | --- | --- |
+| `room_id` | `string` | Required. Room containing the owning message. |
+| `asset_id` | `string` | Required. The burn attachment's source asset ID. |
+| `session_id` | `string` | Random capability for this opening. Reuse only to retry the same session. |
+
+
+<a id="chatto-api-v1-OpenBurnAttachmentResponse"></a>
+
+#### Result: OpenBurnAttachmentResponse
+
+Metadata and byte URLs after the session is committed.
+
+| Field | Type | Description |
+| --- | --- | --- |
+| `asset` | [`Asset`](/reference/connectrpc-api/types/#chatto-api-v1-Asset) | Session-bound URLs. Do not persist, prefetch, or share them. |
+| `view_expires_at` | `google.protobuf.Timestamp` | Clear displayed content at this deadline, even while offline. |
+
+
+<a id="chatto-api-v1-AssetService-CloseBurnAttachment"></a>
+
+### CloseBurnAttachment
+
+End on viewer close, navigation, or privacy reset. A lost close is bounded
+by the original session deadline; it does not create a new session.
+
+```http
+POST /api/connect/chatto.api.v1.AssetService/CloseBurnAttachment
+```
+
+<a id="chatto-api-v1-CloseBurnAttachmentRequest"></a>
+
+#### Input: CloseBurnAttachmentRequest
+
+Ends a logical session. Repeated closes with the same ID are safe.
+
+| Field | Type | Description |
+| --- | --- | --- |
+| `room_id` | `string` | Required. Room containing the owning message. |
+| `asset_id` | `string` | Required. Source asset ID. |
+| `session_id` | `string` | Capability used to open this session. |
+
+
+<a id="chatto-api-v1-CloseBurnAttachmentResponse"></a>
+
+#### Result: CloseBurnAttachmentResponse
+
+Current metadata after closing; no burn byte URLs.
+
+| Field | Type | Description |
+| --- | --- | --- |
+| `asset` | [`Asset`](/reference/connectrpc-api/types/#chatto-api-v1-Asset) | Current viewer-specific metadata. |
+
+
+<a id="chatto-api-v1-AssetService-RequestAttachmentPermanence"></a>
+
+### RequestAttachmentPermanence
+
+Request or cancel normal access while the file is retained.
+
+```http
+POST /api/connect/chatto.api.v1.AssetService/RequestAttachmentPermanence
+```
+
+<a id="chatto-api-v1-RequestAttachmentPermanenceRequest"></a>
+
+#### Input: RequestAttachmentPermanenceRequest
+
+Creates or cancels the viewer's request for attachment-wide normal access.
+A request alone never extends file retention or grants viewing access.
+
+| Field | Type | Description |
+| --- | --- | --- |
+| `room_id` | `string` | Required. Room containing the owning message. |
+| `asset_id` | `string` | Required. Source asset ID. |
+| `requested` | `bool` | True to request permanent access; false to cancel the existing request. |
+
+
+<a id="chatto-api-v1-RequestAttachmentPermanenceResponse"></a>
+
+#### Result: RequestAttachmentPermanenceResponse
+
+Current metadata after creating or cancelling a request.
+
+| Field | Type | Description |
+| --- | --- | --- |
+| `asset` | [`Asset`](/reference/connectrpc-api/types/#chatto-api-v1-Asset) | Current viewer-specific metadata. |
+
+
+<a id="chatto-api-v1-AssetService-MakeAttachmentPermanent"></a>
+
+### MakeAttachmentPermanent
+
+Sender-only conversion, including during the recovery window.
+
+```http
+POST /api/connect/chatto.api.v1.AssetService/MakeAttachmentPermanent
+```
+
+<a id="chatto-api-v1-MakeAttachmentPermanentRequest"></a>
+
+#### Input: MakeAttachmentPermanentRequest
+
+Converts the whole attachment to normal access. Only the sender can do this.
+First use in each room requires acknowledge=true. Subsequent calls do not.
+
+| Field | Type | Description |
+| --- | --- | --- |
+| `room_id` | `string` | Required. Room containing the owning message. |
+| `asset_id` | `string` | Required. Source asset ID. |
+| `acknowledge` | `bool` | Acknowledge that normal access includes current and future members. |
+
+
+<a id="chatto-api-v1-MakeAttachmentPermanentResponse"></a>
+
+#### Result: MakeAttachmentPermanentResponse
+
+Normal attachment access and the bounded Undo capability.
+
+| Field | Type | Description |
+| --- | --- | --- |
+| `asset` | [`Asset`](/reference/connectrpc-api/types/#chatto-api-v1-Asset) | Current metadata and ordinary attachment URLs. |
+| `undo_token` | `string` | Opaque token for this exact conversion, valid only for the sender. |
+| `undo_expires_at` | `google.protobuf.Timestamp` | Server-owned undo deadline. Undo does not reset prior burn deadlines. |
+
+
+<a id="chatto-api-v1-AssetService-UndoAttachmentPermanence"></a>
+
+### UndoAttachmentPermanence
+
+Sender-only undo during the returned deadline.
+
+```http
+POST /api/connect/chatto.api.v1.AssetService/UndoAttachmentPermanence
+```
+
+<a id="chatto-api-v1-UndoAttachmentPermanenceRequest"></a>
+
+#### Input: UndoAttachmentPermanenceRequest
+
+Restores the previous burn policy, original audience and consumed sessions.
+Already viewed or downloaded copies cannot be recalled.
+
+| Field | Type | Description |
+| --- | --- | --- |
+| `room_id` | `string` | Required. Room containing the owning message. |
+| `asset_id` | `string` | Required. Source asset ID. |
+| `undo_token` | `string` | Token returned by the exact conversion being undone. |
+
+
+<a id="chatto-api-v1-UndoAttachmentPermanenceResponse"></a>
+
+#### Result: UndoAttachmentPermanenceResponse
+
+Restored burn metadata after Undo; no byte URLs.
+
+| Field | Type | Description |
+| --- | --- | --- |
+| `asset` | [`Asset`](/reference/connectrpc-api/types/#chatto-api-v1-Asset) | Current viewer-specific metadata. |
+
+
 <a id="chatto-api-v1-AssetService-GetAsset"></a>
 
 ### GetAsset

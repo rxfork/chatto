@@ -20,7 +20,7 @@ media. HTML consent is never stored in history or carried to another selection.
   import { assetUrlForServer } from '@chatto/client/util/assetUrls';
   import { attachmentDownloadUrl } from '$lib/attachments/attachmentDownloadUrl';
   import { isMarkdownAttachment } from '$lib/attachments/isMarkdownAttachment';
-  import { serverConnectionManager } from '$lib/client';
+  import { serverConnectionManager, serverRegistry } from '$lib/client';
   import { m } from '$lib/i18n/messages';
   import { AttachmentModal, AttachmentPreview } from '$lib/ui/attachments';
 
@@ -70,6 +70,23 @@ media. HTML consent is never stored in history or carried to another selection.
   });
   onMount(() => {
     if (!html && previewable) void showPreview();
+  });
+
+  // A normal viewer opened during permanence must also respect Undo. Remove
+  // decoded media immediately; old signed URLs cannot retract loaded bytes.
+  $effect(() => {
+    if (item.burn?.viewerStatus !== 'permanent') return;
+    const store = serverRegistry.getStore(modal.serverId);
+    const assetId = item.id,
+      roomId = modal.roomId;
+    return store.onUpdate(({ event }) => {
+      if (
+        event?.event.case === 'attachmentChanged' &&
+        event.event.value.roomId === roomId &&
+        event.event.value.assetId === assetId
+      )
+        close();
+    });
   });
 
   function close() {

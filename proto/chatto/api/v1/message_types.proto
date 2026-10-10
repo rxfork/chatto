@@ -100,6 +100,52 @@ message MessageAttachment {
   // User-provided description for accessibility and attachment details.
   // Absent when the attachment has no description.
   optional string description = 9;
+  // Viewer-specific view-once policy. Absent on ordinary attachments. File
+  // URLs are absent until OpenBurnAttachment grants a viewing session.
+  BurnAttachment burn = 10;
+}
+
+// BurnAttachmentViewerStatus describes the current viewer's access, independent
+// of other recipients. Server time owns every deadline.
+enum BurnAttachmentViewerStatus {
+  BURN_ATTACHMENT_VIEWER_STATUS_UNSPECIFIED = 0;
+  // The original recipient has one unused session.
+  BURN_ATTACHMENT_VIEWER_STATUS_AVAILABLE = 1;
+  // The original recipient has an active viewing session.
+  BURN_ATTACHMENT_VIEWER_STATUS_VIEWING = 2;
+  // The recipient's session ended and cannot be opened again.
+  BURN_ATTACHMENT_VIEWER_STATUS_BURNED = 3;
+  // The unopened session expired.
+  BURN_ATTACHMENT_VIEWER_STATUS_EXPIRED = 4;
+  // The viewer was not a member when the attachment was sent.
+  BURN_ATTACHMENT_VIEWER_STATUS_INELIGIBLE = 5;
+  // Recovery ended or the source file was deleted. Access cannot be restored.
+  BURN_ATTACHMENT_VIEWER_STATUS_PURGED = 6;
+  // The sender converted the attachment to normal message access.
+  BURN_ATTACHMENT_VIEWER_STATUS_PERMANENT = 7;
+}
+
+// BurnAttachment contains metadata only. Reading it does not consume a session.
+// Membership and message-read permission remain required for every operation.
+message BurnAttachment {
+  // Current viewer's session state. Other recipients' views are private.
+  BurnAttachmentViewerStatus viewer_status = 1;
+  // Time when unused sessions expire.
+  google.protobuf.Timestamp unopened_expires_at = 2;
+  // Fixed deletion deadline after all original sessions end or expire.
+  google.protobuf.Timestamp delete_at = 3;
+  // Active session deadline. Clients clear displayed bytes when it passes.
+  google.protobuf.Timestamp view_expires_at = 4;
+  // True only for the sender while the file is retained and not permanent.
+  bool can_make_permanent = 5;
+  // True for an original recipient other than the sender while retained.
+  bool can_request_permanent = 6;
+  // True when this viewer has an active permanence request.
+  bool permanence_requested = 7;
+  // Present only for the sender. Request IDs never grant access to the file.
+  repeated string requester_ids = 8;
+  // The sender must acknowledge the explanation once in this room.
+  bool requires_permanence_confirmation = 9;
 }
 
 // Aggregated reaction state for one emoji on one message.

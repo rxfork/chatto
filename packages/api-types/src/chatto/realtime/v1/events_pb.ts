@@ -1723,6 +1723,65 @@ export class AssetProcessingFailedEvent extends Message<AssetProcessingFailedEve
 }
 
 /**
+ * AttachmentChangedEvent invalidates current attachment access metadata.
+ * Read the message or asset for the viewer-specific state. It does not expose
+ * the audience, session capabilities, or who has viewed an attachment.
+ *
+ * @generated from message chatto.realtime.v1.AttachmentChangedEvent
+ */
+export class AttachmentChangedEvent extends Message<AttachmentChangedEvent> {
+  /**
+   * Source attachment asset ID.
+   *
+   * @generated from field: string asset_id = 1;
+   */
+  assetId = "";
+
+  /**
+   * Room containing the owning message.
+   *
+   * @generated from field: string room_id = 2;
+   */
+  roomId = "";
+
+  /**
+   * Message to reconcile with a viewer-specific resource read.
+   *
+   * @generated from field: string message_event_id = 3;
+   */
+  messageEventId = "";
+
+  constructor(data?: PartialMessage<AttachmentChangedEvent>) {
+    super();
+    proto3.util.initPartial(data, this);
+  }
+
+  static readonly runtime: typeof proto3 = proto3;
+  static readonly typeName = "chatto.realtime.v1.AttachmentChangedEvent";
+  static readonly fields: FieldList = proto3.util.newFieldList(() => [
+    { no: 1, name: "asset_id", kind: "scalar", T: 9 /* ScalarType.STRING */ },
+    { no: 2, name: "room_id", kind: "scalar", T: 9 /* ScalarType.STRING */ },
+    { no: 3, name: "message_event_id", kind: "scalar", T: 9 /* ScalarType.STRING */ },
+  ]);
+
+  static fromBinary(bytes: Uint8Array, options?: Partial<BinaryReadOptions>): AttachmentChangedEvent {
+    return new AttachmentChangedEvent().fromBinary(bytes, options);
+  }
+
+  static fromJson(jsonValue: JsonValue, options?: Partial<JsonReadOptions>): AttachmentChangedEvent {
+    return new AttachmentChangedEvent().fromJson(jsonValue, options);
+  }
+
+  static fromJsonString(jsonString: string, options?: Partial<JsonReadOptions>): AttachmentChangedEvent {
+    return new AttachmentChangedEvent().fromJsonString(jsonString, options);
+  }
+
+  static equals(a: AttachmentChangedEvent | PlainMessage<AttachmentChangedEvent> | undefined, b: AttachmentChangedEvent | PlainMessage<AttachmentChangedEvent> | undefined): boolean {
+    return proto3.util.equals(AttachmentChangedEvent, a, b);
+  }
+}
+
+/**
  * AssetDeletedEvent reports a deleted asset.
  *
  * @generated from message chatto.realtime.v1.AssetDeletedEvent

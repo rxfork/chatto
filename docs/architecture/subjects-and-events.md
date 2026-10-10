@@ -279,6 +279,7 @@ posting effects. No source ID or deduplication record is stored.
 | `evt.asset.{assetId}.asset_processing_succeeded` | `AssetProcessingSucceededEvent` |
 | `evt.asset.{assetId}.asset_processing_failed` | `AssetProcessingFailedEvent` |
 | `evt.asset.{assetId}.asset_deleted` | `AssetDeletedEvent` |
+| `evt.asset.{assetId}.asset_burn_updated` | `AssetBurnUpdatedEvent`; full current audience, consumed-session hashes, requests, permanence, Undo deadline, and first-use acknowledgement; serialized on the same asset OCC lane as deletion |
 | `evt.config.{subject}.server_name_changed` | `ServerNameChangedEvent` |
 | `evt.config.{subject}.server_description_changed` | `ServerDescriptionChangedEvent` |
 | `evt.config.{subject}.server_welcome_message_changed` | `ServerWelcomeMessageChangedEvent` |

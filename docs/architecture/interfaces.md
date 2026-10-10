@@ -99,6 +99,11 @@ socket.
 
 ## Mounted public services
 
+`AssetService` also owns deliberate burn viewing, session close, permanence
+requests, sender-only conversion, and conversion-specific Undo. Ordinary asset
+and timeline reads return burn metadata without byte URLs. Only Open returns
+session-bound URLs; every binary request rechecks current burn authority.
+
 | Package               | Public services                                                                                                                                                                                                                                                                                                                                                  | Auth policy                                                                                                |
 | --------------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | ---------------------------------------------------------------------------------------------------------- |
 | `chatto.auth.v1`      | `ExternalIdentityAuthService`, `PushSubscriptionCleanupService`                                                                                                                                                                                                                                                                                                  | Public capability-token flows                                                                              |

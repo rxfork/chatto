@@ -878,7 +878,7 @@ func (s *HTTPServer) publicRealtimeEvent(ctx context.Context, viewerID string, e
 	// Unattached or unresolved assets must not cause a global client refresh.
 	switch durable.GetEvent().(type) {
 	case *evtv1.Event_AssetProcessingStarted, *evtv1.Event_AssetProcessingSucceeded,
-		*evtv1.Event_AssetProcessingFailed, *evtv1.Event_AssetDeleted:
+		*evtv1.Event_AssetProcessingFailed, *evtv1.Event_AssetDeleted, *evtv1.Event_AssetBurnUpdated:
 		roomID, messageID, ok := s.core.AssetEventTimelineTarget(durable)
 		if !ok {
 			return nil, errRealtimeEventOmitted
@@ -896,6 +896,9 @@ func (s *HTTPServer) publicRealtimeEvent(ctx context.Context, viewerID string, e
 		case *realtimev1.RealtimeEvent_AssetDeleted:
 			value.AssetDeleted.RoomId = roomID
 			value.AssetDeleted.MessageEventId = messageID
+		case *realtimev1.RealtimeEvent_AttachmentChanged:
+			value.AttachmentChanged.RoomId = roomID
+			value.AttachmentChanged.MessageEventId = messageID
 		}
 	}
 	if durable != nil && durable.GetMessagePosted() != nil {

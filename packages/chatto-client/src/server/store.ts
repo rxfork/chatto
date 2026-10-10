@@ -1236,6 +1236,7 @@ export class ServerStateStore {
       case 'assetProcessingStarted':
       case 'assetProcessingSucceeded':
       case 'assetProcessingFailed':
+      case 'attachmentChanged':
         if (rawValue?.messageEventId) this.#timelines.reconcile(roomId, rawValue.messageEventId);
         return;
       case 'voiceCallParticipantJoined':

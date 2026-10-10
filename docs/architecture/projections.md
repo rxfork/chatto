@@ -436,7 +436,7 @@ the subject-tail validation and aggregate OCC procedure from ADR-087.
 
 `AssetModel` is the sole production reader of every asset-derived index and
 uses content-view readiness. Cross-package callers receive a detached
-`AssetState` containing declaration, room, processing, and deletion state from
+`AssetState` containing declaration, room, processing, deletion, and burn state from
 one projection generation. Explicit asset attachments establish immutable
 message, room, and author ownership; message-body facts supply an uploader-
 matched first-reference fallback for older histories plus public link-preview
@@ -444,6 +444,12 @@ references. Room Timeline retains only timeline rendering, body lifecycle,
 tombstone, echo, and current room-file indexes; it does not duplicate asset
 lifecycle state or complete message-body payloads. Message-body writers use the
 one content-view wait before they return.
+
+Burn state survives tombstones so replay and encrypted snapshots preserve
+consumed sessions and per-sender/per-room permanence acknowledgements. Normal
+metadata reads expose no burn URLs. Binary access first catches the local asset
+projection up to that asset's authoritative tail, including all derivative
+ancestors, before evaluating the account-bound session and fixed deadline.
 
 `UserProjection` retains encrypted user fields and their AAD metadata. The user
 and mentionable components decrypt login and email values during mutation

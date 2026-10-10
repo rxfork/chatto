@@ -1,7 +1,7 @@
 # FDR-008: File Attachments & Video Processing
 
 **Status:** Active
-**Last reviewed:** 2026-10-04
+**Last reviewed:** 2026-10-09
 
 ## Overview
 
@@ -152,6 +152,64 @@ relationship to the asset's owning thread. This check applies again when a
 client uses an existing signed or ticketed asset URL.
 
 Fresh servers seed `message.attach` for `everyone` so new deployments keep uploads enabled by default. Existing servers are not automatically backfilled after upgrade; operators should grant `message.attach` manually or through their chosen RBAC maintenance flow if existing rooms should keep allowing uploads.
+
+## Burn After Reading
+
+- The sender can mark each supported attachment **Burn after reading** before
+  sending. Images, audio, video, PDF, Markdown, plain text, JSON, and XML can use
+  the controlled viewer. HTML and download-only formats cannot.
+- The client checks that the server supports burn mode before uploading or
+  posting. It refuses a burn send to an older server instead of publishing an
+  ordinary file.
+- All API and asset-serving replicas must support burn mode before it is used.
+  Older binaries do not enforce its stored policy. Rolling those replicas back
+  while burn attachments remain in storage is not supported.
+- A channel and a DM use the same rule: each account in the room at send time,
+  including the sender, gets one viewing session. Later members get no session.
+  Current room membership and message-read permission are still required.
+- Opening the viewer starts the session. Closing it or reaching its deadline
+  ends access. A second device cannot claim another session. Metadata reads,
+  history, file lists, and scrolling never open a session or expose a preview.
+- Unopened sessions expire after 24 hours by default. A viewing session lasts
+  at most 5 minutes. After every session ends or expires, the server keeps the
+  file for 1 more hour by default. Operators configure these durations in TOML.
+  Each file keeps the durations in effect when it was sent.
+- Original recipients can request permanent access, cancel that request, and
+  see their own request state. Requests do not extend retention. The sender
+  sees the request count and requester names in pills under that attachment.
+- The sender's **Make permanent** action converts the entire file to an
+  ordinary attachment. Current and future members with normal message access
+  can then preview, reopen, and download it. No request is required.
+- The first conversion by each sender in each channel or DM explains its
+  effect. Acknowledgement persists across devices and after Undo. Later
+  conversions take one click.
+- A conversion shows **Attachment made permanent. Undo** for 15 seconds. Undo
+  restores the original audience, consumed sessions, and expiry deadlines.
+  Undo cannot recall bytes already received. If the original recovery deadline
+  passed during conversion, Undo ends access immediately.
+- Burn views have no application Download or Copy Image action. Their URLs
+  remain bound to the account and the active session. HTTP checks protect
+  cached transforms, originals, thumbnails, and video derivatives. S3-backed
+  burn views stream through Chatto so a storage redirect cannot bypass expiry.
+  A permanent conversion also streams through Chatto during its Undo period.
+- Expiry revokes access before physical deletion. A recoverable worker deletes
+  the active source, derivative files, and cached transforms. Screenshots,
+  recipient-saved copies, backups, and object-store versions are outside this
+  deletion boundary. Restoring an older backup restores its recorded session
+  history; absolute expiry dates are not reset.
+
+### Design Decisions
+
+1. **One session per account.** Every original member can read the attachment
+   once without consuming someone else's opportunity. Frozen membership avoids
+   exposing it to people who join later. The cost is retaining it until the
+   final original session ends or expires.
+2. **Make permanent describes the result.** Conversion changes normal access
+   for the whole attachment. A first-use explanation and short Undo period make
+   the fast action clear. Copies received during that period cannot be revoked.
+3. **Recovery follows the last original session.** A fixed recovery deadline
+   gives the sender time to approve a request without indefinite retention.
+   Pending requests cannot keep the file forever.
 
 ## Related
 

@@ -33,6 +33,21 @@ const (
 // reflection-formatted method names, remove the leading slash and convert the remaining slash to a
 // period.
 const (
+	// AssetServiceOpenBurnAttachmentProcedure is the fully-qualified name of the AssetService's
+	// OpenBurnAttachment RPC.
+	AssetServiceOpenBurnAttachmentProcedure = "/chatto.api.v1.AssetService/OpenBurnAttachment"
+	// AssetServiceCloseBurnAttachmentProcedure is the fully-qualified name of the AssetService's
+	// CloseBurnAttachment RPC.
+	AssetServiceCloseBurnAttachmentProcedure = "/chatto.api.v1.AssetService/CloseBurnAttachment"
+	// AssetServiceRequestAttachmentPermanenceProcedure is the fully-qualified name of the
+	// AssetService's RequestAttachmentPermanence RPC.
+	AssetServiceRequestAttachmentPermanenceProcedure = "/chatto.api.v1.AssetService/RequestAttachmentPermanence"
+	// AssetServiceMakeAttachmentPermanentProcedure is the fully-qualified name of the AssetService's
+	// MakeAttachmentPermanent RPC.
+	AssetServiceMakeAttachmentPermanentProcedure = "/chatto.api.v1.AssetService/MakeAttachmentPermanent"
+	// AssetServiceUndoAttachmentPermanenceProcedure is the fully-qualified name of the AssetService's
+	// UndoAttachmentPermanence RPC.
+	AssetServiceUndoAttachmentPermanenceProcedure = "/chatto.api.v1.AssetService/UndoAttachmentPermanence"
 	// AssetServiceGetAssetProcedure is the fully-qualified name of the AssetService's GetAsset RPC.
 	AssetServiceGetAssetProcedure = "/chatto.api.v1.AssetService/GetAsset"
 	// AssetServiceBatchGetAssetsProcedure is the fully-qualified name of the AssetService's
@@ -42,6 +57,18 @@ const (
 
 // AssetServiceClient is a client for the chatto.api.v1.AssetService service.
 type AssetServiceClient interface {
+	// Deliberately opens one session. Membership and current message-read access
+	// are required. The server's configured session limit bounds crash recovery.
+	OpenBurnAttachment(context.Context, *connect.Request[v1.OpenBurnAttachmentRequest]) (*connect.Response[v1.OpenBurnAttachmentResponse], error)
+	// End on viewer close, navigation, or privacy reset. A lost close is bounded
+	// by the original session deadline; it does not create a new session.
+	CloseBurnAttachment(context.Context, *connect.Request[v1.CloseBurnAttachmentRequest]) (*connect.Response[v1.CloseBurnAttachmentResponse], error)
+	// Request or cancel normal access while the file is retained.
+	RequestAttachmentPermanence(context.Context, *connect.Request[v1.RequestAttachmentPermanenceRequest]) (*connect.Response[v1.RequestAttachmentPermanenceResponse], error)
+	// Sender-only conversion, including during the recovery window.
+	MakeAttachmentPermanent(context.Context, *connect.Request[v1.MakeAttachmentPermanentRequest]) (*connect.Response[v1.MakeAttachmentPermanentResponse], error)
+	// Sender-only undo during the returned deadline.
+	UndoAttachmentPermanence(context.Context, *connect.Request[v1.UndoAttachmentPermanenceRequest]) (*connect.Response[v1.UndoAttachmentPermanenceResponse], error)
 	// Reads one asset. Authentication and room membership are required.
 	// Assets also require message.read or a matching thread relationship with
 	// message.read-interactions. Returns NOT_FOUND when the asset is missing,
@@ -67,6 +94,36 @@ func NewAssetServiceClient(httpClient connect.HTTPClient, baseURL string, opts .
 	baseURL = strings.TrimRight(baseURL, "/")
 	assetServiceMethods := v1.File_chatto_api_v1_attachments_proto.Services().ByName("AssetService").Methods()
 	return &assetServiceClient{
+		openBurnAttachment: connect.NewClient[v1.OpenBurnAttachmentRequest, v1.OpenBurnAttachmentResponse](
+			httpClient,
+			baseURL+AssetServiceOpenBurnAttachmentProcedure,
+			connect.WithSchema(assetServiceMethods.ByName("OpenBurnAttachment")),
+			connect.WithClientOptions(opts...),
+		),
+		closeBurnAttachment: connect.NewClient[v1.CloseBurnAttachmentRequest, v1.CloseBurnAttachmentResponse](
+			httpClient,
+			baseURL+AssetServiceCloseBurnAttachmentProcedure,
+			connect.WithSchema(assetServiceMethods.ByName("CloseBurnAttachment")),
+			connect.WithClientOptions(opts...),
+		),
+		requestAttachmentPermanence: connect.NewClient[v1.RequestAttachmentPermanenceRequest, v1.RequestAttachmentPermanenceResponse](
+			httpClient,
+			baseURL+AssetServiceRequestAttachmentPermanenceProcedure,
+			connect.WithSchema(assetServiceMethods.ByName("RequestAttachmentPermanence")),
+			connect.WithClientOptions(opts...),
+		),
+		makeAttachmentPermanent: connect.NewClient[v1.MakeAttachmentPermanentRequest, v1.MakeAttachmentPermanentResponse](
+			httpClient,
+			baseURL+AssetServiceMakeAttachmentPermanentProcedure,
+			connect.WithSchema(assetServiceMethods.ByName("MakeAttachmentPermanent")),
+			connect.WithClientOptions(opts...),
+		),
+		undoAttachmentPermanence: connect.NewClient[v1.UndoAttachmentPermanenceRequest, v1.UndoAttachmentPermanenceResponse](
+			httpClient,
+			baseURL+AssetServiceUndoAttachmentPermanenceProcedure,
+			connect.WithSchema(assetServiceMethods.ByName("UndoAttachmentPermanence")),
+			connect.WithClientOptions(opts...),
+		),
 		getAsset: connect.NewClient[v1.GetAssetRequest, v1.GetAssetResponse](
 			httpClient,
 			baseURL+AssetServiceGetAssetProcedure,
@@ -84,8 +141,38 @@ func NewAssetServiceClient(httpClient connect.HTTPClient, baseURL string, opts .
 
 // assetServiceClient implements AssetServiceClient.
 type assetServiceClient struct {
-	getAsset       *connect.Client[v1.GetAssetRequest, v1.GetAssetResponse]
-	batchGetAssets *connect.Client[v1.BatchGetAssetsRequest, v1.BatchGetAssetsResponse]
+	openBurnAttachment          *connect.Client[v1.OpenBurnAttachmentRequest, v1.OpenBurnAttachmentResponse]
+	closeBurnAttachment         *connect.Client[v1.CloseBurnAttachmentRequest, v1.CloseBurnAttachmentResponse]
+	requestAttachmentPermanence *connect.Client[v1.RequestAttachmentPermanenceRequest, v1.RequestAttachmentPermanenceResponse]
+	makeAttachmentPermanent     *connect.Client[v1.MakeAttachmentPermanentRequest, v1.MakeAttachmentPermanentResponse]
+	undoAttachmentPermanence    *connect.Client[v1.UndoAttachmentPermanenceRequest, v1.UndoAttachmentPermanenceResponse]
+	getAsset                    *connect.Client[v1.GetAssetRequest, v1.GetAssetResponse]
+	batchGetAssets              *connect.Client[v1.BatchGetAssetsRequest, v1.BatchGetAssetsResponse]
+}
+
+// OpenBurnAttachment calls chatto.api.v1.AssetService.OpenBurnAttachment.
+func (c *assetServiceClient) OpenBurnAttachment(ctx context.Context, req *connect.Request[v1.OpenBurnAttachmentRequest]) (*connect.Response[v1.OpenBurnAttachmentResponse], error) {
+	return c.openBurnAttachment.CallUnary(ctx, req)
+}
+
+// CloseBurnAttachment calls chatto.api.v1.AssetService.CloseBurnAttachment.
+func (c *assetServiceClient) CloseBurnAttachment(ctx context.Context, req *connect.Request[v1.CloseBurnAttachmentRequest]) (*connect.Response[v1.CloseBurnAttachmentResponse], error) {
+	return c.closeBurnAttachment.CallUnary(ctx, req)
+}
+
+// RequestAttachmentPermanence calls chatto.api.v1.AssetService.RequestAttachmentPermanence.
+func (c *assetServiceClient) RequestAttachmentPermanence(ctx context.Context, req *connect.Request[v1.RequestAttachmentPermanenceRequest]) (*connect.Response[v1.RequestAttachmentPermanenceResponse], error) {
+	return c.requestAttachmentPermanence.CallUnary(ctx, req)
+}
+
+// MakeAttachmentPermanent calls chatto.api.v1.AssetService.MakeAttachmentPermanent.
+func (c *assetServiceClient) MakeAttachmentPermanent(ctx context.Context, req *connect.Request[v1.MakeAttachmentPermanentRequest]) (*connect.Response[v1.MakeAttachmentPermanentResponse], error) {
+	return c.makeAttachmentPermanent.CallUnary(ctx, req)
+}
+
+// UndoAttachmentPermanence calls chatto.api.v1.AssetService.UndoAttachmentPermanence.
+func (c *assetServiceClient) UndoAttachmentPermanence(ctx context.Context, req *connect.Request[v1.UndoAttachmentPermanenceRequest]) (*connect.Response[v1.UndoAttachmentPermanenceResponse], error) {
+	return c.undoAttachmentPermanence.CallUnary(ctx, req)
 }
 
 // GetAsset calls chatto.api.v1.AssetService.GetAsset.
@@ -100,6 +187,18 @@ func (c *assetServiceClient) BatchGetAssets(ctx context.Context, req *connect.Re
 
 // AssetServiceHandler is an implementation of the chatto.api.v1.AssetService service.
 type AssetServiceHandler interface {
+	// Deliberately opens one session. Membership and current message-read access
+	// are required. The server's configured session limit bounds crash recovery.
+	OpenBurnAttachment(context.Context, *connect.Request[v1.OpenBurnAttachmentRequest]) (*connect.Response[v1.OpenBurnAttachmentResponse], error)
+	// End on viewer close, navigation, or privacy reset. A lost close is bounded
+	// by the original session deadline; it does not create a new session.
+	CloseBurnAttachment(context.Context, *connect.Request[v1.CloseBurnAttachmentRequest]) (*connect.Response[v1.CloseBurnAttachmentResponse], error)
+	// Request or cancel normal access while the file is retained.
+	RequestAttachmentPermanence(context.Context, *connect.Request[v1.RequestAttachmentPermanenceRequest]) (*connect.Response[v1.RequestAttachmentPermanenceResponse], error)
+	// Sender-only conversion, including during the recovery window.
+	MakeAttachmentPermanent(context.Context, *connect.Request[v1.MakeAttachmentPermanentRequest]) (*connect.Response[v1.MakeAttachmentPermanentResponse], error)
+	// Sender-only undo during the returned deadline.
+	UndoAttachmentPermanence(context.Context, *connect.Request[v1.UndoAttachmentPermanenceRequest]) (*connect.Response[v1.UndoAttachmentPermanenceResponse], error)
 	// Reads one asset. Authentication and room membership are required.
 	// Assets also require message.read or a matching thread relationship with
 	// message.read-interactions. Returns NOT_FOUND when the asset is missing,
@@ -121,6 +220,36 @@ type AssetServiceHandler interface {
 // and JSON codecs. They also support gzip compression.
 func NewAssetServiceHandler(svc AssetServiceHandler, opts ...connect.HandlerOption) (string, http.Handler) {
 	assetServiceMethods := v1.File_chatto_api_v1_attachments_proto.Services().ByName("AssetService").Methods()
+	assetServiceOpenBurnAttachmentHandler := connect.NewUnaryHandler(
+		AssetServiceOpenBurnAttachmentProcedure,
+		svc.OpenBurnAttachment,
+		connect.WithSchema(assetServiceMethods.ByName("OpenBurnAttachment")),
+		connect.WithHandlerOptions(opts...),
+	)
+	assetServiceCloseBurnAttachmentHandler := connect.NewUnaryHandler(
+		AssetServiceCloseBurnAttachmentProcedure,
+		svc.CloseBurnAttachment,
+		connect.WithSchema(assetServiceMethods.ByName("CloseBurnAttachment")),
+		connect.WithHandlerOptions(opts...),
+	)
+	assetServiceRequestAttachmentPermanenceHandler := connect.NewUnaryHandler(
+		AssetServiceRequestAttachmentPermanenceProcedure,
+		svc.RequestAttachmentPermanence,
+		connect.WithSchema(assetServiceMethods.ByName("RequestAttachmentPermanence")),
+		connect.WithHandlerOptions(opts...),
+	)
+	assetServiceMakeAttachmentPermanentHandler := connect.NewUnaryHandler(
+		AssetServiceMakeAttachmentPermanentProcedure,
+		svc.MakeAttachmentPermanent,
+		connect.WithSchema(assetServiceMethods.ByName("MakeAttachmentPermanent")),
+		connect.WithHandlerOptions(opts...),
+	)
+	assetServiceUndoAttachmentPermanenceHandler := connect.NewUnaryHandler(
+		AssetServiceUndoAttachmentPermanenceProcedure,
+		svc.UndoAttachmentPermanence,
+		connect.WithSchema(assetServiceMethods.ByName("UndoAttachmentPermanence")),
+		connect.WithHandlerOptions(opts...),
+	)
 	assetServiceGetAssetHandler := connect.NewUnaryHandler(
 		AssetServiceGetAssetProcedure,
 		svc.GetAsset,
@@ -135,6 +264,16 @@ func NewAssetServiceHandler(svc AssetServiceHandler, opts ...connect.HandlerOpti
 	)
 	return "/chatto.api.v1.AssetService/", http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		switch r.URL.Path {
+		case AssetServiceOpenBurnAttachmentProcedure:
+			assetServiceOpenBurnAttachmentHandler.ServeHTTP(w, r)
+		case AssetServiceCloseBurnAttachmentProcedure:
+			assetServiceCloseBurnAttachmentHandler.ServeHTTP(w, r)
+		case AssetServiceRequestAttachmentPermanenceProcedure:
+			assetServiceRequestAttachmentPermanenceHandler.ServeHTTP(w, r)
+		case AssetServiceMakeAttachmentPermanentProcedure:
+			assetServiceMakeAttachmentPermanentHandler.ServeHTTP(w, r)
+		case AssetServiceUndoAttachmentPermanenceProcedure:
+			assetServiceUndoAttachmentPermanenceHandler.ServeHTTP(w, r)
 		case AssetServiceGetAssetProcedure:
 			assetServiceGetAssetHandler.ServeHTTP(w, r)
 		case AssetServiceBatchGetAssetsProcedure:
@@ -147,6 +286,26 @@ func NewAssetServiceHandler(svc AssetServiceHandler, opts ...connect.HandlerOpti
 
 // UnimplementedAssetServiceHandler returns CodeUnimplemented from all methods.
 type UnimplementedAssetServiceHandler struct{}
+
+func (UnimplementedAssetServiceHandler) OpenBurnAttachment(context.Context, *connect.Request[v1.OpenBurnAttachmentRequest]) (*connect.Response[v1.OpenBurnAttachmentResponse], error) {
+	return nil, connect.NewError(connect.CodeUnimplemented, errors.New("chatto.api.v1.AssetService.OpenBurnAttachment is not implemented"))
+}
+
+func (UnimplementedAssetServiceHandler) CloseBurnAttachment(context.Context, *connect.Request[v1.CloseBurnAttachmentRequest]) (*connect.Response[v1.CloseBurnAttachmentResponse], error) {
+	return nil, connect.NewError(connect.CodeUnimplemented, errors.New("chatto.api.v1.AssetService.CloseBurnAttachment is not implemented"))
+}
+
+func (UnimplementedAssetServiceHandler) RequestAttachmentPermanence(context.Context, *connect.Request[v1.RequestAttachmentPermanenceRequest]) (*connect.Response[v1.RequestAttachmentPermanenceResponse], error) {
+	return nil, connect.NewError(connect.CodeUnimplemented, errors.New("chatto.api.v1.AssetService.RequestAttachmentPermanence is not implemented"))
+}
+
+func (UnimplementedAssetServiceHandler) MakeAttachmentPermanent(context.Context, *connect.Request[v1.MakeAttachmentPermanentRequest]) (*connect.Response[v1.MakeAttachmentPermanentResponse], error) {
+	return nil, connect.NewError(connect.CodeUnimplemented, errors.New("chatto.api.v1.AssetService.MakeAttachmentPermanent is not implemented"))
+}
+
+func (UnimplementedAssetServiceHandler) UndoAttachmentPermanence(context.Context, *connect.Request[v1.UndoAttachmentPermanenceRequest]) (*connect.Response[v1.UndoAttachmentPermanenceResponse], error) {
+	return nil, connect.NewError(connect.CodeUnimplemented, errors.New("chatto.api.v1.AssetService.UndoAttachmentPermanence is not implemented"))
+}
 
 func (UnimplementedAssetServiceHandler) GetAsset(context.Context, *connect.Request[v1.GetAssetRequest]) (*connect.Response[v1.GetAssetResponse], error) {
 	return nil, connect.NewError(connect.CodeUnimplemented, errors.New("chatto.api.v1.AssetService.GetAsset is not implemented"))

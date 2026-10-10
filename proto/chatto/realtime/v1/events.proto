@@ -2,6 +2,10 @@ syntax = "proto3";
 
 package chatto.realtime.v1;
 
+import "chatto/api/v1/common.proto";
+import "chatto/api/v1/presence.proto";
+import "chatto/api/v1/rooms.proto";
+
 // A public role was created. Read its current metadata with RoleService.
 message RoleCreatedEvent {
   // Stable role name.
@@ -62,10 +66,6 @@ message RolePermissionsChangedEvent {
 // affected viewer. Discard private cached data and load current authorized
 // state before displaying it again. The connection itself remains open.
 message ViewerPermissionsChangedEvent {}
-
-import "chatto/api/v1/common.proto";
-import "chatto/api/v1/presence.proto";
-import "chatto/api/v1/rooms.proto";
 
 // RoomCreatedEvent reports a new room that is visible to the caller.
 message RoomCreatedEvent {
@@ -268,6 +268,18 @@ message AssetProcessingFailedEvent {
   string message_event_id = 3;
   // Room containing the affected message.
   string room_id = 4;
+}
+
+// AttachmentChangedEvent invalidates current attachment access metadata.
+// Read the message or asset for the viewer-specific state. It does not expose
+// the audience, session capabilities, or who has viewed an attachment.
+message AttachmentChangedEvent {
+  // Source attachment asset ID.
+  string asset_id = 1;
+  // Room containing the owning message.
+  string room_id = 2;
+  // Message to reconcile with a viewer-specific resource read.
+  string message_event_id = 3;
 }
 
 // AssetDeletedEvent reports a deleted asset.

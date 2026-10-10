@@ -3,6 +3,7 @@ package core
 import (
 	"context"
 	"fmt"
+	"slices"
 	"strings"
 	"time"
 
@@ -11,10 +12,12 @@ import (
 
 // MessagePostInput describes one user-facing message post operation.
 type MessagePostInput struct {
-	ActorID                 string
-	RoomID                  string
-	Body                    string
-	AttachmentAssetIDs      []string
+	ActorID            string
+	RoomID             string
+	Body               string
+	AttachmentAssetIDs []string
+	// BurnAttachmentAssetIDs selects view-once mode from AttachmentAssetIDs.
+	BurnAttachmentAssetIDs  []string
 	AttachmentDescriptions  []MessageAttachmentDescriptionInput
 	HasPendingAttachments   bool
 	VideoProcessingAssetIDs []string
@@ -163,6 +166,14 @@ func (s *MessageModel) PostMessage(ctx context.Context, input MessagePostInput) 
 	kind := preflight.Authorization.Kind
 
 	options := make([]PostMessageOption, 0, 2)
+	for _, assetID := range input.BurnAttachmentAssetIDs {
+		if !slices.Contains(input.AttachmentAssetIDs, assetID) {
+			return nil, invalidArgument("burn attachment IDs must belong to this message")
+		}
+	}
+	if len(input.BurnAttachmentAssetIDs) > 0 {
+		options = append(options, withBurnAttachments(input.BurnAttachmentAssetIDs))
+	}
 	descriptions, err := normalizeAttachmentDescriptionInputs(input.AttachmentAssetIDs, input.AttachmentDescriptions)
 	if err != nil {
 		return nil, err

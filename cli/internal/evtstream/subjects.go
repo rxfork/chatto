@@ -108,6 +108,7 @@ const (
 	EventAssetProcessingFailed    = "asset_processing_failed"
 	EventAssetDeleted             = "asset_deleted"
 	EventAssetAttached            = "asset_attached"
+	EventAssetBurnUpdated         = "asset_burn_updated"
 
 	// Reactions (also under the room aggregate). Reaction state is
 	// derived from these durable events by the reaction projection.
@@ -328,6 +329,8 @@ func EventTypeOf(e *evtv1.Event) string {
 		return EventAssetDeleted
 	case *evtv1.Event_AssetAttached:
 		return EventAssetAttached
+	case *evtv1.Event_AssetBurnUpdated:
+		return EventAssetBurnUpdated
 
 	case *evtv1.Event_ReactionAdded:
 		return EventReactionAdded

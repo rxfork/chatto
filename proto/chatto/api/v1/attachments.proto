@@ -27,6 +27,105 @@ message Asset {
   MessageAssetUrl thumbnail_asset_url = 8;
   // Video processing state when this asset is a video attachment.
   MessageVideoProcessing video_processing = 9;
+  // Viewer-specific view-once policy. Absent on ordinary attachments.
+  BurnAttachment burn = 10;
+}
+
+// Starts or retries one logical session. Generate a random session_id before
+// the first attempt and reuse it only for retries of that opening. Closing,
+// expiry, or an attempt with a different ID cannot restore a consumed session.
+message OpenBurnAttachmentRequest {
+  // Required. Room containing the owning message.
+  string room_id = 1 [(buf.validate.field).string.min_len = 1];
+  // Required. The burn attachment's source asset ID.
+  string asset_id = 2 [(buf.validate.field).string.min_len = 1];
+  // Random capability for this opening. Reuse only to retry the same session.
+  string session_id = 3 [(buf.validate.field).string = {
+    min_len: 16
+    max_len: 128
+  }];
+}
+
+// Metadata and byte URLs after the session is committed.
+message OpenBurnAttachmentResponse {
+  // Session-bound URLs. Do not persist, prefetch, or share them.
+  Asset asset = 1;
+  // Clear displayed content at this deadline, even while offline.
+  google.protobuf.Timestamp view_expires_at = 2;
+}
+
+// Ends a logical session. Repeated closes with the same ID are safe.
+message CloseBurnAttachmentRequest {
+  // Required. Room containing the owning message.
+  string room_id = 1 [(buf.validate.field).string.min_len = 1];
+  // Required. Source asset ID.
+  string asset_id = 2 [(buf.validate.field).string.min_len = 1];
+  // Capability used to open this session.
+  string session_id = 3 [(buf.validate.field).string = {
+    min_len: 16
+    max_len: 128
+  }];
+}
+
+// Current metadata after closing; no burn byte URLs.
+message CloseBurnAttachmentResponse {
+  // Current viewer-specific metadata.
+  Asset asset = 1;
+}
+
+// Creates or cancels the viewer's request for attachment-wide normal access.
+// A request alone never extends file retention or grants viewing access.
+message RequestAttachmentPermanenceRequest {
+  // Required. Room containing the owning message.
+  string room_id = 1 [(buf.validate.field).string.min_len = 1];
+  // Required. Source asset ID.
+  string asset_id = 2 [(buf.validate.field).string.min_len = 1];
+  // True to request permanent access; false to cancel the existing request.
+  bool requested = 3;
+}
+
+// Current metadata after creating or cancelling a request.
+message RequestAttachmentPermanenceResponse {
+  // Current viewer-specific metadata.
+  Asset asset = 1;
+}
+
+// Converts the whole attachment to normal access. Only the sender can do this.
+// First use in each room requires acknowledge=true. Subsequent calls do not.
+message MakeAttachmentPermanentRequest {
+  // Required. Room containing the owning message.
+  string room_id = 1 [(buf.validate.field).string.min_len = 1];
+  // Required. Source asset ID.
+  string asset_id = 2 [(buf.validate.field).string.min_len = 1];
+  // Acknowledge that normal access includes current and future members.
+  bool acknowledge = 3;
+}
+
+// Normal attachment access and the bounded Undo capability.
+message MakeAttachmentPermanentResponse {
+  // Current metadata and ordinary attachment URLs.
+  Asset asset = 1;
+  // Opaque token for this exact conversion, valid only for the sender.
+  string undo_token = 2;
+  // Server-owned undo deadline. Undo does not reset prior burn deadlines.
+  google.protobuf.Timestamp undo_expires_at = 3;
+}
+
+// Restores the previous burn policy, original audience and consumed sessions.
+// Already viewed or downloaded copies cannot be recalled.
+message UndoAttachmentPermanenceRequest {
+  // Required. Room containing the owning message.
+  string room_id = 1 [(buf.validate.field).string.min_len = 1];
+  // Required. Source asset ID.
+  string asset_id = 2 [(buf.validate.field).string.min_len = 1];
+  // Token returned by the exact conversion being undone.
+  string undo_token = 3 [(buf.validate.field).string.min_len = 1];
+}
+
+// Restored burn metadata after Undo; no byte URLs.
+message UndoAttachmentPermanenceResponse {
+  // Current viewer-specific metadata.
+  Asset asset = 1;
 }
 
 // One current room attachment and its message anchor.
@@ -84,6 +183,18 @@ message BatchGetAssetsResponse {
 
 // Reads room-scoped asset metadata and freshly signed asset URLs.
 service AssetService {
+  // Deliberately opens one session. Membership and current message-read access
+  // are required. The server's configured session limit bounds crash recovery.
+  rpc OpenBurnAttachment(OpenBurnAttachmentRequest) returns (OpenBurnAttachmentResponse);
+  // End on viewer close, navigation, or privacy reset. A lost close is bounded
+  // by the original session deadline; it does not create a new session.
+  rpc CloseBurnAttachment(CloseBurnAttachmentRequest) returns (CloseBurnAttachmentResponse);
+  // Request or cancel normal access while the file is retained.
+  rpc RequestAttachmentPermanence(RequestAttachmentPermanenceRequest) returns (RequestAttachmentPermanenceResponse);
+  // Sender-only conversion, including during the recovery window.
+  rpc MakeAttachmentPermanent(MakeAttachmentPermanentRequest) returns (MakeAttachmentPermanentResponse);
+  // Sender-only undo during the returned deadline.
+  rpc UndoAttachmentPermanence(UndoAttachmentPermanenceRequest) returns (UndoAttachmentPermanenceResponse);
   // Reads one asset. Authentication and room membership are required.
   // Assets also require message.read or a matching thread relationship with
   // message.read-interactions. Returns NOT_FOUND when the asset is missing,

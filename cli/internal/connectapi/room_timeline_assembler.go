@@ -358,6 +358,10 @@ func (h *timelineHydrator) attachments(roomID, messageEventID string, attachment
 			ThumbnailAssetUrl: h.api.assetURLView(h.ctx, thumbnailURL),
 			VideoProcessing:   apiVideoProcessing(h.ctx, h.api, h.viewerID, attachment),
 		}
+		view.Burn = apiBurnAttachment(h.api, attachment.Id, h.viewerID)
+		if view.Burn != nil && view.Burn.GetViewerStatus() != apiv1.BurnAttachmentViewerStatus_BURN_ATTACHMENT_VIEWER_STATUS_PERMANENT {
+			view.AssetUrl, view.ThumbnailAssetUrl, view.VideoProcessing = nil, nil, nil
+		}
 		if description := descriptions[attachment.GetId()]; description != "" {
 			view.Description = &description
 		}

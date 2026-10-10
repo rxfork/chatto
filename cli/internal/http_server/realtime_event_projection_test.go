@@ -390,6 +390,7 @@ func TestRealtimeEventCatalogueIsDedicatedAndExhaustivelyMapped(t *testing.T) {
 		"room_read_state_changed":            "room_read_state_changed",
 	}
 	evtSourceNames := map[string]string{
+		"attachment_changed":         "asset_burn_updated",
 		"role_created":               "rbac_role_created",
 		"role_updated":               "rbac_role_display_name_changed",
 		"role_deleted":               "rbac_role_deleted",
