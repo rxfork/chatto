@@ -588,7 +588,7 @@ export class BurnAttachment extends Message$1<BurnAttachment> {
   requiresPermanenceConfirmation = false;
 
   /**
-   * Server-reduced, heavily blurred image. Never grants an original viewing session.
+   * Server-generated blurred image or video still. Never grants an original viewing session.
    *
    * @generated from field: chatto.api.v1.MessageAssetUrl preview_asset_url = 10;
    */

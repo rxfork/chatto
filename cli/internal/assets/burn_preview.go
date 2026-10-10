@@ -28,11 +28,11 @@ func TransformBurnPreview(data []byte) ([]byte, error) {
 	bounds := src.Bounds()
 	w, h := bounds.Dx(), bounds.Dy()
 	if w >= h {
-		h = max(1, h*8/w)
-		w = 8
+		h = max(1, h*48/w)
+		w = 48
 	} else {
-		w = max(1, w*8/h)
-		h = 8
+		w = max(1, w*48/h)
+		h = 48
 	}
 	tiny := image.NewRGBA(image.Rect(0, 0, w, h))
 	draw.Draw(tiny, tiny.Bounds(), &image.Uniform{C: color.RGBA{128, 128, 128, 255}}, image.Point{}, draw.Src)
@@ -53,7 +53,11 @@ func TransformBurnPreview(data []byte) ([]byte, error) {
 			blurred.SetRGBA(x, y, color.RGBA{uint8(r / n), uint8(g / n), uint8(b / n), 255})
 		}
 	}
-	output := image.NewRGBA(image.Rect(0, 0, w*20, h*20))
+	outW, outH := 160, max(1, bounds.Dy()*160/bounds.Dx())
+	if bounds.Dy() > bounds.Dx() {
+		outW, outH = max(1, bounds.Dx()*160/bounds.Dy()), 160
+	}
+	output := image.NewRGBA(image.Rect(0, 0, outW, outH))
 	xdraw.BiLinear.Scale(output, output.Bounds(), blurred, blurred.Bounds(), draw.Src, nil)
 	var encoded bytes.Buffer
 	if err := jpeg.Encode(&encoded, output, &jpeg.Options{Quality: 70}); err != nil {

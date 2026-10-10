@@ -57,3 +57,28 @@ func TestBurnPreviewDiscardsDetailAndAnimation(t *testing.T) {
 	_, err = TransformBurnPreview(make([]byte, DefaultMaxUploadSize+1))
 	require.Error(t, err)
 }
+
+func TestBurnPreviewPreservesLargeShapes(t *testing.T) {
+	source := image.NewRGBA(image.Rect(0, 0, 320, 160))
+	for y := 0; y < 160; y++ {
+		for x := 0; x < 320; x++ {
+			v := uint8(255)
+			if x >= 80 && x < 240 && y >= 40 && y < 120 {
+				v = 0
+			}
+			source.SetRGBA(x, y, color.RGBA{v, v, v, 255})
+		}
+	}
+	var input bytes.Buffer
+	require.NoError(t, png.Encode(&input, source))
+	output, err := TransformBurnPreview(input.Bytes())
+	require.NoError(t, err)
+	decoded, err := jpeg.Decode(bytes.NewReader(output))
+	require.NoError(t, err)
+	corner, _, _, _ := decoded.At(10, 10).RGBA()
+	center, _, _, _ := decoded.At(80, 40).RGBA()
+	edge, _, _, _ := decoded.At(40, 40).RGBA()
+	require.Greater(t, corner-center, uint32(50000), "large shapes remain distinct instead of becoming a color swatch")
+	require.Greater(t, edge, center+5000, "shape edges are still blurred")
+	require.Less(t, edge, corner-5000)
+}

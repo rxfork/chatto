@@ -209,7 +209,7 @@ no longer imported.
 | Key                                                | Description                                     |
 | -------------------------------------------------- | ----------------------------------------------- |
 | `attachment-stable-v2.{attachmentId}.{paramsHash}` | Cached attachment derivative at specific bounds |
-| `attachment-burn-preview-v1.{attachmentId}.{paramsHash}` | Fixed reduced and blurred JPEG; fresh burn authorization precedes cache reads; asset cleanup removes it |
+| `attachment-burn-preview-v2.{attachmentId}.{paramsHash}` | Fixed reduced and blurred image/video-frame JPEG; fresh source/thumbnail authorization precedes cache reads; asset cleanup removes current and prior preview namespaces |
 | `server.{assetId}.{paramsHash}`                    | Cached transform of a server asset              |
 
 Notes: Only created when `[core.assets.cache]` is enabled in config. Uses TTL for automatic expiration (default 7 days). Current cache entries for deleted assets are also evicted from the active attachment or server prefix during binary cleanup. Attachment cache namespaces are versioned when encoding changes so older bytes are not reused. `paramsHash` is first 16 hex chars of SHA256(`{width}x{height}_{fit}`). S2 compression enabled.
@@ -290,12 +290,14 @@ projection also reads beta-era `evt.room.{roomId}.asset_*` facts, allowing 0.1.0
 histories to replay without a stream rewrite.
 
 After appending creation and processing-started events, message posting asks
-the durable asset-processing queue to start video or animated-GIF processing.
+the durable asset-processing queue to start video/animated-GIF processing or
+burn-audio duration probing. Audio queues independently of video-upload enablement.
 There is no transient NATS Core worker subject or `video_processed` live
 signal. Boot recovery derives missed work from EVT projections and calls the
 same local path.
 
-Successful processing records a thumbnail plus either historical/animated-GIF
+Audio success records only verified `audio_duration_ms` and creates no derivative.
+Video success records a thumbnail plus either historical/animated-GIF
 MP4 variant IDs or an HLS manifest containing rendition metadata and ordered
 segment IDs with durations. Only segment binaries are durable HLS derivatives;
 HTTP handlers generate playlists from the manifest. Each derivative binary is

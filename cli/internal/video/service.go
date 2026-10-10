@@ -1,11 +1,13 @@
 // Package video provides the durable asset-processing runtime unit and its
-// ffmpeg-backed video processor.
+// ffmpeg-backed video processor and audio duration probe.
 package video
 
 import (
 	"context"
 	"fmt"
+	"mime"
 	"os/exec"
+	"strings"
 
 	"github.com/charmbracelet/log"
 	"hmans.de/chatto/internal/config"
@@ -89,6 +91,10 @@ func (s *Service) processAsset(ctx context.Context, assetID, messageEventID stri
 		MessageEventID: messageEventID,
 		ContentType:    declared.GetAsset().GetContentType(),
 		Attachment:     core.AttachmentFromAsset(declared.GetAsset()),
+	}
+	mediaType, _, _ := mime.ParseMediaType(req.ContentType)
+	if strings.HasPrefix(mediaType, "audio/") {
+		return s.processAudioDuration(ctx, req)
 	}
 	return s.processVideo(ctx, req)
 }

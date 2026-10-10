@@ -275,8 +275,8 @@ posting effects. No source ID or deduplication record is stored.
 | `evt.room.{roomId}.reaction_removed` | `ReactionRemovedEvent` |
 | `evt.asset.{assetId}.asset_created` | `AssetCreatedEvent` |
 | `evt.asset.{assetId}.asset_attached` | `AssetAttachedEvent`; uploader-bound exclusive attachment to one room/message committed atomically with the message |
-| `evt.asset.{assetId}.asset_processing_started` | `AssetProcessingStartedEvent`; PENDING fact and durable asset-processing queue item |
-| `evt.asset.{assetId}.asset_processing_succeeded` | `AssetProcessingSucceededEvent` |
+| `evt.asset.{assetId}.asset_processing_started` | `AssetProcessingStartedEvent`; PENDING fact and durable video/GIF or burn-audio duration queue item |
+| `evt.asset.{assetId}.asset_processing_succeeded` | `AssetProcessingSucceededEvent`; video/GIF manifest or verified audio-only duration |
 | `evt.asset.{assetId}.asset_processing_failed` | `AssetProcessingFailedEvent` |
 | `evt.asset.{assetId}.asset_deleted` | `AssetDeletedEvent` |
 | `evt.asset.{assetId}.asset_burn_updated` | `AssetBurnUpdatedEvent`; full current audience, consumed-session hashes, requests, permanence, Undo deadline, and first-use acknowledgement; serialized on the same asset OCC lane as deletion |

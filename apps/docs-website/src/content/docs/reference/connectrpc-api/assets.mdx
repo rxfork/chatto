@@ -25,7 +25,10 @@ Reads room-scoped asset metadata and freshly signed asset URLs.
 ### OpenBurnAttachment
 
 Deliberately opens one session. Membership and current message-read access
-are required. The server's configured session limit bounds crash recovery.
+are required. Audio uses its verified duration; video adds 10 seconds to
+its verified duration to press Play. Other files use the configured limit.
+Missing media duration returns failed_precondition without claiming a
+session. Timers start on Open and continue during buffering or pauses.
 
 ```http
 POST /api/connect/chatto.api.v1.AssetService/OpenBurnAttachment

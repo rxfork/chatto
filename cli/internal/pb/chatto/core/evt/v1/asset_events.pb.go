@@ -424,6 +424,8 @@ type AssetBurnState struct {
 	PermanenceAcknowledged bool `protobuf:"varint,14,opt,name=permanence_acknowledged,json=permanenceAcknowledged,proto3" json:"permanence_acknowledged,omitempty"`
 	// Resolve the verified processed video duration when claiming a session.
 	UseVideoDuration bool `protobuf:"varint,15,opt,name=use_video_duration,json=useVideoDuration,proto3" json:"use_video_duration,omitempty"`
+	// Resolve verified audio duration when claiming a session.
+	UseAudioDuration bool `protobuf:"varint,16,opt,name=use_audio_duration,json=useAudioDuration,proto3" json:"use_audio_duration,omitempty"`
 	unknownFields    protoimpl.UnknownFields
 	sizeCache        protoimpl.SizeCache
 }
@@ -559,6 +561,13 @@ func (x *AssetBurnState) GetPermanenceAcknowledged() bool {
 func (x *AssetBurnState) GetUseVideoDuration() bool {
 	if x != nil {
 		return x.UseVideoDuration
+	}
+	return false
+}
+
+func (x *AssetBurnState) GetUseAudioDuration() bool {
+	if x != nil {
+		return x.UseAudioDuration
 	}
 	return false
 }
@@ -741,13 +750,14 @@ func (x *AssetProcessingStartedEvent) GetMessageEventId() string {
 }
 
 // AssetProcessingSucceededEvent records a durable, displayable processing
-// outcome. Only video-shaped processing exists today; if additional kinds
-// are added in the future they will become new fields on this message.
+// outcome. Video derivatives and audio duration use separate result fields.
 type AssetProcessingSucceededEvent struct {
 	state   protoimpl.MessageState `protogen:"open.v1"`
 	AssetId string                 `protobuf:"bytes,1,opt,name=asset_id,json=assetId,proto3" json:"asset_id,omitempty"`
 	// Video/GIF derivative manifest. Set for video and animated-GIF assets.
 	Video *AssetProcessedVideo `protobuf:"bytes,2,opt,name=video,proto3" json:"video,omitempty"`
+	// Verified duration for an audio-only asset. No transcoding or derivatives.
+	AudioDurationMs int64 `protobuf:"varint,4,opt,name=audio_duration_ms,json=audioDurationMs,proto3" json:"audio_duration_ms,omitempty"`
 	// Event id of the owning message, stamped at publish time (see
 	// AssetProcessingStartedEvent.message_event_id). Empty only for one-shot
 	// migration events.
@@ -798,6 +808,13 @@ func (x *AssetProcessingSucceededEvent) GetVideo() *AssetProcessedVideo {
 		return x.Video
 	}
 	return nil
+}
+
+func (x *AssetProcessingSucceededEvent) GetAudioDurationMs() int64 {
+	if x != nil {
+		return x.AudioDurationMs
+	}
+	return 0
 }
 
 func (x *AssetProcessingSucceededEvent) GetMessageEventId() string {
@@ -1203,7 +1220,7 @@ const file_chatto_core_evt_v1_asset_events_proto_rawDesc = "" +
 	"\aroom_id\x18\x02 \x01(\tR\x06roomId\x12(\n" +
 	"\x10message_event_id\x18\x03 \x01(\tR\x0emessageEventId\x12\x17\n" +
 	"\auser_id\x18\x04 \x01(\tR\x06userId\x126\n" +
-	"\x04burn\x18\x05 \x01(\v2\".chatto.core.evt.v1.AssetBurnStateR\x04burn\"\xa9\x05\n" +
+	"\x04burn\x18\x05 \x01(\v2\".chatto.core.evt.v1.AssetBurnStateR\x04burn\"\xd7\x05\n" +
 	"\x0eAssetBurnState\x12\x19\n" +
 	"\basset_id\x18\x01 \x01(\tR\aassetId\x12\x17\n" +
 	"\aroom_id\x18\x02 \x01(\tR\x06roomId\x12(\n" +
@@ -1220,7 +1237,8 @@ const file_chatto_core_evt_v1_asset_events_proto_rawDesc = "" +
 	"\x12permanent_event_id\x18\f \x01(\tR\x10permanentEventId\x12B\n" +
 	"\x0fundo_expires_at\x18\r \x01(\v2\x1a.google.protobuf.TimestampR\rundoExpiresAt\x127\n" +
 	"\x17permanence_acknowledged\x18\x0e \x01(\bR\x16permanenceAcknowledged\x12,\n" +
-	"\x12use_video_duration\x18\x0f \x01(\bR\x10useVideoDuration\"\xbf\x01\n" +
+	"\x12use_video_duration\x18\x0f \x01(\bR\x10useVideoDuration\x12,\n" +
+	"\x12use_audio_duration\x18\x10 \x01(\bR\x10useAudioDuration\"\xbf\x01\n" +
 	"\rAssetBurnView\x12\x17\n" +
 	"\auser_id\x18\x01 \x01(\tR\x06userId\x12!\n" +
 	"\fsession_hash\x18\x02 \x01(\tR\vsessionHash\x129\n" +
@@ -1231,10 +1249,11 @@ const file_chatto_core_evt_v1_asset_events_proto_rawDesc = "" +
 	"\x05state\x18\x01 \x01(\v2\".chatto.core.evt.v1.AssetBurnStateR\x05state\"b\n" +
 	"\x1bAssetProcessingStartedEvent\x12\x19\n" +
 	"\basset_id\x18\x01 \x01(\tR\aassetId\x12(\n" +
-	"\x10message_event_id\x18\x02 \x01(\tR\x0emessageEventId\"\xa3\x01\n" +
+	"\x10message_event_id\x18\x02 \x01(\tR\x0emessageEventId\"\xcf\x01\n" +
 	"\x1dAssetProcessingSucceededEvent\x12\x19\n" +
 	"\basset_id\x18\x01 \x01(\tR\aassetId\x12=\n" +
-	"\x05video\x18\x02 \x01(\v2'.chatto.core.evt.v1.AssetProcessedVideoR\x05video\x12(\n" +
+	"\x05video\x18\x02 \x01(\v2'.chatto.core.evt.v1.AssetProcessedVideoR\x05video\x12*\n" +
+	"\x11audio_duration_ms\x18\x04 \x01(\x03R\x0faudioDurationMs\x12(\n" +
 	"\x10message_event_id\x18\x03 \x01(\tR\x0emessageEventId\"\xb4\x01\n" +
 	"\x1aAssetProcessingFailedEvent\x12\x19\n" +
 	"\basset_id\x18\x01 \x01(\tR\aassetId\x12Q\n" +

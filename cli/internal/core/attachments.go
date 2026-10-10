@@ -928,6 +928,7 @@ func (c *MediaModel) StoreCachedResize(ctx context.Context, key string, data []b
 func (c *MediaModel) DeleteCachedResizesForAttachment(ctx context.Context, attachmentID string) (int, error) {
 	prefixes := []string{
 		BurnPreviewCacheResource,
+		"attachment-burn-preview-v1",
 		AttachmentDerivativeCacheResource,
 		AttachmentSignResource,
 		attachmentLegacyStableCacheResource,
@@ -1037,7 +1038,7 @@ func (c *ChattoCore) attachmentBinaryStatus(ctx context.Context, attachment *evt
 }
 
 // BurnPreviewCacheResource contains only reduced, blurred JPEGs.
-const BurnPreviewCacheResource = "attachment-burn-preview-v1"
+const BurnPreviewCacheResource = "attachment-burn-preview-v2"
 
 func (c *MediaModel) GetStableBurnPreviewAssetURL(assetID, userID string) StableAssetURL {
 	if assetID == "" || userID == "" {

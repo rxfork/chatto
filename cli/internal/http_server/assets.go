@@ -417,8 +417,9 @@ func (s *HTTPServer) resolveAttachmentWithPolicy(c *gin.Context, ctx context.Con
 	}
 
 	var burning bool
+	var attachment *evtv1.Attachment
 	if preview {
-		err = s.core.AuthorizeBurnPreview(ctx, assetID, userID)
+		attachment, err = s.core.AuthorizeBurnPreview(ctx, assetID, userID)
 	} else {
 		burning, err = s.core.AuthorizeAssetBinary(ctx, assetID, userID, c.Query("burn_session"), c.Query("download") == "1")
 	}
@@ -434,7 +435,9 @@ func (s *HTTPServer) resolveAttachmentWithPolicy(c *gin.Context, ctx context.Con
 	}
 	c.Set("burn_attachment", burning)
 
-	attachment := core.AttachmentFromAsset(declared.GetAsset())
+	if !preview {
+		attachment = core.AttachmentFromAsset(declared.GetAsset())
+	}
 	if attachment == nil {
 		c.JSON(http.StatusNotFound, gin.H{"error": "Attachment not found"})
 		return nil, false

@@ -170,13 +170,16 @@ Fresh servers seed `message.attach` for `everyone` so new deployments keep uploa
 - Opening the viewer starts the session. Closing it or reaching its deadline
   ends access. A second device cannot claim another session. Metadata reads,
   history, file lists, and scrolling never open a session. Original recipients
-  can see a heavily blurred image preview while the file is retained. It
-  reveals coarse colors and shapes, and cannot be removed to reveal detail.
+  can see a blurred image or processed video-frame preview while the file is
+  retained. It preserves larger shapes while hiding fine detail. Video previews
+  appear after processing; the original remains inaccessible until Open.
 - Unopened sessions expire after 24 hours by default. A viewing session lasts
-  10 seconds for images, the processed video duration for videos, and 5 minutes
-  for audio and documents. Videos wait for processing before opening; waiting
-  does not consume a session. The timer starts on Open, including playback
-  buffering or pauses. An explicit viewing lifetime overrides these defaults.
+  10 seconds for images, the audio duration for audio, the video duration plus
+  10 seconds for videos, and 5 minutes for documents. The extra video time lets
+  the viewer press Play. Audio and video wait for verified processing duration
+  before opening; waiting does not consume a session. The timer starts on Open,
+  including playback buffering or pauses. The configured viewing timeout
+  applies only to images and other non-audio/video files.
   After every session ends or expires, the server keeps the file for 1 more hour by default. Operators configure these durations in TOML.
   Each file keeps the durations in effect when it was sent.
 - Original recipients can request permanent access, cancel that request, and

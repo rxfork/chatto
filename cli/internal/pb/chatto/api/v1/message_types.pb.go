@@ -616,7 +616,7 @@ type BurnAttachment struct {
 	RequesterIds []string `protobuf:"bytes,8,rep,name=requester_ids,json=requesterIds,proto3" json:"requester_ids,omitempty"`
 	// The sender must acknowledge the explanation once in this room.
 	RequiresPermanenceConfirmation bool `protobuf:"varint,9,opt,name=requires_permanence_confirmation,json=requiresPermanenceConfirmation,proto3" json:"requires_permanence_confirmation,omitempty"`
-	// Server-reduced, heavily blurred image. Never grants an original viewing session.
+	// Server-generated blurred image or video still. Never grants an original viewing session.
 	PreviewAssetUrl *MessageAssetUrl `protobuf:"bytes,10,opt,name=preview_asset_url,json=previewAssetUrl,proto3" json:"preview_asset_url,omitempty"`
 	unknownFields   protoimpl.UnknownFields
 	sizeCache       protoimpl.SizeCache

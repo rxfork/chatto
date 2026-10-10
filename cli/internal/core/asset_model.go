@@ -5,6 +5,7 @@ import (
 	"errors"
 	"fmt"
 	"hmans.de/chatto/internal/pb/chatto/core/runtime_state/v1"
+	"math"
 	"strings"
 	"time"
 
@@ -330,7 +331,9 @@ func (s *AssetModel) UnmanifestedVideoAttachments() []VideoProcessingRequest {
 			continue
 		}
 		contentType := asset.GetContentType()
-		if !strings.HasPrefix(contentType, "video/") && contentType != "image/gif" {
+		burn := s.AssetState(owner.AssetID).Burn
+		needsAudioDuration := burn.GetUseAudioDuration() && !burn.GetPermanent()
+		if !needsAudioDuration && !strings.HasPrefix(contentType, "video/") && contentType != "image/gif" {
 			continue
 		}
 		out = append(out, VideoProcessingRequest{
@@ -900,4 +903,18 @@ func (s *AssetModel) recordAssetProcessingFailed(ctx context.Context, actorID st
 		return fmt.Errorf("publish asset processing event: %w", err)
 	}
 	return nil
+}
+
+// RecordAssetAudioDuration commits a verified audio duration on the existing
+// asset-processing lane. It never produces downloadable derivatives.
+func (s *AssetModel) RecordAssetAudioDuration(ctx context.Context, actorID, roomID, messageEventID, assetID string, durationMs int64) error {
+	if durationMs <= 0 || durationMs > math.MaxInt64/int64(time.Millisecond) {
+		return invalidArgument("audio duration must be positive and finite")
+	}
+	event := newEvent(actorID, &evtv1.Event{Event: &evtv1.Event_AssetProcessingSucceeded{AssetProcessingSucceeded: &evtv1.AssetProcessingSucceededEvent{AssetId: assetID, MessageEventId: messageEventID, AudioDurationMs: durationMs}}})
+	err := s.publishAssetProcessing(ctx, roomID, event)
+	if errors.Is(err, ErrAssetLifecycleSkipped) || errors.Is(err, errAssetEventCommitted) {
+		return nil
+	}
+	return err
 }
