@@ -1,3 +1,5 @@
+import { resetRoomGroupCollapseForTests } from '$lib/components/chat/roomGroupCollapse';
+import { HiddenDMs } from '$lib/state/server/hiddenDMs';
 import { ServerProjectionStore } from '@chatto/client/server/projection';
 import { NavigationStore } from '$lib/state/server/navigation';
 import { RoomListView } from '@chatto/client/server/rooms';
@@ -51,6 +53,7 @@ const { mocks } = vi.hoisted(() => ({
       requestRoomSidebarPanel: vi.fn()
     },
     store: {
+      hiddenDMs: null as unknown as HiddenDMs,
       currentUser: { user: { id: 'me' } },
       notifications: {
         hasDMRoomNotification: vi.fn().mockReturnValue(false),
@@ -304,8 +307,10 @@ function setRoomUnread(roomId: string, hasUnread: boolean) {
 }
 
 beforeEach(() => {
+  mocks.store.hiddenDMs = new HiddenDMs('origin', () => 'me');
   toast.clear();
   localStorage.clear();
+  resetRoomGroupCollapseForTests();
   sessionStorage.clear();
   mocks.activeRoomId = undefined;
   activeRoomRoute.clear();
@@ -452,6 +457,62 @@ describe('RoomList', () => {
     expect(row.querySelector('[data-testid="you-badge"]')).toBeNull();
     expect(row.querySelector('[role="img"][aria-label="[deleted user]"]')).not.toBeNull();
   });
+
+  it.each([false, true])(
+    'hides and restores a DM, including deleted participants (%s)',
+    async (deleted) => {
+      mocks.store.navigation.rooms = [
+        {
+          id: 'dm-hidden',
+          name: '',
+          type: RoomKind.DM,
+          viewerIsMember: true,
+          hasMessageHistory: true,
+          members: [
+            user('me', 'me', 'My name'),
+            deleted
+              ? deletedDirectMessageParticipant('gone')
+              : user('partner', 'partner', 'Partner')
+          ]
+        }
+      ] as never;
+      mocks.activeRoomId = 'dm-hidden';
+      const { container } = render(RoomList);
+      const row = q(container, '[href="/chat/-/dm-hidden"]')!;
+      row.dispatchEvent(new MouseEvent('contextmenu', { bubbles: true, cancelable: true }));
+      const action = () =>
+        Array.from(document.querySelectorAll('button')).find(
+          (button) => button.textContent?.trim() === 'Hide DM'
+        );
+      await vi.waitFor(() => expect(action()).toBeDefined());
+      action()!.click();
+      await vi.waitFor(() =>
+        expect(container.querySelector('[href="/chat/-/dm-hidden"]')).toBeNull()
+      );
+      expect(mocks.goto).toHaveBeenCalledWith('/chat/-/overview');
+      expect(mocks.store.hiddenDMs.isHidden('dm-hidden')).toBe(true);
+      const disclosure = Array.from(
+        container.querySelectorAll<HTMLButtonElement>('button[aria-expanded]')
+      ).find((button) => button.textContent?.includes('Hidden DMs'))!;
+      await expect.element(disclosure).toHaveAttribute('aria-expanded', 'false');
+      disclosure.click();
+      await vi.waitFor(() =>
+        expect(container.querySelector('[href="/chat/-/dm-hidden"]')).not.toBeNull()
+      );
+      const hiddenRow = q(container, '[href="/chat/-/dm-hidden"]')!;
+      await expect.element(hiddenRow).toHaveTextContent(deleted ? '[deleted user]' : 'Partner');
+      hiddenRow.dispatchEvent(new MouseEvent('contextmenu', { bubbles: true, cancelable: true }));
+      const restore = () =>
+        Array.from(document.querySelectorAll('button')).find(
+          (button) => button.textContent?.trim() === 'Restore DM'
+        );
+      await vi.waitFor(() => expect(restore()).toBeDefined());
+      restore()!.click();
+      await vi.waitFor(() => expect(mocks.store.hiddenDMs.isHidden('dm-hidden')).toBe(false));
+      await expect.element(q(container, '[href="/chat/-/dm-hidden"]')).toBeInTheDocument();
+      expect(container.textContent).not.toContain('Hidden DMs');
+    }
+  );
 
   it('renders a full-width separator between adjacent room and DM sections', () => {
     const { container } = render(RoomList);

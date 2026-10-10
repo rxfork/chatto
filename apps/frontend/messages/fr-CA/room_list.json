@@ -27,6 +27,9 @@
     "add_to_group": "Ajouter à {group}",
     "group_settings": "Paramètres de {group}",
     "server_actions": "Actions pour {server}",
-    "room_actions": "Actions pour #{room}"
+    "room_actions": "Actions pour #{room}",
+    "hide_dm": "Masquer la conversation privée",
+    "restore_dm": "Restaurer la conversation privée",
+    "hidden_dms": "Conversations privées masquées"
   }
 }

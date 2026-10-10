@@ -27,6 +27,9 @@
     "add_to_group": "הוספה אל {group}",
     "group_settings": "הגדרות עבור {group}",
     "server_actions": "פעולות עבור {server}",
-    "room_actions": "פעולות עבור #{room}"
+    "room_actions": "פעולות עבור #{room}",
+    "hide_dm": "הסתר שיחה פרטית",
+    "restore_dm": "שחזר שיחה פרטית",
+    "hidden_dms": "שיחות פרטיות מוסתרות"
   }
 }

@@ -27,6 +27,9 @@
     "add_to_group": "Добавить в {group}",
     "group_settings": "Настройки для {group}",
     "server_actions": "Действия для {server}",
-    "room_actions": "Действия для #{room}"
+    "room_actions": "Действия для #{room}",
+    "hide_dm": "Скрыть личную переписку",
+    "restore_dm": "Восстановить личную переписку",
+    "hidden_dms": "Скрытые личные переписки"
   }
 }

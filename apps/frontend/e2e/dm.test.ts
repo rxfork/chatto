@@ -109,6 +109,51 @@ test.describe('Direct Messages (room-shaped)', () => {
     });
   });
 
+  test('hidden DMs survive reload and Send Message restores the existing history', async ({
+    page,
+    browser,
+    serverURL
+  }) => {
+    const userA = await createAndLoginTestUser(page);
+    const errors: string[] = [];
+    page.on('pageerror', (error) => errors.push(error.message));
+    await withServerUser(browser, serverURL, async ({ page: peer, user: userB }) => {
+      const peerRoom = await new DMPage(peer).startConversation(userA.login);
+      const message = `Hidden DM history ${Date.now()}`;
+      await peerRoom.sendMessage(message);
+      const roomId = new URL(peer.url()).pathname.split('/').pop()!;
+      await page.goto(routes.room(roomId));
+      const room = new RoomPage(page);
+      await room.expectMessageVisible(message);
+      const row = page.locator(`nav a.sidebar-item[href="${routes.room(roomId)}"]`);
+      await row.click({ button: 'right' });
+      await page.getByRole('menuitem', { name: 'Hide DM', exact: true }).click();
+      await page.waitForURL(routes.serverOverview);
+      await expect(row).not.toBeVisible();
+      await page.reload();
+      await expect(page.getByRole('button', { name: 'Hidden DMs', exact: true })).toBeVisible();
+      await expect(row).not.toBeVisible();
+      await peerRoom.sendMessage('Still hidden after incoming activity');
+      await expect(row).not.toBeVisible();
+      await page.getByRole('button', { name: 'Hidden DMs', exact: true }).click();
+      await expect(row).toBeVisible();
+      await page.screenshot({ path: test.info().outputPath('hidden-dms.png') });
+      await row.click();
+      await room.expectMessageVisible(message);
+      await expect(page.getByRole('button', { name: 'Hidden DMs', exact: true })).not.toBeVisible();
+      // Hide once more, then use the same destination as a profile's Send Message action.
+      await row.click({ button: 'right' });
+      await page.getByRole('menuitem', { name: 'Hide DM', exact: true }).click();
+      await page.waitForURL(routes.serverOverview);
+      await page.goto(`/chat/-/dm/${userB.id}`);
+      await page.waitForURL(routes.room(roomId));
+      await room.expectMessageVisible(message);
+      await expect(row).toBeVisible();
+      await expect(page.getByRole('button', { name: 'Hidden DMs', exact: true })).not.toBeVisible();
+      expect(errors).toEqual([]);
+    });
+  });
+
   test('post a DM message, reload, and stay on the conversation', async ({
     page,
     browser,

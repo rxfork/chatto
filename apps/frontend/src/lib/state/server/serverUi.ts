@@ -24,6 +24,7 @@ import { ActiveCallRoomsState } from './activeCallRooms';
 import { AdminRoomLayoutStore } from './adminRoomLayout';
 import { CallPreferencesState } from './callPreferences.svelte';
 import type { CallPermissions } from './callTypes';
+import { HiddenDMs } from './hiddenDMs';
 import { NavigationStore } from './navigation';
 import { NotificationAttention } from './notificationAttention';
 import { ReadViewRegistry } from './readViews';
@@ -81,6 +82,8 @@ export class ServerUi {
   readonly attention: NotificationAttention;
   /** Rooms and groups of the sidebar, with notification counts. */
   readonly navigation: NavigationStore;
+  /** Device-local hidden conversations for the current account. */
+  readonly hiddenDMs: HiddenDMs;
   /** Optimistic unread state of rooms over the projection. */
   readonly roomUnread: RoomUnreadStore;
   /** Optimistic room membership commands and join previews. */
@@ -99,6 +102,7 @@ export class ServerUi {
 
   constructor(store: ServerStateStore) {
     this.#store = store;
+    this.hiddenDMs = new HiddenDMs(store.serverId, () => store.accountId);
     const connection = store.connection;
     this.voiceCall = new VoiceCallState(
       connection.getAPI(createVoiceCallAPI),

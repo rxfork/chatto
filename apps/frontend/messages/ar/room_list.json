@@ -27,6 +27,9 @@
     "add_to_group": "إضافة إلى {group}",
     "group_settings": "إعدادات {group}",
     "server_actions": "إجراءات {server}",
-    "room_actions": "إجراءات #{room}"
+    "room_actions": "إجراءات #{room}",
+    "hide_dm": "إخفاء المحادثة الخاصة",
+    "restore_dm": "استعادة المحادثة الخاصة",
+    "hidden_dms": "المحادثات الخاصة المخفية"
   }
 }

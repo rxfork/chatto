@@ -27,6 +27,9 @@
     "add_to_group": "Pievienot grupai {group}",
     "group_settings": "Iestatījumi {group}",
     "server_actions": "Darbības {server}",
-    "room_actions": "Darbības ar #{room}"
+    "room_actions": "Darbības ar #{room}",
+    "hide_dm": "Paslēpt privāto sarunu",
+    "restore_dm": "Atjaunot privāto sarunu",
+    "hidden_dms": "Paslēptās privātās sarunas"
   }
 }

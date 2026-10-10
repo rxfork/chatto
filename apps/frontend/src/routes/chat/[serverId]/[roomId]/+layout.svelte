@@ -1,4 +1,5 @@
 <script lang="ts">
+  import { untrack } from 'svelte';
   import { page } from '$app/state';
   import { serverUi } from '$lib/state/server/serverUi';
   import { roomRouteAccess } from '$lib/navigation/roomLinkAccess';
@@ -22,6 +23,14 @@
     !navigation.isInitialLoading &&
       (!serverStore.projectionViewerId || serverStore.projectionViewerId === serverStore.viewerId)
   );
+
+  // Opening a conversation restores its sidebar row. Do not track the preference:
+  // hiding the currently open conversation must not immediately restore it.
+  $effect(() => {
+    const id = roomId;
+    const viewer = serverStore.accountId;
+    if (id && viewer) untrack(() => serverUi(serverStore).hiddenDMs.setHidden(id, false));
+  });
 
   let threadId = $derived(page.params.threadId);
 
