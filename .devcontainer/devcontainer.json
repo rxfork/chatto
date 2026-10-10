@@ -1,6 +1,9 @@
 {
   "name": "Chatto review",
   "build": { "dockerfile": "Dockerfile" },
+  "features": {
+    "ghcr.io/devcontainers-extra/features/mise:1": { "version": "2026.10.4" }
+  },
   "remoteUser": "vscode",
   "hostRequirements": { "cpus": 4, "memory": "8gb", "storage": "32gb" },
   "postCreateCommand": "mise run build-dev-cli",

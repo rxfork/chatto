@@ -189,9 +189,10 @@ to stop compute usage. GitHub retains its files until you delete the Codespace.
 
 The same configuration works with VS Code's **Dev Containers: Reopen in
 Container** command. Local use needs Docker and VS Code. Run `mise dev-review`
-and open `http://localhost:4000`. The container uses the official
-[mise image](https://mise.jdx.dev/mise-cookbook/docker.html) to supply mise;
-the repository's `mise.toml` supplies the project tool versions.
+and open `http://localhost:4000`. The container uses the standard
+[Dev Containers base image](https://github.com/devcontainers/images/tree/main/src/base-ubuntu)
+with the [mise feature](https://github.com/devcontainers-extra/features/tree/main/src/mise).
+The repository's `mise.toml` supplies the project tool versions.
 
 ## Local Development with Conductor
 
