@@ -140,6 +140,59 @@ IDs and timestamps change. Each run adds data. A failed run can leave partial
 data. Add `--json` to get the generated IDs and text, or `--help` for options.
 Seeding is available only in development and test builds.
 
+## Browser Review with GitHub Codespaces
+
+You can review a branch or PR in a browser on Windows. You do not need to
+install development tools on your computer. GitHub runs the container and
+server. Codespaces usage can have a cost.
+
+1. Open the branch on GitHub. Select **Code > Codespaces > Create codespace**.
+   To review a PR, select **Code > Codespaces > Create codespace on this pull
+   request** on the PR page. The branch must contain `.devcontainer/`.
+2. Wait for the container setup. It installs mise and uses `mise build-dev-cli`
+   to install the required tools and dependencies and build Chatto.
+3. In the Codespaces terminal, run:
+
+   ```sh
+   mise dev-review
+   ```
+
+4. In the **Ports** tab, open port **4000** in your browser. Keep its visibility
+   **Private**. Sign in as `alice` with password `foobar123`.
+
+The review task sets Chatto's URL to the Codespaces HTTPS address. It runs the
+server and bundled frontend with local password login, embedded NATS, search,
+and file uploads. It does not run Authling, email, LiveKit calls, or the Runling
+bot. Private forwarded ports require GitHub authentication, and Codespaces
+does not forward the TCP and UDP connections for call media. Use the
+[local development stack](#local-development-stack) to review those services.
+
+To change PRs in an existing Codespace, stop the server with **Ctrl+C**, then
+run these commands. Replace `<PR-number>` with the PR number:
+
+```sh
+gh pr checkout <PR-number>
+mise dev-review
+```
+
+The task builds changed code before it starts. It stores review data in
+`.context/dev/review/data/`, separate from the regular development data in
+`cli/data/`. The review task uses the same bootstrap users. To generate test
+data, run this command in another terminal:
+
+```sh
+CHATTO_DEV_DATA_ROOT="$PWD/.context/dev/review/data" mise seed -- --seed 42 --users 20 --rooms 5 --messages 200
+```
+
+Stop the server with **Ctrl+C**. Stop the Codespace from GitHub when you finish
+to stop compute usage. GitHub retains its files until you delete the Codespace.
+
+The same configuration works with VS Code's **Dev Containers: Reopen in
+Container** command. Local use needs Docker and VS Code. Run `mise dev-review`
+and open `http://localhost:4000`. The container uses the official
+[mise image](https://mise.jdx.dev/mise-cookbook/docker.html) to supply mise;
+the repository's `mise.toml` supplies the project tool versions.
+
 ## Local Development with Conductor
 
 [Conductor](https://conductor.build) runs the regular root `mise dev` stack as

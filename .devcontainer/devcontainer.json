@@ -1,0 +1,21 @@
+{
+  "name": "Chatto review",
+  "build": { "dockerfile": "Dockerfile" },
+  "remoteUser": "vscode",
+  "hostRequirements": { "cpus": 4, "memory": "8gb", "storage": "32gb" },
+  "postCreateCommand": "mise run build-dev-cli",
+  "waitFor": "postCreateCommand",
+  "forwardPorts": [4000],
+  "portsAttributes": {
+    "4000": {
+      "label": "Chatto",
+      "onAutoForward": "openBrowser",
+      "protocol": "http"
+    }
+  },
+  "customizations": {
+    "vscode": {
+      "extensions": ["hverlin.mise-vscode", "golang.go", "svelte.svelte-vscode"]
+    }
+  }
+}
