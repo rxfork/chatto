@@ -74,6 +74,9 @@ const { apiMocks, eventMocks } = vi.hoisted(() => ({
     userDeleted: vi.fn()
   },
   apiMocks: {
+    setDMVisibility: vi.fn<(roomId: string, hidden: boolean) => Promise<unknown>>(() =>
+      Promise.resolve({})
+    ),
     listPins: vi.fn(),
     readMessages: vi.fn<
       (roomId: string, ids: string[], cursor?: string) => Promise<MessageResource[]>
@@ -253,6 +256,10 @@ vi.mock('../api/notifications.js', async (importActual) => {
     }))
   };
 });
+
+vi.mock('../api/account.js', () => ({
+  createAccountAPI: vi.fn(() => ({ setDMVisibility: apiMocks.setDMVisibility }))
+}));
 
 vi.mock('../api/roles.js', () => ({
   createRoleAPI: vi.fn(() => ({
@@ -510,6 +517,7 @@ beforeEach(() => {
     totalCount: 0,
     hasMore: false
   });
+  apiMocks.setDMVisibility.mockReset().mockResolvedValue({});
   apiMocks.readRealtimeResource.mockReset();
   apiMocks.readRealtimeResource.mockResolvedValue([]);
   apiMocks.readRealtimeUsers.mockReset();
@@ -706,6 +714,66 @@ describe('ServerStateStore viewer', () => {
     expect(store.currentUser.verifiedUserId).toBeNull();
     expect(store.accountId).toBe('U1');
     expect(store.viewerId).toBe('U1');
+  });
+});
+
+describe('ServerStateStore DM visibility', () => {
+  function viewerResource(hiddenDmRoomIds: string[]): RealtimeResourceUpdate {
+    return new RealtimeResourceUpdate({
+      resource: {
+        case: 'viewer',
+        value: new GetViewerResponse({
+          user: { profile: { id: 'U1' }, settings: { hiddenDmRoomIds } }
+        })
+      }
+    });
+  }
+
+  it('reads server preferences and reconciles a mutation instead of copying its snapshot', async () => {
+    const store = makeStore(new FakeServerConnection([]));
+    store.realtimeProjectionHandler(
+      new RealtimeProjectionUpdate({ resource: viewerResource(['dm-first']) })
+    );
+    expect(store.isDMHidden('dm-first')).toBe(true);
+    // The command response can predate a concurrent choice in another client.
+    apiMocks.setDMVisibility.mockResolvedValue({ hiddenDmRoomIds: ['dm-second'] });
+    apiMocks.readRealtimeResource.mockImplementation(async (family) =>
+      family === 'viewer' ? [viewerResource(['dm-first', 'dm-second'])] : []
+    );
+    await store.setDMHidden('dm-second', true);
+    expect(apiMocks.setDMVisibility).toHaveBeenCalledWith('dm-second', true);
+    expect(store.isDMHidden('dm-first')).toBe(true);
+    expect(store.isDMHidden('dm-second')).toBe(true);
+  });
+
+  it('keeps the visible state when the server rejects the command', async () => {
+    const store = makeStore(new FakeServerConnection([]));
+    store.realtimeProjectionHandler(new RealtimeProjectionUpdate({ resource: viewerResource([]) }));
+    apiMocks.setDMVisibility.mockRejectedValue(new Error('offline'));
+    await expect(store.setDMHidden('dm-first', true)).rejects.toThrow('offline');
+    expect(store.isDMHidden('dm-first')).toBe(false);
+    expect(apiMocks.readRealtimeResource).not.toHaveBeenCalled();
+  });
+
+  it('discards a command response after a privacy reset', async () => {
+    const store = makeStore(new FakeServerConnection([]));
+    store.realtimeProjectionHandler(
+      new RealtimeProjectionUpdate({ resource: viewerResource(['dm-first']) })
+    );
+    let resolve!: (value: unknown) => void;
+    apiMocks.setDMVisibility.mockImplementation(
+      () =>
+        new Promise((done) => {
+          resolve = done;
+        })
+    );
+    const change = store.setDMHidden('dm-second', true);
+    store.realtimeProjectionHandler(new RealtimeProjectionUpdate({ reset: true, privacyReset: true }));
+    resolve({ hiddenDmRoomIds: ['dm-first', 'dm-second'] });
+    await expect(change).rejects.toThrow('superseded');
+    expect(store.isDMHidden('dm-second')).toBe(false);
+    expect(store.projection.viewer).toBeNull();
+    expect(apiMocks.readRealtimeResource).not.toHaveBeenCalled();
   });
 });
 

@@ -546,8 +546,27 @@ rooms are organized into collapsible sections. Otherwise, rooms display alphabet
   // same collapsible navigation-section presentation below.
   let channels = $derived(navigation.rooms.filter((r) => r.type === RoomKind.CHANNEL));
   let dmRooms = $derived(
-    navigation.rooms.filter((r) => r.type === RoomKind.DM && isNavigationVisibleRoom(r))
+    navigation.rooms.filter(
+      (r) => r.type === RoomKind.DM && isNavigationVisibleRoom(r) && !stores.isDMHidden(r.id)
+    )
   );
+
+  const hiddenDMRooms = $derived(
+    navigation.rooms.filter((r) => r.type === RoomKind.DM && stores.isDMHidden(r.id))
+  );
+
+  /** Persist the choice before leaving an active conversation. */
+  async function setDMHidden(room: RoomsListItem, hidden: boolean): Promise<void> {
+    roomContextMenu = null;
+    try {
+      await stores.setDMHidden(room.id, hidden);
+      if (hidden && activeRoomId === room.id) {
+        await goto(resolve('/chat/[serverId]/overview', { serverId: serverSegment }));
+      }
+    } catch (error) {
+      toast.error(errorMessage(error));
+    }
+  }
 
   let roomMap = $derived(new Map(navigation.rooms.map((r) => [r.id, r])));
   let channelMap = $derived(new Map(channels.map((r) => [r.id, r])));
@@ -660,6 +679,15 @@ rooms are organized into collapsible sections. Otherwise, rooms display alphabet
       });
     }
 
+    if (hiddenDMRooms.length > 0) {
+      sections.push({
+        id: 'hidden-direct-messages',
+        label: m('room_list.hidden_dms'),
+        items: roomItems(hiddenDMRooms),
+        persistKey: serverStorageKey(activeServerId, 'collapsible:hidden-dms'),
+        keepVisibleWhenCollapsed: () => false
+      });
+    }
     return sections;
   });
 
@@ -1174,7 +1202,7 @@ rooms are organized into collapsible sections. Otherwise, rooms display alphabet
   </MenuSection>
 {/snippet}
 
-{#if channels.length === 0 && dmRooms.length === 0 && visibleSets.length === 0 && !navigation.isInitialLoading}
+{#if channels.length === 0 && dmRooms.length === 0 && hiddenDMRooms.length === 0 && visibleSets.length === 0 && !navigation.isInitialLoading}
   <EmptyState icon="icon-[uil--comments]" title={m('room_list.empty_title')}>
     {m('room_list.empty_prefix')}
     <a href={resolve('/chat/[serverId]/overview', { serverId: serverSegment })} class="link"
@@ -1231,6 +1259,7 @@ rooms are organized into collapsible sections. Otherwise, rooms display alphabet
         persistKey={section.persistKey}
         keepVisibleWhenCollapsed={section.keepVisibleWhenCollapsed}
         {footer}
+        defaultCollapsed={section.id === 'hidden-direct-messages'}
         separated={renderManagedSections.length > 0 || i > 0}
       />
     {/each}
@@ -1302,6 +1331,16 @@ rooms are organized into collapsible sections. Otherwise, rooms display alphabet
       onConfigure={() => handleConfigureRoom(contextRoom)}
       onLeave={() => handleLeaveRoom(contextRoom)}
     />
+    {#if contextRoom.type === RoomKind.DM}
+      <MenuSection>
+        <MenuItem
+          icon="icon-[uil--eye-slash]"
+          onclick={() => void setDMHidden(contextRoom, !stores.isDMHidden(contextRoom.id))}
+        >
+          {stores.isDMHidden(contextRoom.id) ? m('room_list.restore_dm') : m('room_list.hide_dm')}
+        </MenuItem>
+      </MenuSection>
+    {/if}
     {#if contextRoom.viewerCanManageRoom && contextRoom.type !== RoomKind.DM}
       <MenuSection>
         <MenuItem icon="icon-[uil--archive]" onclick={() => confirmArchiveRoom(contextRoom)}>

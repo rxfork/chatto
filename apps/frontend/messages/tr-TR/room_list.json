@@ -27,6 +27,9 @@
     "add_to_group": "{group} grubuna ekle",
     "group_settings": "{group} ayarları",
     "server_actions": "{server} için eylemler",
-    "room_actions": "#{room} için eylemler"
+    "room_actions": "#{room} için eylemler",
+    "hide_dm": "Doğrudan mesajı gizleyin",
+    "restore_dm": "Doğrudan mesajı geri yükleyin",
+    "hidden_dms": "Gizli doğrudan mesajlar"
   }
 }

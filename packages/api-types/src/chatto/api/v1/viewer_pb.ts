@@ -81,6 +81,15 @@ export class UserSettings extends Message<UserSettings> {
    */
   shareTimezone?: boolean;
 
+  /**
+   * Private DM room IDs hidden from this account's normal conversation list.
+   * Saved on this server and shared across clients. Membership, history, and
+   * notification preferences are unchanged. New messages do not restore a DM.
+   *
+   * @generated from field: repeated string hidden_dm_room_ids = 4;
+   */
+  hiddenDmRoomIds: string[] = [];
+
   constructor(data?: PartialMessage<UserSettings>) {
     super();
     proto3.util.initPartial(data, this);
@@ -92,6 +101,7 @@ export class UserSettings extends Message<UserSettings> {
     { no: 1, name: "timezone", kind: "scalar", T: 9 /* ScalarType.STRING */, opt: true },
     { no: 2, name: "time_format", kind: "enum", T: proto3.getEnumType(TimeFormat) },
     { no: 3, name: "share_timezone", kind: "scalar", T: 8 /* ScalarType.BOOL */, opt: true },
+    { no: 4, name: "hidden_dm_room_ids", kind: "scalar", T: 9 /* ScalarType.STRING */, repeated: true },
   ]);
 
   static fromBinary(bytes: Uint8Array, options?: Partial<BinaryReadOptions>): UserSettings {

@@ -13,7 +13,7 @@ option go_package = "hmans.de/chatto/internal/pb/chatto/core/evt/v1;evtv1";
 //
 // Top-level Event oneof tags owned by this file:
 //   - 500: reserved tombstone for the abandoned server_config_changed snapshot
-//   - 501-522: durable server/user configuration events on evt.config.*
+//   - 501-525: durable server/user configuration events on evt.config.*
 //
 // Keep these tags coordinated with event.proto. Message-internal field numbers
 // are local to each message and do not consume top-level Event tag space.
@@ -147,3 +147,10 @@ message ServerNeighborDeletedEvent {
 
 // Notifies clients that server configuration was updated.
 // Clients should refetch server info to get the new values.
+
+// Records one account's private sidebar choice without changing DM membership.
+message UserDMVisibilityChangedEvent {
+  string user_id = 1;
+  string room_id = 2;
+  bool hidden = 3;
+}

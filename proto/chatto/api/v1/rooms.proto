@@ -440,7 +440,8 @@ service RoomService {
   // Already-joined and non-joinable rooms are skipped.
   rpc JoinRoomGroup(JoinRoomGroupRequest) returns (JoinRoomGroupResponse);
   // Starts a direct-message room for the current human user and the requested
-  // participant set, or fetches its existing DM. message.post is required
+  // participant set, or restores its existing DM to the caller's conversation
+  // list across clients. message.post is required
   // only when the DM must be created. A valid request from a bot receives
   // PERMISSION_DENIED and cannot use this RPC to fetch an existing DM.
   rpc StartDM(StartDMRequest) returns (StartDMResponse);

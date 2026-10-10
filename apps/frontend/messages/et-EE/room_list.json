@@ -27,6 +27,9 @@
     "add_to_group": "Lisa gruppi {group}",
     "group_settings": "Seaded: {group}",
     "server_actions": "Toimingud: {server}",
-    "room_actions": "Toimingud: #{room}"
+    "room_actions": "Toimingud: #{room}",
+    "hide_dm": "Peida privaatsõnum",
+    "restore_dm": "Taasta privaatsõnum",
+    "hidden_dms": "Peidetud privaatsõnumid"
   }
 }

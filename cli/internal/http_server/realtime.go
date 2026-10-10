@@ -1001,6 +1001,11 @@ func (s *HTTPServer) projectViewerRealtimeEvent(ctx context.Context, viewerID st
 			return viewerPreferences(), nil
 		}
 		return userProfile(userID), nil
+	case *evtv1.Event_UserDmVisibilityChanged:
+		if viewerID == payload.UserDmVisibilityChanged.GetUserId() {
+			return viewerPreferences(), nil
+		}
+		return nil, nil
 	case *evtv1.Event_UserTimeFormatChanged:
 		if viewerID == payload.UserTimeFormatChanged.GetUserId() {
 			return viewerPreferences(), nil

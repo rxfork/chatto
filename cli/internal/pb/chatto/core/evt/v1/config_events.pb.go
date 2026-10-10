@@ -1205,6 +1205,67 @@ func (x *ServerNeighborDeletedEvent) GetNeighborId() string {
 	return ""
 }
 
+// Records one account's private sidebar choice without changing DM membership.
+type UserDMVisibilityChangedEvent struct {
+	state         protoimpl.MessageState `protogen:"open.v1"`
+	UserId        string                 `protobuf:"bytes,1,opt,name=user_id,json=userId,proto3" json:"user_id,omitempty"`
+	RoomId        string                 `protobuf:"bytes,2,opt,name=room_id,json=roomId,proto3" json:"room_id,omitempty"`
+	Hidden        bool                   `protobuf:"varint,3,opt,name=hidden,proto3" json:"hidden,omitempty"`
+	unknownFields protoimpl.UnknownFields
+	sizeCache     protoimpl.SizeCache
+}
+
+func (x *UserDMVisibilityChangedEvent) Reset() {
+	*x = UserDMVisibilityChangedEvent{}
+	mi := &file_chatto_core_evt_v1_config_events_proto_msgTypes[24]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *UserDMVisibilityChangedEvent) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*UserDMVisibilityChangedEvent) ProtoMessage() {}
+
+func (x *UserDMVisibilityChangedEvent) ProtoReflect() protoreflect.Message {
+	mi := &file_chatto_core_evt_v1_config_events_proto_msgTypes[24]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use UserDMVisibilityChangedEvent.ProtoReflect.Descriptor instead.
+func (*UserDMVisibilityChangedEvent) Descriptor() ([]byte, []int) {
+	return file_chatto_core_evt_v1_config_events_proto_rawDescGZIP(), []int{24}
+}
+
+func (x *UserDMVisibilityChangedEvent) GetUserId() string {
+	if x != nil {
+		return x.UserId
+	}
+	return ""
+}
+
+func (x *UserDMVisibilityChangedEvent) GetRoomId() string {
+	if x != nil {
+		return x.RoomId
+	}
+	return ""
+}
+
+func (x *UserDMVisibilityChangedEvent) GetHidden() bool {
+	if x != nil {
+		return x.Hidden
+	}
+	return false
+}
+
 var File_chatto_core_evt_v1_config_events_proto protoreflect.FileDescriptor
 
 const file_chatto_core_evt_v1_config_events_proto_rawDesc = "" +
@@ -1277,7 +1338,11 @@ const file_chatto_core_evt_v1_config_events_proto_rawDesc = "" +
 	"\vtestimonial\x18\x02 \x01(\tB\x02\x18\x01R\vtestimonial\"=\n" +
 	"\x1aServerNeighborDeletedEvent\x12\x1f\n" +
 	"\vneighbor_id\x18\x01 \x01(\tR\n" +
-	"neighborIdB\xcc\x01\n" +
+	"neighborId\"h\n" +
+	"\x1cUserDMVisibilityChangedEvent\x12\x17\n" +
+	"\auser_id\x18\x01 \x01(\tR\x06userId\x12\x17\n" +
+	"\aroom_id\x18\x02 \x01(\tR\x06roomId\x12\x16\n" +
+	"\x06hidden\x18\x03 \x01(\bR\x06hiddenB\xcc\x01\n" +
 	"\x16com.chatto.core.evt.v1B\x11ConfigEventsProtoP\x01Z4hmans.de/chatto/internal/pb/chatto/core/evt/v1;evtv1\xa2\x02\x03CCE\xaa\x02\x12Chatto.Core.Evt.V1\xca\x02\x12Chatto\\Core\\Evt\\V1\xe2\x02\x1eChatto\\Core\\Evt\\V1\\GPBMetadata\xea\x02\x15Chatto::Core::Evt::V1b\x06proto3"
 
 var (
@@ -1292,7 +1357,7 @@ func file_chatto_core_evt_v1_config_events_proto_rawDescGZIP() []byte {
 	return file_chatto_core_evt_v1_config_events_proto_rawDescData
 }
 
-var file_chatto_core_evt_v1_config_events_proto_msgTypes = make([]protoimpl.MessageInfo, 24)
+var file_chatto_core_evt_v1_config_events_proto_msgTypes = make([]protoimpl.MessageInfo, 25)
 var file_chatto_core_evt_v1_config_events_proto_goTypes = []any{
 	(*ServerNameChangedEvent)(nil),                      // 0: chatto.core.evt.v1.ServerNameChangedEvent
 	(*ServerDescriptionChangedEvent)(nil),               // 1: chatto.core.evt.v1.ServerDescriptionChangedEvent
@@ -1318,19 +1383,20 @@ var file_chatto_core_evt_v1_config_events_proto_goTypes = []any{
 	(*ServerNeighborOriginChangedEvent)(nil),            // 21: chatto.core.evt.v1.ServerNeighborOriginChangedEvent
 	(*ServerNeighborTestimonialChangedEvent)(nil),       // 22: chatto.core.evt.v1.ServerNeighborTestimonialChangedEvent
 	(*ServerNeighborDeletedEvent)(nil),                  // 23: chatto.core.evt.v1.ServerNeighborDeletedEvent
-	(*AssetRecord)(nil),                                 // 24: chatto.core.evt.v1.AssetRecord
-	(TimeFormat)(0),                                     // 25: chatto.core.evt.v1.TimeFormat
-	(NotificationLevel)(0),                              // 26: chatto.core.evt.v1.NotificationLevel
-	(*NotificationDeliveryModes)(nil),                   // 27: chatto.core.evt.v1.NotificationDeliveryModes
+	(*UserDMVisibilityChangedEvent)(nil),                // 24: chatto.core.evt.v1.UserDMVisibilityChangedEvent
+	(*AssetRecord)(nil),                                 // 25: chatto.core.evt.v1.AssetRecord
+	(TimeFormat)(0),                                     // 26: chatto.core.evt.v1.TimeFormat
+	(NotificationLevel)(0),                              // 27: chatto.core.evt.v1.NotificationLevel
+	(*NotificationDeliveryModes)(nil),                   // 28: chatto.core.evt.v1.NotificationDeliveryModes
 }
 var file_chatto_core_evt_v1_config_events_proto_depIdxs = []int32{
-	24, // 0: chatto.core.evt.v1.ServerLogoSetEvent.asset:type_name -> chatto.core.evt.v1.AssetRecord
-	24, // 1: chatto.core.evt.v1.ServerBannerSetEvent.asset:type_name -> chatto.core.evt.v1.AssetRecord
-	25, // 2: chatto.core.evt.v1.UserTimeFormatChangedEvent.time_format:type_name -> chatto.core.evt.v1.TimeFormat
-	26, // 3: chatto.core.evt.v1.UserServerNotificationLevelSetEvent.level:type_name -> chatto.core.evt.v1.NotificationLevel
-	26, // 4: chatto.core.evt.v1.UserRoomNotificationLevelSetEvent.level:type_name -> chatto.core.evt.v1.NotificationLevel
-	27, // 5: chatto.core.evt.v1.UserNotificationPolicyChangedEvent.overrides:type_name -> chatto.core.evt.v1.NotificationDeliveryModes
-	27, // 6: chatto.core.evt.v1.UserRoomGroupNotificationPolicyChangedEvent.overrides:type_name -> chatto.core.evt.v1.NotificationDeliveryModes
+	25, // 0: chatto.core.evt.v1.ServerLogoSetEvent.asset:type_name -> chatto.core.evt.v1.AssetRecord
+	25, // 1: chatto.core.evt.v1.ServerBannerSetEvent.asset:type_name -> chatto.core.evt.v1.AssetRecord
+	26, // 2: chatto.core.evt.v1.UserTimeFormatChangedEvent.time_format:type_name -> chatto.core.evt.v1.TimeFormat
+	27, // 3: chatto.core.evt.v1.UserServerNotificationLevelSetEvent.level:type_name -> chatto.core.evt.v1.NotificationLevel
+	27, // 4: chatto.core.evt.v1.UserRoomNotificationLevelSetEvent.level:type_name -> chatto.core.evt.v1.NotificationLevel
+	28, // 5: chatto.core.evt.v1.UserNotificationPolicyChangedEvent.overrides:type_name -> chatto.core.evt.v1.NotificationDeliveryModes
+	28, // 6: chatto.core.evt.v1.UserRoomGroupNotificationPolicyChangedEvent.overrides:type_name -> chatto.core.evt.v1.NotificationDeliveryModes
 	7,  // [7:7] is the sub-list for method output_type
 	7,  // [7:7] is the sub-list for method input_type
 	7,  // [7:7] is the sub-list for extension type_name
@@ -1353,7 +1419,7 @@ func file_chatto_core_evt_v1_config_events_proto_init() {
 			GoPackagePath: reflect.TypeOf(x{}).PkgPath(),
 			RawDescriptor: unsafe.Slice(unsafe.StringData(file_chatto_core_evt_v1_config_events_proto_rawDesc), len(file_chatto_core_evt_v1_config_events_proto_rawDesc)),
 			NumEnums:      0,
-			NumMessages:   24,
+			NumMessages:   25,
 			NumExtensions: 0,
 			NumServices:   0,
 		},

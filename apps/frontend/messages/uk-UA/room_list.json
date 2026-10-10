@@ -27,6 +27,9 @@
     "add_to_group": "Додати до {group}",
     "group_settings": "Налаштування для {group}",
     "server_actions": "Дії для {server}",
-    "room_actions": "Дії для #{room}"
+    "room_actions": "Дії для #{room}",
+    "hide_dm": "Приховати особисту розмову",
+    "restore_dm": "Відновити особисту розмову",
+    "hidden_dms": "Приховані особисті розмови"
   }
 }

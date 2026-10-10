@@ -27,6 +27,9 @@
     "add_to_group": "Legg til i {group}",
     "group_settings": "Innstillinger for {group}",
     "server_actions": "Handlinger for {server}",
-    "room_actions": "Handlinger for #{room}"
+    "room_actions": "Handlinger for #{room}",
+    "hide_dm": "Skjul direktemelding",
+    "restore_dm": "Gjenopprett direktemelding",
+    "hidden_dms": "Skjulte direktemeldinger"
   }
 }

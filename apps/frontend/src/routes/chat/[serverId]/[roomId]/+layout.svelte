@@ -1,4 +1,7 @@
 <script lang="ts">
+  import { untrack } from 'svelte';
+  import { toast } from '$lib/ui/toast';
+  import { errorMessage } from '$lib/utils/errorMessage';
   import { page } from '$app/state';
   import { serverUi } from '$lib/state/server/serverUi';
   import { roomRouteAccess } from '$lib/navigation/roomLinkAccess';
@@ -22,6 +25,27 @@
     !navigation.isInitialLoading &&
       (!serverStore.projectionViewerId || serverStore.projectionViewerId === serverStore.viewerId)
   );
+
+  // Restore on a route/account transition, rather than on preference refreshes.
+  // Another client may hide this conversation while it is already open here.
+  let openedRoomId: string | undefined;
+  let openedViewerId: string | null | undefined;
+  $effect(() => {
+    const id = roomId;
+    const viewer = serverStore.accountId;
+    if (id === openedRoomId && viewer === openedViewerId) return;
+    openedRoomId = id;
+    openedViewerId = viewer;
+    if (id && viewer) {
+      untrack(() => {
+        if (serverStore.isDMHidden(id)) {
+          void serverStore
+            .setDMHidden(id, false)
+            .catch((error) => toast.error(errorMessage(error)));
+        }
+      });
+    }
+  });
 
   let threadId = $derived(page.params.threadId);
 

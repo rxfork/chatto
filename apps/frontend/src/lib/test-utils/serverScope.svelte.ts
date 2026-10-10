@@ -163,6 +163,8 @@ function buildStore(
       onPermissionsChanged: subscribe,
       onDispose: subscribe,
       currentUser: t.currentUser,
+      isDMHidden: () => false,
+      setDMHidden: async () => {},
       get accountId() {
         return t.currentUser.user?.id ?? null;
       },

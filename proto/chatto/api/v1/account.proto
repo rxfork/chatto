@@ -124,6 +124,20 @@ message UpdateSettingsResponse {
   UserSettings settings = 1;
 }
 
+// Hide or restore one DM for the authenticated account on all its clients.
+message SetDMVisibilityRequest {
+  // Existing DM in which the authenticated account is a participant.
+  string room_id = 1 [(buf.validate.field).string.min_len = 1];
+  // True hides the conversation; false restores it.
+  bool hidden = 2;
+}
+
+// Private preferences after applying the visibility choice.
+message SetDMVisibilityResponse {
+  // The same settings resource returned by GetViewer and GetSettings.
+  UserSettings settings = 1;
+}
+
 // Request a short-lived confirmation token for deleting the authenticated
 // account.
 message RequestAccountDeletionRequest {}
@@ -182,6 +196,14 @@ service MyAccountService {
   rpc GetSettings(GetSettingsRequest) returns (GetSettingsResponse);
   // Updates the authenticated user's display preferences.
   rpc UpdateSettings(UpdateSettingsRequest) returns (UpdateSettingsResponse);
+  // Sets one private DM visibility choice. Requires DM membership, including
+  // conversations with deleted participants. Does not change membership,
+  // history, or notifications. Other accounts cannot read this choice.
+  // StartDM restores an existing conversation for the caller. Clients receive
+  // ViewerPreferencesChanged and refetch GetViewer or GetSettings to synchronize.
+  rpc SetDMVisibility(SetDMVisibilityRequest) returns (SetDMVisibilityResponse) {
+    option idempotency_level = IDEMPOTENT;
+  }
   // Lists configured external identity providers and identities linked to the
   // authenticated account.
   rpc ListExternalIdentities(ListExternalIdentitiesRequest) returns (ListExternalIdentitiesResponse);

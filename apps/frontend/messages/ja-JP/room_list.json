@@ -27,6 +27,9 @@
     "add_to_group": "{group}に追加",
     "group_settings": "{group}の設定",
     "server_actions": "{server}のアクション",
-    "room_actions": "#{room}のアクション"
+    "room_actions": "#{room}のアクション",
+    "hide_dm": "DMを非表示にする",
+    "restore_dm": "DMを再表示する",
+    "hidden_dms": "非表示のDM"
   }
 }

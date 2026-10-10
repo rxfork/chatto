@@ -21,7 +21,8 @@ describe('createAccountAPI', () => {
       settings: {
         timezone: 'Europe/Berlin',
         timeFormat: TimeFormat.TIME_FORMAT_24_HOUR,
-        shareTimezone: true
+        shareTimezone: true,
+        hiddenDmRoomIds: []
       }
     });
 
@@ -36,7 +37,8 @@ describe('createAccountAPI', () => {
     ).resolves.toEqual({
       timezone: 'Europe/Berlin',
       timeFormat: TimeFormat.TIME_FORMAT_24_HOUR,
-      shareTimezone: true
+      shareTimezone: true,
+      hiddenDmRoomIds: []
     });
 
     expect(receivedRequest(mocks.updateSettings)).toMatchObject({
@@ -44,6 +46,25 @@ describe('createAccountAPI', () => {
       timeFormat: TimeFormat.TIME_FORMAT_24_HOUR,
       shareTimezone: true,
       updateMask: { paths: ['timezone', 'time_format', 'share_timezone'] }
+    });
+  });
+
+  it('sets one DM visibility intent and maps private preferences', async () => {
+    mocks.setDMVisibility.mockReturnValue({
+      settings: { hiddenDmRoomIds: ['dm-one', 'dm-two'] }
+    });
+    const controller = new AbortController();
+    await expect(
+      accountAPI().setDMVisibility('dm-two', true, { signal: controller.signal })
+    ).resolves.toMatchObject({ hiddenDmRoomIds: ['dm-one', 'dm-two'] });
+    expect(receivedRequest(mocks.setDMVisibility)).toMatchObject({
+      roomId: 'dm-two',
+      hidden: true
+    });
+    await accountAPI().setDMVisibility('dm-two', false);
+    expect(receivedRequest(mocks.setDMVisibility, 1)).toMatchObject({
+      roomId: 'dm-two',
+      hidden: false
     });
   });
 
@@ -74,7 +95,8 @@ describe('createAccountAPI', () => {
     await expect(api.updateSettings({ timezone: null })).resolves.toEqual({
       timezone: null,
       timeFormat: TimeFormat.TIME_FORMAT_AUTO,
-      shareTimezone: undefined
+      shareTimezone: undefined,
+      hiddenDmRoomIds: []
     });
 
     expect(receivedRequest(mocks.updateSettings)).toMatchObject({

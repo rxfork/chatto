@@ -691,6 +691,96 @@ export class UpdateSettingsResponse extends Message<UpdateSettingsResponse> {
 }
 
 /**
+ * Hide or restore one DM for the authenticated account on all its clients.
+ *
+ * @generated from message chatto.api.v1.SetDMVisibilityRequest
+ */
+export class SetDMVisibilityRequest extends Message<SetDMVisibilityRequest> {
+  /**
+   * Existing DM in which the authenticated account is a participant.
+   *
+   * @generated from field: string room_id = 1;
+   */
+  roomId = "";
+
+  /**
+   * True hides the conversation; false restores it.
+   *
+   * @generated from field: bool hidden = 2;
+   */
+  hidden = false;
+
+  constructor(data?: PartialMessage<SetDMVisibilityRequest>) {
+    super();
+    proto3.util.initPartial(data, this);
+  }
+
+  static readonly runtime: typeof proto3 = proto3;
+  static readonly typeName = "chatto.api.v1.SetDMVisibilityRequest";
+  static readonly fields: FieldList = proto3.util.newFieldList(() => [
+    { no: 1, name: "room_id", kind: "scalar", T: 9 /* ScalarType.STRING */ },
+    { no: 2, name: "hidden", kind: "scalar", T: 8 /* ScalarType.BOOL */ },
+  ]);
+
+  static fromBinary(bytes: Uint8Array, options?: Partial<BinaryReadOptions>): SetDMVisibilityRequest {
+    return new SetDMVisibilityRequest().fromBinary(bytes, options);
+  }
+
+  static fromJson(jsonValue: JsonValue, options?: Partial<JsonReadOptions>): SetDMVisibilityRequest {
+    return new SetDMVisibilityRequest().fromJson(jsonValue, options);
+  }
+
+  static fromJsonString(jsonString: string, options?: Partial<JsonReadOptions>): SetDMVisibilityRequest {
+    return new SetDMVisibilityRequest().fromJsonString(jsonString, options);
+  }
+
+  static equals(a: SetDMVisibilityRequest | PlainMessage<SetDMVisibilityRequest> | undefined, b: SetDMVisibilityRequest | PlainMessage<SetDMVisibilityRequest> | undefined): boolean {
+    return proto3.util.equals(SetDMVisibilityRequest, a, b);
+  }
+}
+
+/**
+ * Private preferences after applying the visibility choice.
+ *
+ * @generated from message chatto.api.v1.SetDMVisibilityResponse
+ */
+export class SetDMVisibilityResponse extends Message<SetDMVisibilityResponse> {
+  /**
+   * The same settings resource returned by GetViewer and GetSettings.
+   *
+   * @generated from field: chatto.api.v1.UserSettings settings = 1;
+   */
+  settings?: UserSettings;
+
+  constructor(data?: PartialMessage<SetDMVisibilityResponse>) {
+    super();
+    proto3.util.initPartial(data, this);
+  }
+
+  static readonly runtime: typeof proto3 = proto3;
+  static readonly typeName = "chatto.api.v1.SetDMVisibilityResponse";
+  static readonly fields: FieldList = proto3.util.newFieldList(() => [
+    { no: 1, name: "settings", kind: "message", T: UserSettings },
+  ]);
+
+  static fromBinary(bytes: Uint8Array, options?: Partial<BinaryReadOptions>): SetDMVisibilityResponse {
+    return new SetDMVisibilityResponse().fromBinary(bytes, options);
+  }
+
+  static fromJson(jsonValue: JsonValue, options?: Partial<JsonReadOptions>): SetDMVisibilityResponse {
+    return new SetDMVisibilityResponse().fromJson(jsonValue, options);
+  }
+
+  static fromJsonString(jsonString: string, options?: Partial<JsonReadOptions>): SetDMVisibilityResponse {
+    return new SetDMVisibilityResponse().fromJsonString(jsonString, options);
+  }
+
+  static equals(a: SetDMVisibilityResponse | PlainMessage<SetDMVisibilityResponse> | undefined, b: SetDMVisibilityResponse | PlainMessage<SetDMVisibilityResponse> | undefined): boolean {
+    return proto3.util.equals(SetDMVisibilityResponse, a, b);
+  }
+}
+
+/**
  * Request a short-lived confirmation token for deleting the authenticated
  * account.
  *

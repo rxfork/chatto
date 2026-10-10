@@ -27,6 +27,9 @@
     "add_to_group": "Aldoni al {group}",
     "group_settings": "Agordoj por {group}",
     "server_actions": "Agoj por {server}",
-    "room_actions": "Agoj por #{room}"
+    "room_actions": "Agoj por #{room}",
+    "hide_dm": "Kaŝi privatan mesaĝon",
+    "restore_dm": "Restarigi privatan mesaĝon",
+    "hidden_dms": "Kaŝitaj privataj mesaĝoj"
   }
 }

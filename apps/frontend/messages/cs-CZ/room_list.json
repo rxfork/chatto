@@ -27,6 +27,9 @@
     "add_to_group": "Přidat do {group}",
     "group_settings": "Nastavení pro {group}",
     "server_actions": "Akce pro {server}",
-    "room_actions": "Akce pro #{room}"
+    "room_actions": "Akce pro #{room}",
+    "hide_dm": "Skrýt soukromou zprávu",
+    "restore_dm": "Obnovit soukromou zprávu",
+    "hidden_dms": "Skryté soukromé zprávy"
   }
 }

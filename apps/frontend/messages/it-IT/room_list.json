@@ -27,6 +27,9 @@
     "add_to_group": "Aggiungi a {group}",
     "group_settings": "Impostazioni per {group}",
     "server_actions": "Azioni per {server}",
-    "room_actions": "Azioni per #{room}"
+    "room_actions": "Azioni per #{room}",
+    "hide_dm": "Nascondi messaggio diretto",
+    "restore_dm": "Ripristina messaggio diretto",
+    "hidden_dms": "Messaggi diretti nascosti"
   }
 }

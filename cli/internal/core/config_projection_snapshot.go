@@ -31,6 +31,7 @@ func (p *ConfigProjection) Snapshot() ([]byte, error) {
 		user := p.users[userID]
 		row := &projectionv1.UserConfigSnapshot{UserId: userID}
 		row.ShareTimezone = user.shareTimezone
+		row.HiddenDmRoomIds = sortedMapKeys(user.hiddenDMRoomIDs)
 		if user.timezone != nil {
 			value := *user.timezone
 			row.Timezone = &value
@@ -97,6 +98,16 @@ func (p *ConfigProjection) Restore(data []byte) error {
 		if row.TimeFormat != nil {
 			value := row.GetTimeFormat()
 			user.timeFormat = &value
+		}
+		user.hiddenDMRoomIDs = make(map[string]struct{})
+		for _, roomID := range row.GetHiddenDmRoomIds() {
+			if roomID == "" {
+				return fmt.Errorf("config snapshot has empty hidden DM room ID")
+			}
+			if _, duplicate := user.hiddenDMRoomIDs[roomID]; duplicate {
+				return fmt.Errorf("config snapshot repeats hidden DM room ID")
+			}
+			user.hiddenDMRoomIDs[roomID] = struct{}{}
 		}
 		user.shareTimezone = row.GetShareTimezone()
 		user.serverModes = cloneNotificationDeliveryModes(row.GetServerNotificationModes())

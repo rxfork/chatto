@@ -27,6 +27,9 @@
     "add_to_group": "Add to {group}",
     "group_settings": "Settings for {group}",
     "server_actions": "Actions for {server}",
-    "room_actions": "Actions for #{room}"
+    "room_actions": "Actions for #{room}",
+    "hide_dm": "Hide DM",
+    "restore_dm": "Restore DM",
+    "hidden_dms": "Hidden DMs"
   }
 }

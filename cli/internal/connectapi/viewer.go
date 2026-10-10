@@ -363,6 +363,7 @@ func coreUserSettingsToAPI(settings *evtv1.ServerUserPreferences) *apiv1.UserSet
 	response.TimeFormat = coreTimeFormatToAPI(settings.GetTimeFormat())
 	shareTimezone = settings.GetShareTimezone()
 	response.ShareTimezone = &shareTimezone
+	response.HiddenDmRoomIds = append([]string(nil), settings.GetHiddenDmRoomIds()...)
 	return response
 }
 

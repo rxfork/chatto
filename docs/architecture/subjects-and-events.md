@@ -295,6 +295,7 @@ posting effects. No source ID or deduplication record is stored.
 | `evt.config.{subject}.user_timezone_changed` | `UserTimezoneChangedEvent` |
 | `evt.config.{subject}.user_timezone_cleared` | `UserTimezoneClearedEvent` |
 | `evt.config.{subject}.user_timezone_sharing_changed` | `UserTimezoneSharingChangedEvent` |
+| `evt.config.{subject}.user_dm_visibility_changed` | `UserDMVisibilityChangedEvent` |
 | `evt.config.{subject}.user_time_format_changed` | `UserTimeFormatChangedEvent` |
 | `evt.config.{subject}.user_time_format_cleared` | `UserTimeFormatClearedEvent` |
 | `evt.config.{subject}.user_server_notification_level_set` | `UserServerNotificationLevelSetEvent` (historical decode only; ignored by current projections) |

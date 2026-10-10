@@ -12,6 +12,8 @@ export type AccountUserSettings = {
   timeFormat: TimeFormat;
   /** Present when the server supports private time-zone preferences. */
   shareTimezone?: boolean;
+  /** Private server-persisted hidden conversations for this account. */
+  hiddenDmRoomIds?: string[];
 };
 
 export type UpdateSettingsInput = {
@@ -75,6 +77,16 @@ export function createAccountAPI(config: ConnectAPIConfig) {
       return userSettings(response.settings);
     },
 
+    /** Hide or restore one conversation for this account across clients. */
+    async setDMVisibility(
+      roomId: string,
+      hidden: boolean,
+      options: { signal?: AbortSignal } = {}
+    ): Promise<AccountUserSettings> {
+      const response = await client.setDMVisibility({ roomId, hidden }, options);
+      return userSettings(response.settings);
+    },
+
     async requestAccountDeletion(): Promise<string> {
       return (await client.requestAccountDeletion({})).confirmationToken;
     },
@@ -104,6 +116,7 @@ function userSettings(settings: APIUserSettings | undefined): AccountUserSetting
   return {
     timezone: settings?.timezone ?? null,
     timeFormat: timeFormatOrAuto(settings?.timeFormat),
-    shareTimezone: settings?.shareTimezone
+    shareTimezone: settings?.shareTimezone,
+    hiddenDmRoomIds: [...(settings?.hiddenDmRoomIds ?? [])]
   };
 }

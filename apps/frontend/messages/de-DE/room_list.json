@@ -27,6 +27,9 @@
     "add_to_group": "Zu {group} hinzufügen",
     "group_settings": "Einstellungen für {group}",
     "server_actions": "Aktionen für {server}",
-    "room_actions": "Aktionen für #{room}"
+    "room_actions": "Aktionen für #{room}",
+    "hide_dm": "DM ausblenden",
+    "restore_dm": "DM wieder anzeigen",
+    "hidden_dms": "Ausgeblendete DMs"
   }
 }

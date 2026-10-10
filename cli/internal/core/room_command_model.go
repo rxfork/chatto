@@ -367,6 +367,9 @@ func (s *RoomCommandModel) StartDM(ctx context.Context, input RoomStartDMInput) 
 		return nil, false, err
 	}
 	if found {
+		if _, err := s.core.SetDMVisibility(ctx, input.ActorID, room.Id, false); err != nil {
+			return nil, false, err
+		}
 		return room, false, nil
 	}
 	can, err := s.core.CanStartDM(ctx, input.ActorID)

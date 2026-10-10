@@ -4,6 +4,7 @@
  */
 
 import { TimelineSync, type LocalMessageMutation } from './timelineSync.js';
+import { createAccountAPI } from '../api/account.js';
 import { createMessageResourcesAPI } from '../api/messageResources.js';
 import { affectsViewerPermissions } from './permissionEvents.js';
 import { runResetHandlers } from './resetHandlers.js';
@@ -428,6 +429,21 @@ export class ServerStateStore {
     // Mutation and expiry responses are authoritative. Refresh snapshots now,
     // including room-only grants, without waiting for the realtime reconnect.
     this.#emitAuthorityChanged({ lost: viewerAuthorizationLost(previousViewer, response) });
+  }
+
+  /** Whether this account hides the conversation from its normal DM list. */
+  isDMHidden(roomId: string): boolean {
+    return this.currentUser.user?.settings?.hiddenDmRoomIds?.includes(roomId) ?? false;
+  }
+
+  /** Persist one choice, then reconcile the viewer through the guarded read path. */
+  async setDMHidden(roomId: string, hidden: boolean): Promise<void> {
+    const generation = this.#realtimeProjectionGeneration;
+    await this.connection.getAPI(createAccountAPI).setDMVisibility(roomId, hidden);
+    this.requireCurrentRealtimeProjection(generation);
+    this.refreshRealtimeResource('viewer');
+    await this.waitForRealtimeReconciliation();
+    this.requireCurrentRealtimeProjection(generation);
   }
 
   /** Reject work whose resource boundary was superseded by a newer reset. */
