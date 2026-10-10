@@ -423,6 +423,11 @@ exec "$PWD/tools/dev-supervisor.sh" mise run --jobs 5 --output prefix \
   dev-stack-backend ::: dev-stack-runling-bot
 '''
 
+[tasks.dev-review]
+description = "Build and run Chatto for browser review in Codespaces or a dev container"
+depends = ["build-dev-cli"]
+run = 'exec bash "$PWD/tools/dev-review.sh"'
+
 [tasks.dev-frontend]
 description = "Run the Vite frontend development server against a Chatto server"
 depends = ["setup-frontend", "build-api-types", "build-lingua"]
@@ -680,6 +685,11 @@ run = [
 # =============================================================================
 # Testing
 # =============================================================================
+
+[tasks.test-dev-review]
+description = "Check review server startup and browser login with forwarded origins"
+depends = ["build-dev-cli"]
+run = "node tools/dev-review-smoke.mjs"
 
 [tasks.test-cli]
 description = "Run CLI tests"

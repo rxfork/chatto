@@ -217,7 +217,10 @@ export function createPublicChattoClient<T extends ServiceType>(
       fetch: (input, init) =>
         fetch(input, {
           ...init,
-          credentials: 'omit',
+          // Private reverse proxies (including Codespaces) authenticate with
+          // cookies. Keep origin discovery reachable without sending cookies
+          // to remote servers discovered by this client.
+          credentials: 'same-origin',
           redirect: 'error',
           referrerPolicy: 'no-referrer'
         })

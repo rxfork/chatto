@@ -154,13 +154,13 @@ describe('public server discovery', () => {
     });
   });
 
-  it('omits browser credentials, referrers, and redirects from public discovery', async () => {
+  it('limits browser credentials to the page origin and omits referrers and redirects', async () => {
     respondWith(new GetServerResponse({ profile: { name: 'Chatto', version: '0.5.0' } }));
 
     await getPublicServerInfo('https://chat.example.test');
 
     expect(sentRequest().init).toMatchObject({
-      credentials: 'omit',
+      credentials: 'same-origin',
       redirect: 'error',
       referrerPolicy: 'no-referrer'
     });
