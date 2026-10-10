@@ -54,6 +54,9 @@ const (
 	// MyAccountServiceUpdateSettingsProcedure is the fully-qualified name of the MyAccountService's
 	// UpdateSettings RPC.
 	MyAccountServiceUpdateSettingsProcedure = "/chatto.api.v1.MyAccountService/UpdateSettings"
+	// MyAccountServiceSetDMVisibilityProcedure is the fully-qualified name of the MyAccountService's
+	// SetDMVisibility RPC.
+	MyAccountServiceSetDMVisibilityProcedure = "/chatto.api.v1.MyAccountService/SetDMVisibility"
 	// MyAccountServiceListExternalIdentitiesProcedure is the fully-qualified name of the
 	// MyAccountService's ListExternalIdentities RPC.
 	MyAccountServiceListExternalIdentitiesProcedure = "/chatto.api.v1.MyAccountService/ListExternalIdentities"
@@ -121,6 +124,12 @@ type MyAccountServiceClient interface {
 	GetSettings(context.Context, *connect.Request[v1.GetSettingsRequest]) (*connect.Response[v1.GetSettingsResponse], error)
 	// Updates the authenticated user's display preferences.
 	UpdateSettings(context.Context, *connect.Request[v1.UpdateSettingsRequest]) (*connect.Response[v1.UpdateSettingsResponse], error)
+	// Sets one private DM visibility choice. Requires DM membership, including
+	// conversations with deleted participants. Does not change membership,
+	// history, or notifications. Other accounts cannot read this choice.
+	// StartDM restores an existing conversation for the caller. Clients receive
+	// ViewerPreferencesChanged and refetch GetViewer or GetSettings to synchronize.
+	SetDMVisibility(context.Context, *connect.Request[v1.SetDMVisibilityRequest]) (*connect.Response[v1.SetDMVisibilityResponse], error)
 	// Lists configured external identity providers and identities linked to the
 	// authenticated account.
 	ListExternalIdentities(context.Context, *connect.Request[v1.ListExternalIdentitiesRequest]) (*connect.Response[v1.ListExternalIdentitiesResponse], error)
@@ -212,6 +221,13 @@ func NewMyAccountServiceClient(httpClient connect.HTTPClient, baseURL string, op
 			connect.WithSchema(myAccountServiceMethods.ByName("UpdateSettings")),
 			connect.WithClientOptions(opts...),
 		),
+		setDMVisibility: connect.NewClient[v1.SetDMVisibilityRequest, v1.SetDMVisibilityResponse](
+			httpClient,
+			baseURL+MyAccountServiceSetDMVisibilityProcedure,
+			connect.WithSchema(myAccountServiceMethods.ByName("SetDMVisibility")),
+			connect.WithIdempotency(connect.IdempotencyIdempotent),
+			connect.WithClientOptions(opts...),
+		),
 		listExternalIdentities: connect.NewClient[v1.ListExternalIdentitiesRequest, v1.ListExternalIdentitiesResponse](
 			httpClient,
 			baseURL+MyAccountServiceListExternalIdentitiesProcedure,
@@ -291,6 +307,7 @@ type myAccountServiceClient struct {
 	setPrimaryEmail            *connect.Client[v1.SetPrimaryEmailRequest, v1.SetPrimaryEmailResponse]
 	getSettings                *connect.Client[v1.GetSettingsRequest, v1.GetSettingsResponse]
 	updateSettings             *connect.Client[v1.UpdateSettingsRequest, v1.UpdateSettingsResponse]
+	setDMVisibility            *connect.Client[v1.SetDMVisibilityRequest, v1.SetDMVisibilityResponse]
 	listExternalIdentities     *connect.Client[v1.ListExternalIdentitiesRequest, v1.ListExternalIdentitiesResponse]
 	startExternalIdentityLink  *connect.Client[v1.StartExternalIdentityLinkRequest, v1.StartExternalIdentityLinkResponse]
 	disconnectExternalIdentity *connect.Client[v1.DisconnectExternalIdentityRequest, v1.DisconnectExternalIdentityResponse]
@@ -337,6 +354,11 @@ func (c *myAccountServiceClient) GetSettings(ctx context.Context, req *connect.R
 // UpdateSettings calls chatto.api.v1.MyAccountService.UpdateSettings.
 func (c *myAccountServiceClient) UpdateSettings(ctx context.Context, req *connect.Request[v1.UpdateSettingsRequest]) (*connect.Response[v1.UpdateSettingsResponse], error) {
 	return c.updateSettings.CallUnary(ctx, req)
+}
+
+// SetDMVisibility calls chatto.api.v1.MyAccountService.SetDMVisibility.
+func (c *myAccountServiceClient) SetDMVisibility(ctx context.Context, req *connect.Request[v1.SetDMVisibilityRequest]) (*connect.Response[v1.SetDMVisibilityResponse], error) {
+	return c.setDMVisibility.CallUnary(ctx, req)
 }
 
 // ListExternalIdentities calls chatto.api.v1.MyAccountService.ListExternalIdentities.
@@ -426,6 +448,12 @@ type MyAccountServiceHandler interface {
 	GetSettings(context.Context, *connect.Request[v1.GetSettingsRequest]) (*connect.Response[v1.GetSettingsResponse], error)
 	// Updates the authenticated user's display preferences.
 	UpdateSettings(context.Context, *connect.Request[v1.UpdateSettingsRequest]) (*connect.Response[v1.UpdateSettingsResponse], error)
+	// Sets one private DM visibility choice. Requires DM membership, including
+	// conversations with deleted participants. Does not change membership,
+	// history, or notifications. Other accounts cannot read this choice.
+	// StartDM restores an existing conversation for the caller. Clients receive
+	// ViewerPreferencesChanged and refetch GetViewer or GetSettings to synchronize.
+	SetDMVisibility(context.Context, *connect.Request[v1.SetDMVisibilityRequest]) (*connect.Response[v1.SetDMVisibilityResponse], error)
 	// Lists configured external identity providers and identities linked to the
 	// authenticated account.
 	ListExternalIdentities(context.Context, *connect.Request[v1.ListExternalIdentitiesRequest]) (*connect.Response[v1.ListExternalIdentitiesResponse], error)
@@ -513,6 +541,13 @@ func NewMyAccountServiceHandler(svc MyAccountServiceHandler, opts ...connect.Han
 		connect.WithSchema(myAccountServiceMethods.ByName("UpdateSettings")),
 		connect.WithHandlerOptions(opts...),
 	)
+	myAccountServiceSetDMVisibilityHandler := connect.NewUnaryHandler(
+		MyAccountServiceSetDMVisibilityProcedure,
+		svc.SetDMVisibility,
+		connect.WithSchema(myAccountServiceMethods.ByName("SetDMVisibility")),
+		connect.WithIdempotency(connect.IdempotencyIdempotent),
+		connect.WithHandlerOptions(opts...),
+	)
 	myAccountServiceListExternalIdentitiesHandler := connect.NewUnaryHandler(
 		MyAccountServiceListExternalIdentitiesProcedure,
 		svc.ListExternalIdentities,
@@ -596,6 +631,8 @@ func NewMyAccountServiceHandler(svc MyAccountServiceHandler, opts ...connect.Han
 			myAccountServiceGetSettingsHandler.ServeHTTP(w, r)
 		case MyAccountServiceUpdateSettingsProcedure:
 			myAccountServiceUpdateSettingsHandler.ServeHTTP(w, r)
+		case MyAccountServiceSetDMVisibilityProcedure:
+			myAccountServiceSetDMVisibilityHandler.ServeHTTP(w, r)
 		case MyAccountServiceListExternalIdentitiesProcedure:
 			myAccountServiceListExternalIdentitiesHandler.ServeHTTP(w, r)
 		case MyAccountServiceStartExternalIdentityLinkProcedure:
@@ -653,6 +690,10 @@ func (UnimplementedMyAccountServiceHandler) GetSettings(context.Context, *connec
 
 func (UnimplementedMyAccountServiceHandler) UpdateSettings(context.Context, *connect.Request[v1.UpdateSettingsRequest]) (*connect.Response[v1.UpdateSettingsResponse], error) {
 	return nil, connect.NewError(connect.CodeUnimplemented, errors.New("chatto.api.v1.MyAccountService.UpdateSettings is not implemented"))
+}
+
+func (UnimplementedMyAccountServiceHandler) SetDMVisibility(context.Context, *connect.Request[v1.SetDMVisibilityRequest]) (*connect.Response[v1.SetDMVisibilityResponse], error) {
+	return nil, connect.NewError(connect.CodeUnimplemented, errors.New("chatto.api.v1.MyAccountService.SetDMVisibility is not implemented"))
 }
 
 func (UnimplementedMyAccountServiceHandler) ListExternalIdentities(context.Context, *connect.Request[v1.ListExternalIdentitiesRequest]) (*connect.Response[v1.ListExternalIdentitiesResponse], error) {

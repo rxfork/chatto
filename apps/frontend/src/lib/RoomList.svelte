@@ -104,7 +104,6 @@ rooms are organized into collapsible sections. Otherwise, rooms display alphabet
   const groupDragEnabled = $derived(sidebarDragEnabled && canReorderGroups);
 
   const navigation = $derived(serverUi(stores).navigation);
-  const hiddenDMs = $derived(serverUi(stores).hiddenDMs);
   const roomUnreadStore = $derived(serverUi(stores).roomUnread);
 
   let activeRoomId = $derived(page.params.roomId);
@@ -548,20 +547,24 @@ rooms are organized into collapsible sections. Otherwise, rooms display alphabet
   let channels = $derived(navigation.rooms.filter((r) => r.type === RoomKind.CHANNEL));
   let dmRooms = $derived(
     navigation.rooms.filter(
-      (r) => r.type === RoomKind.DM && isNavigationVisibleRoom(r) && !hiddenDMs.isHidden(r.id)
+      (r) => r.type === RoomKind.DM && isNavigationVisibleRoom(r) && !stores.isDMHidden(r.id)
     )
   );
 
   const hiddenDMRooms = $derived(
-    navigation.rooms.filter((r) => r.type === RoomKind.DM && hiddenDMs.isHidden(r.id))
+    navigation.rooms.filter((r) => r.type === RoomKind.DM && stores.isDMHidden(r.id))
   );
 
-  /** Hide the row and leave an active conversation so navigation stays consistent. */
-  async function hideDM(room: RoomsListItem): Promise<void> {
+  /** Persist the choice before leaving an active conversation. */
+  async function setDMHidden(room: RoomsListItem, hidden: boolean): Promise<void> {
     roomContextMenu = null;
-    hiddenDMs.setHidden(room.id, true);
-    if (activeRoomId === room.id) {
-      await goto(resolve('/chat/[serverId]/overview', { serverId: serverSegment }));
+    try {
+      await stores.setDMHidden(room.id, hidden);
+      if (hidden && activeRoomId === room.id) {
+        await goto(resolve('/chat/[serverId]/overview', { serverId: serverSegment }));
+      }
+    } catch (error) {
+      toast.error(errorMessage(error));
     }
   }
 
@@ -1332,16 +1335,9 @@ rooms are organized into collapsible sections. Otherwise, rooms display alphabet
       <MenuSection>
         <MenuItem
           icon="icon-[uil--eye-slash]"
-          onclick={() => {
-            if (hiddenDMs.isHidden(contextRoom.id)) {
-              hiddenDMs.setHidden(contextRoom.id, false);
-              roomContextMenu = null;
-            } else {
-              void hideDM(contextRoom);
-            }
-          }}
+          onclick={() => void setDMHidden(contextRoom, !stores.isDMHidden(contextRoom.id))}
         >
-          {hiddenDMs.isHidden(contextRoom.id) ? m('room_list.restore_dm') : m('room_list.hide_dm')}
+          {stores.isDMHidden(contextRoom.id) ? m('room_list.restore_dm') : m('room_list.hide_dm')}
         </MenuItem>
       </MenuSection>
     {/if}

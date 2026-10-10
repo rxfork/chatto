@@ -323,6 +323,7 @@ message UserConfigSnapshot {
   repeated RoomNotificationModesSnapshot room_notification_modes = 5;
   repeated RoomGroupNotificationModesSnapshot room_group_notification_modes = 6;
   bool share_timezone = 7;
+  repeated string hidden_dm_room_ids = 8;
 }
 
 message RoomNotificationModesSnapshot {

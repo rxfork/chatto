@@ -3,6 +3,7 @@ package core
 import (
 	"context"
 	"fmt"
+	"slices"
 	"time"
 
 	"hmans.de/chatto/internal/evtstream"
@@ -47,7 +48,7 @@ func (cm *ConfigModel) userSettings(userID string) (*evtv1.ServerUserPreferences
 	cm.config.Projection().RLock()
 	defer cm.config.Projection().RUnlock()
 	u := cm.config.Projection().users[userID]
-	if u == nil || (u.timezone == nil && u.timeFormat == nil && !u.shareTimezone) {
+	if u == nil || (u.timezone == nil && u.timeFormat == nil && !u.shareTimezone && len(u.hiddenDMRoomIDs) == 0) {
 		return nil, false
 	}
 	prefs := &evtv1.ServerUserPreferences{}
@@ -59,6 +60,7 @@ func (cm *ConfigModel) userSettings(userID string) (*evtv1.ServerUserPreferences
 		prefs.TimeFormat = *u.timeFormat
 	}
 	prefs.ShareTimezone = u.shareTimezone
+	prefs.HiddenDmRoomIds = sortedMapKeys(u.hiddenDMRoomIDs)
 	return prefs, true
 }
 
@@ -160,6 +162,60 @@ func (c *ChattoCore) deleteUserSettings(ctx context.Context, userID string) erro
 				UserTimezoneSharingChanged: &evtv1.UserTimezoneSharingChangedEvent{UserId: userID},
 			}}))
 		}
+		for _, roomID := range current.GetHiddenDmRoomIds() {
+			evs = append(evs, newEvent(SystemActorID, &evtv1.Event{Event: &evtv1.Event_UserDmVisibilityChanged{
+				UserDmVisibilityChanged: &evtv1.UserDMVisibilityChangedEvent{UserId: userID, RoomId: roomID},
+			}}))
+		}
 		return evs, nil
 	})
+}
+
+// SetDMVisibility saves one authenticated participant's private sidebar choice.
+// The intent is replayed against current state after an OCC conflict, so changing
+// different conversations concurrently never overwrites another client's choice.
+func (c *ChattoCore) SetDMVisibility(ctx context.Context, userID, roomID string, hidden bool) (*evtv1.ServerUserPreferences, error) {
+	if err := requireAuthenticatedActor(userID); err != nil {
+		return nil, err
+	}
+	if roomID == "" {
+		return nil, invalidArgument("room ID is required")
+	}
+	if c.configModel == nil {
+		return nil, fmt.Errorf("config model not configured")
+	}
+	if err := c.configModel.updateSubject(ctx, userID, func(_ evtstream.Aggregate, _ string, _ uint64) ([]*evtv1.Event, error) {
+		_, _, exists := c.userModel.isBotAndOwner(userID)
+		if !exists {
+			return nil, ErrNotFound
+		}
+		room, err := c.FindRoomByID(ctx, roomID)
+		if err != nil {
+			return nil, err
+		}
+		if KindOfRoom(room) != KindDM {
+			return nil, invalidArgument("room must be a DM")
+		}
+		member, err := c.RoomMembershipExists(ctx, KindDM, userID, roomID)
+		if err != nil {
+			return nil, err
+		}
+		if !member {
+			return nil, ErrNotRoomMember
+		}
+		current, _ := c.configModel.userSettings(userID)
+		if slices.Contains(current.GetHiddenDmRoomIds(), roomID) == hidden {
+			return nil, nil
+		}
+		return []*evtv1.Event{newEvent(userID, &evtv1.Event{Event: &evtv1.Event_UserDmVisibilityChanged{
+			UserDmVisibilityChanged: &evtv1.UserDMVisibilityChangedEvent{UserId: userID, RoomId: roomID, Hidden: hidden},
+		}})}, nil
+	}); err != nil {
+		return nil, err
+	}
+	settings, err := c.GetUserSettings(ctx, userID)
+	if settings == nil && err == nil {
+		settings = &evtv1.ServerUserPreferences{}
+	}
+	return settings, err
 }

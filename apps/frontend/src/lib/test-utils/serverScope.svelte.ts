@@ -1,4 +1,3 @@
-import { HiddenDMs } from '$lib/state/server/hiddenDMs';
 import type { ConnectAPIConfig } from '@chatto/client/api/connect';
 import { fakeServer, type FakeServerRoutes } from '@chatto/client/testing/fakeServer';
 import type { CurrentUser } from '@chatto/client/api/viewer';
@@ -130,15 +129,7 @@ function buildScope(t: TestServerScope, options: TestServerScopeOptions): Server
     options.connection
   ) as unknown as ServerConnection;
   const store = buildStore(t, connection, options.serverInfo, options.store);
-  setServerUiForTests(
-    store,
-    withMembers(
-      withMembers(Object.create(store), {
-        hiddenDMs: new HiddenDMs(t.serverId, () => store.accountId)
-      }),
-      options.ui
-    )
-  );
+  setServerUiForTests(store, withMembers(Object.create(store), options.ui));
   return {
     get serverId() {
       return t.serverId;
@@ -172,6 +163,8 @@ function buildStore(
       onPermissionsChanged: subscribe,
       onDispose: subscribe,
       currentUser: t.currentUser,
+      isDMHidden: () => false,
+      setDMHidden: async () => {},
       get accountId() {
         return t.currentUser.user?.id ?? null;
       },

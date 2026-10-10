@@ -113,6 +113,11 @@ override a saved choice.
 
 `MyAccountService.GetSettings` exposes caller-owned display preferences using
 the same settings resource as updates and the combined viewer response.
+`MyAccountService.SetDMVisibility` sets one private conversation visibility
+choice for the caller. The caller must be a DM member. The server saves the
+choice across clients. `RoomService.StartDM` restores an existing conversation
+for the caller. `ViewerPreferencesChanged` tells that account's clients to read
+its settings again. Other accounts do not receive the preference event.
 When `email.disabled` is true, public discovery sets
 `ServerLogin.email_disabled`. Direct registration completion accepts a username
 and password without a token and uses the existing atomic account/invitation

@@ -266,6 +266,43 @@ Result of updating display preferences.
 | `settings` | [`UserSettings`](/reference/connectrpc-api/types/#chatto-api-v1-UserSettings) | Stored settings after merging the request. |
 
 
+<a id="chatto-api-v1-MyAccountService-SetDMVisibility"></a>
+
+### SetDMVisibility
+
+Sets one private DM visibility choice. Requires DM membership, including
+conversations with deleted participants. Does not change membership,
+history, or notifications. Other accounts cannot read this choice.
+StartDM restores an existing conversation for the caller. Clients receive
+ViewerPreferencesChanged and refetch GetViewer or GetSettings to synchronize.
+
+```http
+POST /api/connect/chatto.api.v1.MyAccountService/SetDMVisibility
+```
+
+<a id="chatto-api-v1-SetDMVisibilityRequest"></a>
+
+#### Input: SetDMVisibilityRequest
+
+Hide or restore one DM for the authenticated account on all its clients.
+
+| Field | Type | Description |
+| --- | --- | --- |
+| `room_id` | `string` | Existing DM in which the authenticated account is a participant. |
+| `hidden` | `bool` | True hides the conversation; false restores it. |
+
+
+<a id="chatto-api-v1-SetDMVisibilityResponse"></a>
+
+#### Result: SetDMVisibilityResponse
+
+Private preferences after applying the visibility choice.
+
+| Field | Type | Description |
+| --- | --- | --- |
+| `settings` | [`UserSettings`](/reference/connectrpc-api/types/#chatto-api-v1-UserSettings) | The same settings resource returned by GetViewer and GetSettings. |
+
+
 <a id="chatto-api-v1-MyAccountService-ListExternalIdentities"></a>
 
 ### ListExternalIdentities

@@ -30,6 +30,11 @@ message UserSettings {
   // New servers always set this field. Its absence means the server does not
   // support private time zones and may publish any stored time zone.
   optional bool share_timezone = 3;
+
+  // Private DM room IDs hidden from this account's normal conversation list.
+  // Saved on this server and shared across clients. Membership, history, and
+  // notification preferences are unchanged. New messages do not restore a DM.
+  repeated string hidden_dm_room_ids = 4;
 }
 
 // Current authenticated user's public profile plus self-only settings.

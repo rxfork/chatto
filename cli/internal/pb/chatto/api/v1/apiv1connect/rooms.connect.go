@@ -130,7 +130,8 @@ type RoomServiceClient interface {
 	// Already-joined and non-joinable rooms are skipped.
 	JoinRoomGroup(context.Context, *connect.Request[v1.JoinRoomGroupRequest]) (*connect.Response[v1.JoinRoomGroupResponse], error)
 	// Starts a direct-message room for the current human user and the requested
-	// participant set, or fetches its existing DM. message.post is required
+	// participant set, or restores its existing DM to the caller's conversation
+	// list across clients. message.post is required
 	// only when the DM must be created. A valid request from a bot receives
 	// PERMISSION_DENIED and cannot use this RPC to fetch an existing DM.
 	StartDM(context.Context, *connect.Request[v1.StartDMRequest]) (*connect.Response[v1.StartDMResponse], error)
@@ -572,7 +573,8 @@ type RoomServiceHandler interface {
 	// Already-joined and non-joinable rooms are skipped.
 	JoinRoomGroup(context.Context, *connect.Request[v1.JoinRoomGroupRequest]) (*connect.Response[v1.JoinRoomGroupResponse], error)
 	// Starts a direct-message room for the current human user and the requested
-	// participant set, or fetches its existing DM. message.post is required
+	// participant set, or restores its existing DM to the caller's conversation
+	// list across clients. message.post is required
 	// only when the DM must be created. A valid request from a bot receives
 	// PERMISSION_DENIED and cannot use this RPC to fetch an existing DM.
 	StartDM(context.Context, *connect.Request[v1.StartDMRequest]) (*connect.Response[v1.StartDMResponse], error)

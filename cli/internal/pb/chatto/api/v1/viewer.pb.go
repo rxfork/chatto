@@ -92,8 +92,12 @@ type UserSettings struct {
 	// New servers always set this field. Its absence means the server does not
 	// support private time zones and may publish any stored time zone.
 	ShareTimezone *bool `protobuf:"varint,3,opt,name=share_timezone,json=shareTimezone,proto3,oneof" json:"share_timezone,omitempty"`
-	unknownFields protoimpl.UnknownFields
-	sizeCache     protoimpl.SizeCache
+	// Private DM room IDs hidden from this account's normal conversation list.
+	// Saved on this server and shared across clients. Membership, history, and
+	// notification preferences are unchanged. New messages do not restore a DM.
+	HiddenDmRoomIds []string `protobuf:"bytes,4,rep,name=hidden_dm_room_ids,json=hiddenDmRoomIds,proto3" json:"hidden_dm_room_ids,omitempty"`
+	unknownFields   protoimpl.UnknownFields
+	sizeCache       protoimpl.SizeCache
 }
 
 func (x *UserSettings) Reset() {
@@ -145,6 +149,13 @@ func (x *UserSettings) GetShareTimezone() bool {
 		return *x.ShareTimezone
 	}
 	return false
+}
+
+func (x *UserSettings) GetHiddenDmRoomIds() []string {
+	if x != nil {
+		return x.HiddenDmRoomIds
+	}
+	return nil
 }
 
 // Current authenticated user's public profile plus self-only settings.
@@ -775,12 +786,13 @@ var File_chatto_api_v1_viewer_proto protoreflect.FileDescriptor
 
 const file_chatto_api_v1_viewer_proto_rawDesc = "" +
 	"\n" +
-	"\x1achatto/api/v1/viewer.proto\x12\rchatto.api.v1\x1a\x1fchatto/api/v1/permissions.proto\x1a\x19chatto/api/v1/users.proto\x1a\x1fgoogle/protobuf/timestamp.proto\"\xb7\x01\n" +
+	"\x1achatto/api/v1/viewer.proto\x12\rchatto.api.v1\x1a\x1fchatto/api/v1/permissions.proto\x1a\x19chatto/api/v1/users.proto\x1a\x1fgoogle/protobuf/timestamp.proto\"\xe4\x01\n" +
 	"\fUserSettings\x12\x1f\n" +
 	"\btimezone\x18\x01 \x01(\tH\x00R\btimezone\x88\x01\x01\x12:\n" +
 	"\vtime_format\x18\x02 \x01(\x0e2\x19.chatto.api.v1.TimeFormatR\n" +
 	"timeFormat\x12*\n" +
-	"\x0eshare_timezone\x18\x03 \x01(\bH\x01R\rshareTimezone\x88\x01\x01B\v\n" +
+	"\x0eshare_timezone\x18\x03 \x01(\bH\x01R\rshareTimezone\x88\x01\x01\x12+\n" +
+	"\x12hidden_dm_room_ids\x18\x04 \x03(\tR\x0fhiddenDmRoomIdsB\v\n" +
 	"\t_timezoneB\x11\n" +
 	"\x0f_share_timezone\"\x93\x03\n" +
 	"\n" +

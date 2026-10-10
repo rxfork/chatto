@@ -306,3 +306,15 @@ func apiTimeFormatToCore(format apiv1.TimeFormat) evtv1.TimeFormat {
 		return evtv1.TimeFormat_TIME_FORMAT_UNSPECIFIED
 	}
 }
+
+func (s *accountService) SetDMVisibility(ctx context.Context, req *connect.Request[apiv1.SetDMVisibilityRequest]) (*connect.Response[apiv1.SetDMVisibilityResponse], error) {
+	caller, err := requireCaller(ctx)
+	if err != nil {
+		return nil, err
+	}
+	settings, err := s.api.core.SetDMVisibility(ctx, caller.UserID, req.Msg.GetRoomId(), req.Msg.GetHidden())
+	if err != nil {
+		return nil, err
+	}
+	return connect.NewResponse(&apiv1.SetDMVisibilityResponse{Settings: coreUserSettingsToAPI(settings)}), nil
+}

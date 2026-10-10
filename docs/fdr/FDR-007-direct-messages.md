@@ -27,8 +27,8 @@ its own DM scope. Chatto does not have a cross-server DM inbox.
   A hidden DM moves to the collapsed **Hidden DMs** section. Opening the
   conversation, including through **Send message**, restores its normal row.
   **Restore DM** in the hidden row menu also restores it. This works for DMs
-  with deleted participants. The choice is saved on the device for each server
-  and account. It does not delete messages, change membership, or mute
+  with deleted participants. The server saves the private choice for each
+  account and sends updates to its clients. It does not delete messages, change membership, or mute
   notifications. New messages do not restore a hidden conversation.
 - DM rooms appear in the per-server room sidebar with their participants' names and avatars rather than a room name.
 - The sidebar, room header, My Threads, and Quick Switcher show a self-DM

@@ -536,7 +536,8 @@ func isDeliverableLiveEVTUserConfigEventType(eventType string) bool {
 		evtstream.EventUserTimezoneCleared,
 		evtstream.EventUserTimeFormatChanged,
 		evtstream.EventUserTimeFormatCleared,
-		evtstream.EventUserTimezoneSharingChanged:
+		evtstream.EventUserTimezoneSharingChanged,
+		evtstream.EventUserDMVisibilityChanged:
 		return true
 	default:
 		return false
@@ -558,6 +559,8 @@ func userIDOfUserConfigEvent(event *evtv1.Event) string {
 		return payload.UserTimeFormatCleared.GetUserId()
 	case *evtv1.Event_UserTimezoneSharingChanged:
 		return payload.UserTimezoneSharingChanged.GetUserId()
+	case *evtv1.Event_UserDmVisibilityChanged:
+		return payload.UserDmVisibilityChanged.GetUserId()
 	default:
 		return ""
 	}

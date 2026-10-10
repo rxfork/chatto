@@ -247,6 +247,16 @@ func TestPublicRealtimeEventProjectsViewerSpecificSemantics(t *testing.T) {
 		t.Fatalf("other preference projection = %+v, %v; want omission", projected, err)
 	}
 
+	visibility := &evtv1.Event{Id: "EV", Event: &evtv1.Event_UserDmVisibilityChanged{
+		UserDmVisibilityChanged: &evtv1.UserDMVisibilityChangedEvent{UserId: owner.GetId(), RoomId: "private-room", Hidden: true},
+	}}
+	if projected, err := env.httpServer.projectViewerRealtimeEvent(env.ctx, owner.GetId(), visibility); err != nil || projected.GetViewerPreferencesChanged() == nil {
+		t.Fatalf("owner DM visibility projection = %+v, %v; want private viewer hint", projected, err)
+	}
+	if projected, err := env.httpServer.projectViewerRealtimeEvent(env.ctx, other.GetId(), visibility); err != nil || projected != nil {
+		t.Fatalf("other DM visibility projection = %+v, %v; want omission", projected, err)
+	}
+
 	sharing := &evtv1.Event{Id: "E2", Event: &evtv1.Event_UserTimezoneSharingChanged{
 		UserTimezoneSharingChanged: &evtv1.UserTimezoneSharingChangedEvent{UserId: owner.GetId()},
 	}}

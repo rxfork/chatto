@@ -147,8 +147,12 @@ type ServerUserPreferences struct {
 	// Whether the stored time zone may appear on the user's public profile.
 	// Historical preferences without this field remain private.
 	ShareTimezone bool `protobuf:"varint,3,opt,name=share_timezone,json=shareTimezone,proto3" json:"share_timezone,omitempty"`
-	unknownFields protoimpl.UnknownFields
-	sizeCache     protoimpl.SizeCache
+	// Private DM room IDs hidden from this account's normal conversation list.
+	// Saved on this server and shared across clients. Membership, history, and
+	// notification preferences are unchanged. New messages do not restore a DM.
+	HiddenDmRoomIds []string `protobuf:"bytes,4,rep,name=hidden_dm_room_ids,json=hiddenDmRoomIds,proto3" json:"hidden_dm_room_ids,omitempty"`
+	unknownFields   protoimpl.UnknownFields
+	sizeCache       protoimpl.SizeCache
 }
 
 func (x *ServerUserPreferences) Reset() {
@@ -200,6 +204,13 @@ func (x *ServerUserPreferences) GetShareTimezone() bool {
 		return x.ShareTimezone
 	}
 	return false
+}
+
+func (x *ServerUserPreferences) GetHiddenDmRoomIds() []string {
+	if x != nil {
+		return x.HiddenDmRoomIds
+	}
+	return nil
 }
 
 // UserPreferences stores per-user preferences scoped to the server.
@@ -300,12 +311,13 @@ var File_chatto_core_evt_v1_user_preferences_proto protoreflect.FileDescriptor
 
 const file_chatto_core_evt_v1_user_preferences_proto_rawDesc = "" +
 	"\n" +
-	")chatto/core/evt/v1/user_preferences.proto\x12\x12chatto.core.evt.v1\"\xad\x01\n" +
+	")chatto/core/evt/v1/user_preferences.proto\x12\x12chatto.core.evt.v1\"\xda\x01\n" +
 	"\x15ServerUserPreferences\x12\x1f\n" +
 	"\btimezone\x18\x01 \x01(\tH\x00R\btimezone\x88\x01\x01\x12?\n" +
 	"\vtime_format\x18\x02 \x01(\x0e2\x1e.chatto.core.evt.v1.TimeFormatR\n" +
 	"timeFormat\x12%\n" +
-	"\x0eshare_timezone\x18\x03 \x01(\bR\rshareTimezoneB\v\n" +
+	"\x0eshare_timezone\x18\x03 \x01(\bR\rshareTimezone\x12+\n" +
+	"\x12hidden_dm_room_ids\x18\x04 \x03(\tR\x0fhiddenDmRoomIdsB\v\n" +
 	"\t_timezone\"g\n" +
 	"\x0fUserPreferences\x12T\n" +
 	"\x12notification_level\x18\x01 \x01(\x0e2%.chatto.core.evt.v1.NotificationLevelR\x11notificationLevel\"k\n" +

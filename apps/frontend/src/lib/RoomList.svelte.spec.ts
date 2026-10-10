@@ -1,5 +1,4 @@
 import { resetRoomGroupCollapseForTests } from '$lib/components/chat/roomGroupCollapse';
-import { HiddenDMs } from '$lib/state/server/hiddenDMs';
 import { ServerProjectionStore } from '@chatto/client/server/projection';
 import { NavigationStore } from '$lib/state/server/navigation';
 import { RoomListView } from '@chatto/client/server/rooms';
@@ -10,7 +9,7 @@ import { NotificationAttentionLevel } from '@chatto/client/api/notifications';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 import { render } from 'vitest-browser-svelte';
 import { userEvent } from 'vitest/browser';
-import { SvelteMap } from 'svelte/reactivity';
+import { SvelteMap, SvelteSet } from 'svelte/reactivity';
 import { tick } from 'svelte';
 import { q } from '$lib/test-utils';
 import { deletedDirectMessageParticipant } from '@chatto/client/timeline/users';
@@ -53,7 +52,12 @@ const { mocks } = vi.hoisted(() => ({
       requestRoomSidebarPanel: vi.fn()
     },
     store: {
-      hiddenDMs: null as unknown as HiddenDMs,
+      hiddenDMIds: null as unknown as SvelteSet<string>,
+      isDMHidden: (roomId: string): boolean => mocks.store.hiddenDMIds.has(roomId),
+      setDMHidden: vi.fn(async (roomId: string, hidden: boolean) => {
+        if (hidden) mocks.store.hiddenDMIds.add(roomId);
+        else mocks.store.hiddenDMIds.delete(roomId);
+      }),
       currentUser: { user: { id: 'me' } },
       notifications: {
         hasDMRoomNotification: vi.fn().mockReturnValue(false),
@@ -307,7 +311,7 @@ function setRoomUnread(roomId: string, hasUnread: boolean) {
 }
 
 beforeEach(() => {
-  mocks.store.hiddenDMs = new HiddenDMs('origin', () => 'me');
+  mocks.store.hiddenDMIds = new SvelteSet<string>();
   toast.clear();
   localStorage.clear();
   resetRoomGroupCollapseForTests();
@@ -458,6 +462,36 @@ describe('RoomList', () => {
     expect(row.querySelector('[role="img"][aria-label="[deleted user]"]')).not.toBeNull();
   });
 
+  it('keeps a DM visible and reports a failed hide request', async () => {
+    mocks.store.navigation.rooms = [
+      {
+        id: 'dm-failed',
+        name: '',
+        type: RoomKind.DM,
+        viewerIsMember: true,
+        hasMessageHistory: true,
+        members: [user('me', 'me', 'My name'), user('partner', 'partner', 'Partner')]
+      }
+    ] as never;
+    mocks.activeRoomId = 'dm-failed';
+    mocks.store.setDMHidden.mockRejectedValueOnce(new Error('Server unavailable'));
+    const { container } = render(RoomList);
+    const row = q(container, '[href="/chat/-/dm-failed"]')!;
+    row.dispatchEvent(new MouseEvent('contextmenu', { bubbles: true, cancelable: true }));
+    const action = () =>
+      Array.from(document.querySelectorAll('button')).find(
+        (button) => button.textContent?.trim() === 'Hide DM'
+      );
+    await vi.waitFor(() => expect(action()).toBeDefined());
+    action()!.click();
+    await vi.waitFor(() =>
+      expect(getToasts().some((item) => item.message === 'Server unavailable')).toBe(true)
+    );
+    expect(mocks.store.isDMHidden('dm-failed')).toBe(false);
+    expect(mocks.goto).not.toHaveBeenCalled();
+    await expect.element(row).toBeInTheDocument();
+  });
+
   it.each([false, true])(
     'hides and restores a DM, including deleted participants (%s)',
     async (deleted) => {
@@ -490,7 +524,7 @@ describe('RoomList', () => {
         expect(container.querySelector('[href="/chat/-/dm-hidden"]')).toBeNull()
       );
       expect(mocks.goto).toHaveBeenCalledWith('/chat/-/overview');
-      expect(mocks.store.hiddenDMs.isHidden('dm-hidden')).toBe(true);
+      expect(mocks.store.isDMHidden('dm-hidden')).toBe(true);
       const disclosure = Array.from(
         container.querySelectorAll<HTMLButtonElement>('button[aria-expanded]')
       ).find((button) => button.textContent?.includes('Hidden DMs'))!;
@@ -508,7 +542,7 @@ describe('RoomList', () => {
         );
       await vi.waitFor(() => expect(restore()).toBeDefined());
       restore()!.click();
-      await vi.waitFor(() => expect(mocks.store.hiddenDMs.isHidden('dm-hidden')).toBe(false));
+      await vi.waitFor(() => expect(mocks.store.isDMHidden('dm-hidden')).toBe(false));
       await expect.element(q(container, '[href="/chat/-/dm-hidden"]')).toBeInTheDocument();
       expect(container.textContent).not.toContain('Hidden DMs');
     }

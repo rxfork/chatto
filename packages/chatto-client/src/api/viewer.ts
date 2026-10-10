@@ -38,6 +38,8 @@ export type CurrentUser = {
     timeFormat: TimeFormat;
     /** Present when the server supports private time-zone preferences. */
     shareTimezone?: boolean;
+    /** Private server-persisted hidden conversations for this account. */
+    hiddenDmRoomIds?: string[];
   } | null;
 };
 
@@ -185,7 +187,8 @@ export function viewerResponseToState(response: GetViewerResponse): ViewerState 
         ? {
             timezone: response.user.settings.timezone ?? null,
             timeFormat: timeFormatOrAuto(response.user.settings.timeFormat),
-            shareTimezone: response.user.settings.shareTimezone
+            shareTimezone: response.user.settings.shareTimezone,
+            hiddenDmRoomIds: [...response.user.settings.hiddenDmRoomIds]
           }
         : null
     },

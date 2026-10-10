@@ -6,7 +6,7 @@ import {
   denyUserPermission,
   clearUserPermissionOverride
 } from './fixtures/testUser';
-import { withServerUser } from './fixtures/serverUser';
+import { withLoggedInServerWindow, withServerUser } from './fixtures/serverUser';
 import { DMPage } from './pages/DMPage';
 import { RoomPage } from './pages/RoomPage';
 import { postMessageViaConnect } from './fixtures/connectHelpers';
@@ -109,11 +109,12 @@ test.describe('Direct Messages (room-shaped)', () => {
     });
   });
 
-  test('hidden DMs survive reload and Send Message restores the existing history', async ({
+  test('hidden DMs sync across clients and Send Message restores the existing history', async ({
     page,
     browser,
     serverURL
   }) => {
+    test.setTimeout(90_000);
     const userA = await createAndLoginTestUser(page);
     const errors: string[] = [];
     page.on('pageerror', (error) => errors.push(error.message));
@@ -126,30 +127,62 @@ test.describe('Direct Messages (room-shaped)', () => {
       const room = new RoomPage(page);
       await room.expectMessageVisible(message);
       const row = page.locator(`nav a.sidebar-item[href="${routes.room(roomId)}"]`);
-      await row.click({ button: 'right' });
-      await page.getByRole('menuitem', { name: 'Hide DM', exact: true }).click();
-      await page.waitForURL(routes.serverOverview);
-      await expect(row).not.toBeVisible();
-      await page.reload();
-      await expect(page.getByRole('button', { name: 'Hidden DMs', exact: true })).toBeVisible();
-      await expect(row).not.toBeVisible();
-      await peerRoom.sendMessage('Still hidden after incoming activity');
-      await expect(row).not.toBeVisible();
-      await page.getByRole('button', { name: 'Hidden DMs', exact: true }).click();
-      await expect(row).toBeVisible();
-      await page.screenshot({ path: test.info().outputPath('hidden-dms.png') });
-      await row.click();
-      await room.expectMessageVisible(message);
-      await expect(page.getByRole('button', { name: 'Hidden DMs', exact: true })).not.toBeVisible();
-      // Hide once more, then use the same destination as a profile's Send Message action.
-      await row.click({ button: 'right' });
-      await page.getByRole('menuitem', { name: 'Hide DM', exact: true }).click();
-      await page.waitForURL(routes.serverOverview);
-      await page.goto(`/chat/-/dm/${userB.id}`);
-      await page.waitForURL(routes.room(roomId));
-      await room.expectMessageVisible(message);
-      await expect(row).toBeVisible();
-      await expect(page.getByRole('button', { name: 'Hidden DMs', exact: true })).not.toBeVisible();
+      // A separate browser context has independent storage and the same account.
+      await withLoggedInServerWindow(browser, serverURL, userA, async ({ page: second }) => {
+        await second.goto(routes.room(roomId));
+        const secondRow = second.locator(`nav a.sidebar-item[href="${routes.room(roomId)}"]`);
+        const secondHidden = second.getByRole('button', { name: 'Hidden DMs', exact: true });
+        await expect(secondRow).toBeVisible();
+        await row.click({ button: 'right' });
+        await page.getByRole('menuitem', { name: 'Hide DM', exact: true }).click();
+        await page.waitForURL(routes.serverOverview);
+        await expect(row).not.toBeVisible();
+        // The already-open client updates through realtime without a reload.
+        await expect(secondHidden).toBeVisible({ timeout: TIMEOUTS.REALTIME_EVENT });
+        await expect(secondRow).not.toBeVisible();
+        // Hiding elsewhere must not be undone by a client already viewing the DM.
+        await expect(second).toHaveURL(routes.room(roomId));
+        await second.goto(routes.serverOverview);
+        await expect(
+          peer.getByRole('button', { name: 'Hidden DMs', exact: true })
+        ).not.toBeVisible();
+        // A brand-new client also receives the server-saved choice at sign-in.
+        await withLoggedInServerWindow(browser, serverURL, userA, async ({ page: fresh }) => {
+          await expect(
+            fresh.getByRole('button', { name: 'Hidden DMs', exact: true })
+          ).toBeVisible();
+          await expect(
+            fresh.locator(`nav a.sidebar-item[href="${routes.room(roomId)}"]`)
+          ).not.toBeVisible();
+        });
+        await page.reload();
+        await expect(page.getByRole('button', { name: 'Hidden DMs', exact: true })).toBeVisible();
+        await expect(row).not.toBeVisible();
+        await peerRoom.sendMessage('Still hidden after incoming activity');
+        await expect(secondHidden).toBeVisible();
+        await expect(secondRow).not.toBeVisible();
+        await page.getByRole('button', { name: 'Hidden DMs', exact: true }).click();
+        await expect(row).toBeVisible();
+        await page.screenshot({ path: test.info().outputPath('hidden-dms.png') });
+        await row.click();
+        await room.expectMessageVisible(message);
+        await expect(
+          page.getByRole('button', { name: 'Hidden DMs', exact: true })
+        ).not.toBeVisible();
+        await expect(secondHidden).not.toBeVisible({ timeout: TIMEOUTS.REALTIME_EVENT });
+        await expect(secondRow).toBeVisible();
+        // Hide once more, then use a profile's Send Message destination.
+        await row.click({ button: 'right' });
+        await page.getByRole('menuitem', { name: 'Hide DM', exact: true }).click();
+        await page.waitForURL(routes.serverOverview);
+        await expect(secondHidden).toBeVisible();
+        await page.goto(`/chat/-/dm/${userB.id}`);
+        await page.waitForURL(routes.room(roomId));
+        await room.expectMessageVisible(message);
+        await expect(row).toBeVisible();
+        await expect(secondHidden).not.toBeVisible({ timeout: TIMEOUTS.REALTIME_EVENT });
+        await expect(secondRow).toBeVisible();
+      });
       expect(errors).toEqual([]);
     });
   });

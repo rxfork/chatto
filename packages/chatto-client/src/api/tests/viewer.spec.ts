@@ -48,7 +48,8 @@ describe('getCurrentUserViaConnect', () => {
         settings: {
           timezone: 'Europe/Berlin',
           timeFormat: TimeFormat.TIME_FORMAT_24_HOUR,
-          shareTimezone: true
+          shareTimezone: true,
+          hiddenDmRoomIds: []
         }
       }
     });
@@ -78,7 +79,8 @@ describe('getCurrentUserViaConnect', () => {
       settings: {
         timezone: 'Europe/Berlin',
         timeFormat: TimeFormat.TIME_FORMAT_24_HOUR,
-        shareTimezone: true
+        shareTimezone: true,
+        hiddenDmRoomIds: []
       }
     });
   });

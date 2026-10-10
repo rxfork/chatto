@@ -41,6 +41,7 @@ type userConfigState struct {
 	timezone              *string
 	timeFormat            *evtv1.TimeFormat
 	shareTimezone         bool
+	hiddenDMRoomIDs       map[string]struct{}
 	serverModes           *evtv1.NotificationDeliveryModes
 	roomGroupModesByGroup map[string]*evtv1.NotificationDeliveryModes
 	roomModesByRoom       map[string]*evtv1.NotificationDeliveryModes
@@ -129,6 +130,17 @@ func (p *ConfigProjection) Apply(event *evtv1.Event, _ uint64) error {
 		p.ensureUserLocked(e.UserTimezoneCleared.GetUserId()).timezone = &empty
 	case *evtv1.Event_UserTimezoneSharingChanged:
 		p.ensureUserLocked(e.UserTimezoneSharingChanged.GetUserId()).shareTimezone = e.UserTimezoneSharingChanged.GetShareTimezone()
+	case *evtv1.Event_UserDmVisibilityChanged:
+		choice := e.UserDmVisibilityChanged
+		u := p.ensureUserLocked(choice.GetUserId())
+		if u.hiddenDMRoomIDs == nil {
+			u.hiddenDMRoomIDs = make(map[string]struct{})
+		}
+		if choice.GetHidden() {
+			u.hiddenDMRoomIDs[choice.GetRoomId()] = struct{}{}
+		} else {
+			delete(u.hiddenDMRoomIDs, choice.GetRoomId())
+		}
 	case *evtv1.Event_UserTimeFormatChanged:
 		u := p.ensureUserLocked(e.UserTimeFormatChanged.GetUserId())
 		tf := e.UserTimeFormatChanged.GetTimeFormat()
