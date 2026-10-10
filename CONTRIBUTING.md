@@ -142,7 +142,7 @@ Seeding is available only in development and test builds.
 
 ## Browser Review with GitHub Codespaces
 
-You can review a branch or PR in a browser on Windows. You do not need to
+You can review a branch or PR with GitHub Codespaces. You do not need to
 install development tools on your computer. GitHub runs the container and
 server. Codespaces usage can have a cost.
 
