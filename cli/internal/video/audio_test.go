@@ -60,7 +60,7 @@ func TestBurnAudioDurationProcessingWithoutTranscoding(t *testing.T) {
 	before := time.Now()
 	opened, err := c.OpenBurnAttachment(ctx, core.BurnAttachmentInput{ActorID: owner.Id, RoomID: room.Id, AssetID: asset.Id, SessionID: "audio-session-123456"})
 	require.NoError(t, err)
-	require.WithinDuration(t, before.Add(2*time.Second), opened.Burn.Views[0].ExpiresAt.AsTime(), 500*time.Millisecond)
+	require.WithinDuration(t, before.Add(12*time.Second), opened.Burn.Views[0].ExpiresAt.AsTime(), 500*time.Millisecond)
 }
 
 // Two-byte PCM samples at 16kHz give ffprobe an exact, local duration fixture.

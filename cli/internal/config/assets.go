@@ -137,9 +137,9 @@ type AssetsConfig struct {
 // BurnAttachmentsConfig sets lifetimes captured by new view-once attachments.
 // Zero selects the default. Existing attachments retain their send-time values.
 type BurnAttachmentsConfig struct {
-	UnopenedTTL Duration `toml:"unopened_ttl" env:"CHATTO_CORE_ASSETS_BURN_UNOPENED_TTL" comment:"Lifetime of unopened viewing sessions. Default: 24h."`
-	RecoveryTTL Duration `toml:"recovery_ttl" env:"CHATTO_CORE_ASSETS_BURN_RECOVERY_TTL" comment:"Keep files after all sessions end so the sender can make them permanent. Default: 1h."`
-	ViewTTL     Duration `toml:"view_ttl" env:"CHATTO_CORE_ASSETS_BURN_VIEW_TTL" comment:"Viewing timeout for images and other non-audio/video files. Default (0s): 10s for images, 5m for other files. Audio uses verified duration; video uses verified duration plus 10s."`
+	UnopenedTTL Duration `toml:"unopened_ttl" env:"CHATTO_CORE_ASSETS_BURN_UNOPENED_TTL" comment:"Lifetime of unopened viewing sessions. Default: 1w."`
+	RecoveryTTL Duration `toml:"recovery_ttl" env:"CHATTO_CORE_ASSETS_BURN_RECOVERY_TTL" comment:"Keep files after all sessions end so the sender can make them permanent. Default: 48h."`
+	ViewTTL     Duration `toml:"view_ttl" env:"CHATTO_CORE_ASSETS_BURN_VIEW_TTL" comment:"Viewing timeout for images and other non-audio/video files. Default (0s): 10s for images, 5m for other files. Audio and video use verified duration plus 10s."`
 }
 
 // Lifetimes returns unopened/recovery durations and the viewing override or
@@ -148,10 +148,10 @@ type BurnAttachmentsConfig struct {
 func (c BurnAttachmentsConfig) Lifetimes() (time.Duration, time.Duration, time.Duration) {
 	unopened, recovery, view := c.UnopenedTTL.Duration(), c.RecoveryTTL.Duration(), c.ViewTTL.Duration()
 	if unopened == 0 {
-		unopened = 24 * time.Hour
+		unopened = 7 * 24 * time.Hour
 	}
 	if recovery == 0 {
-		recovery = time.Hour
+		recovery = 48 * time.Hour
 	}
 	if view == 0 {
 		view = 5 * time.Minute

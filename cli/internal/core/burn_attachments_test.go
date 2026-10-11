@@ -344,10 +344,7 @@ func TestBurnMediaDurationIgnoresTimeoutAndWaitDoesNotConsumeSession(t *testing.
 				result, err := c.OpenBurnAttachment(ctx, input)
 				require.NoError(t, err)
 				deadline := result.Burn.Views[0].ExpiresAt.AsTime()
-				expected := before.Add(12345 * time.Millisecond)
-				if typ == "video/mp4" {
-					expected = expected.Add(10 * time.Second)
-				}
+				expected := before.Add(12345*time.Millisecond + 10*time.Second)
 				require.WithinDuration(t, expected, deadline, time.Second)
 				result, err = c.OpenBurnAttachment(ctx, input)
 				require.NoError(t, err)

@@ -448,8 +448,8 @@ one content-view wait before they return.
 Burn state survives tombstones so replay and encrypted snapshots preserve
 consumed sessions and per-sender/per-room permanence acknowledgements. Normal
 metadata reads expose no original burn URLs. The captured audio/video-duration policy
-resolves verified processing duration when a session is claimed; video adds
-10 seconds to press Play, audio does not. Unavailable duration fails before
+resolves verified processing duration when a session is claimed; audio and
+video add 10 seconds to press Play. Unavailable duration fails before
 claiming. `AssetProcessingSucceededEvent.audio_duration_ms` records audio-only
 probe results without derivatives. Eligible image/video recipients may receive
 a blurred preview URL, authorized independently of session consumption. A

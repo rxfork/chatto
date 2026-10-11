@@ -1,7 +1,7 @@
 # FDR-008: File Attachments & Video Processing
 
 **Status:** Active
-**Last reviewed:** 2026-10-10
+**Last reviewed:** 2026-10-11
 
 ## Overview
 
@@ -173,14 +173,14 @@ Fresh servers seed `message.attach` for `everyone` so new deployments keep uploa
   can see a blurred image or processed video-frame preview while the file is
   retained. It preserves larger shapes while hiding fine detail. Video previews
   appear after processing; the original remains inaccessible until Open.
-- Unopened sessions expire after 24 hours by default. A viewing session lasts
-  10 seconds for images, the audio duration for audio, the video duration plus
-  10 seconds for videos, and 5 minutes for documents. The extra video time lets
+- Unopened sessions expire after 1 week by default. A viewing session lasts
+  10 seconds for images, the verified duration plus 10 seconds for audio and
+  video, and 5 minutes for documents. The extra audio and video time lets
   the viewer press Play. Audio and video wait for verified processing duration
   before opening; waiting does not consume a session. The timer starts on Open,
   including playback buffering or pauses. The configured viewing timeout
   applies only to images and other non-audio/video files.
-  After every session ends or expires, the server keeps the file for 1 more hour by default. Operators configure these durations in TOML.
+  After every session ends or expires, the server keeps the file for 48 more hours by default. Operators configure these durations in TOML.
   Each file keeps the durations in effect when it was sent.
 - Original recipients can request permanent access, cancel that request, and
   see their own request state. Requests do not extend retention. The sender

@@ -20,7 +20,7 @@ import (
 )
 
 const attachmentPermanenceUndoTTL = 15 * time.Second
-const burnVideoPlayPadding = 10 * time.Second
+const burnMediaPlayPadding = 10 * time.Second
 const burnPendingMediaDuration = time.Millisecond
 
 // BurnAttachmentSupported reports file types that the bundled controlled
@@ -327,15 +327,10 @@ func (c *AssetModel) OpenBurnAttachment(ctx context.Context, input BurnAttachmen
 			} else {
 				durationMs = manifest.Succeeded.GetVideo().GetDurationMs()
 			}
-			if durationMs <= 0 || durationMs > math.MaxInt64/int64(time.Millisecond) {
+			if durationMs <= 0 || durationMs > math.MaxInt64/int64(time.Millisecond)-burnMediaPlayPadding.Milliseconds() {
 				return false, ErrBurnMediaNotReady
 			}
-			if state.GetUseVideoDuration() {
-				if durationMs > math.MaxInt64/int64(time.Millisecond)-burnVideoPlayPadding.Milliseconds() {
-					return false, ErrBurnMediaNotReady
-				}
-				durationMs += burnVideoPlayPadding.Milliseconds()
-			}
+			durationMs += burnMediaPlayPadding.Milliseconds()
 		}
 		state.Views = append(state.Views, &evtv1.AssetBurnView{UserId: input.ActorID, SessionHash: hash, ExpiresAt: timestamppb.New(now.Add(time.Duration(durationMs) * time.Millisecond))})
 		return true, nil

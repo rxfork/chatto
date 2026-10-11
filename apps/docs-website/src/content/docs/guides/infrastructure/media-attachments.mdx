@@ -34,9 +34,9 @@ Avatar and branding uploads can need larger request bodies.
 
 ```toml
 [core.assets.burn]
-unopened_ttl = "24h"
+unopened_ttl = "1w"
 view_ttl = "0s"
-recovery_ttl = "1h"
+recovery_ttl = "48h"
 ```
 
 Select **Burn after reading** on an attachment before you send it. Each member
@@ -51,9 +51,9 @@ preview appears after processing generates its thumbnail.
 The settings above are the defaults. Zero selects the default; other values
 must be at least 1 millisecond. A sent attachment keeps its original settings.
 With `view_ttl = "0s"`, images get 10 seconds and other non-audio/video files
-get 5 minutes. A nonzero `view_ttl` overrides only those types. Audio always
-gets its verified duration; video gets its verified duration plus 10 seconds
-to press Play. Neither uses `view_ttl`. Audio/video cannot open until processing
+get 5 minutes. A nonzero `view_ttl` overrides only those types. Audio and video
+get their verified duration plus 10 seconds to press Play. Neither uses
+`view_ttl`. Audio/video cannot open until processing
 provides their duration; waiting does not consume a session. Run at least one
 asset-processing worker for burn audio, even when video uploads are disabled.
 Audio jobs measure duration without transcoding. The timer runs from Open,
