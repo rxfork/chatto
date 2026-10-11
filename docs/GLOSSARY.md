@@ -133,6 +133,10 @@ another address does not change the selection. See
 
 **Attachment** — An asset attached to one message. See [FDR-008](fdr/FDR-008-file-attachments-and-video.md).
 
+**Burn after reading** — Attachment mode that gives each original room member one bounded viewing session and no sessions to later members. Closing or expiry consumes that person's session. See [FDR-008](fdr/FDR-008-file-attachments-and-video.md#burn-after-reading).
+
+**Make permanent** — Sender action that converts a retained burn attachment to an ordinary attachment for everyone with message access. Its short Undo period restores the original sessions and deadlines. See [FDR-008](fdr/FDR-008-file-attachments-and-video.md#burn-after-reading).
+
 **Link Preview** — Auto-generated preview card for URLs in messages. See [FDR-009](fdr/FDR-009-link-previews.md).
 
 **Typing Indicator** — Ephemeral "X is typing…" signal. Published internally as a pubsub event and exposed as a cursorless realtime event. It is never persisted. See [FDR-010](fdr/FDR-010-typing-indicators.md).

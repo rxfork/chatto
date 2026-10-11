@@ -13,6 +13,11 @@ import {
   type MessageVideoProcessing
 } from '@chatto/api-types/api/v1/message_types_pb';
 import type { RoomTimelineEvent } from '@chatto/api-types/api/v1/room_timeline_pb';
+import { attachmentView } from './roomTimeline.js';
+import { burnAttachmentView } from './burnAttachments.js';
+import type { BurnAttachmentView, MessageAttachmentView } from '../timeline/messageAttachments.js';
+
+export type AttachmentOperationOptions = { signal?: AbortSignal };
 
 export type AttachmentRefreshOptions = {
   width: number;
@@ -50,6 +55,7 @@ export type RoomFileItem = {
         assetUrl: ExpiringAssetUrl | null;
       }>;
     } | null;
+    burn?: BurnAttachmentView | null;
   };
 };
 
@@ -60,6 +66,43 @@ export type RoomFilesPage = {
 };
 
 export type AttachmentAPI = {
+  /** Read authoritative viewer access without starting a burn session. */
+  getAttachment(
+    roomId: string,
+    assetId: string,
+    options?: AttachmentOperationOptions
+  ): Promise<MessageAttachmentView>;
+  /** Claim one in-memory viewer instance; reuse its session ID only until it closes. */
+  openBurnAttachment(
+    roomId: string,
+    assetId: string,
+    sessionId: string,
+    options?: AttachmentOperationOptions
+  ): Promise<{ attachment: MessageAttachmentView; viewExpiresAt: string }>;
+  closeBurnAttachment(
+    roomId: string,
+    assetId: string,
+    sessionId: string,
+    options?: AttachmentOperationOptions
+  ): Promise<MessageAttachmentView>;
+  requestAttachmentPermanence(
+    roomId: string,
+    assetId: string,
+    requested: boolean,
+    options?: AttachmentOperationOptions
+  ): Promise<MessageAttachmentView>;
+  makeAttachmentPermanent(
+    roomId: string,
+    assetId: string,
+    acknowledge: boolean,
+    options?: AttachmentOperationOptions
+  ): Promise<{ attachment: MessageAttachmentView; undoToken: string; undoExpiresAt: string }>;
+  undoAttachmentPermanence(
+    roomId: string,
+    assetId: string,
+    undoToken: string,
+    options?: AttachmentOperationOptions
+  ): Promise<MessageAttachmentView>;
   /** Read original-file metadata without fetching the document bytes. */
   getMetadata(roomId: string, assetId: string, signal?: AbortSignal): Promise<{ size: number }>;
   listRoomAttachments(input: {
@@ -80,6 +123,46 @@ export function createAttachmentAPI(config: ConnectAPIConfig): AttachmentAPI {
   const assets = createChattoClient(AssetService, config);
   const rooms = createChattoClient(RoomService, config);
   return {
+    async getAttachment(roomId, assetId, options) {
+      const response = await assets.getAsset({ roomId, assetId }, options);
+      return requiredAsset(response.asset);
+    },
+    async openBurnAttachment(roomId, assetId, sessionId, options) {
+      const response = await assets.openBurnAttachment({ roomId, assetId, sessionId }, options);
+      return {
+        attachment: requiredAsset(response.asset),
+        viewExpiresAt: timestampToISO(response.viewExpiresAt)
+      };
+    },
+    async closeBurnAttachment(roomId, assetId, sessionId, options) {
+      const response = await assets.closeBurnAttachment({ roomId, assetId, sessionId }, options);
+      return requiredAsset(response.asset);
+    },
+    async requestAttachmentPermanence(roomId, assetId, requested, options) {
+      const response = await assets.requestAttachmentPermanence(
+        { roomId, assetId, requested },
+        options
+      );
+      return requiredAsset(response.asset);
+    },
+    async makeAttachmentPermanent(roomId, assetId, acknowledge, options) {
+      const response = await assets.makeAttachmentPermanent(
+        { roomId, assetId, acknowledge },
+        options
+      );
+      return {
+        attachment: requiredAsset(response.asset),
+        undoToken: response.undoToken,
+        undoExpiresAt: timestampToISO(response.undoExpiresAt)
+      };
+    },
+    async undoAttachmentPermanence(roomId, assetId, undoToken, options) {
+      const response = await assets.undoAttachmentPermanence(
+        { roomId, assetId, undoToken },
+        options
+      );
+      return requiredAsset(response.asset);
+    },
     async getMetadata(roomId, assetId, signal) {
       const response = await assets.getAsset({ roomId, assetId }, { signal });
       if (!response.asset) throw new Error('Asset metadata unavailable');
@@ -122,6 +205,7 @@ function refreshedAttachmentUrlMap(
     attachments.map((attachment) => [
       attachment.id,
       {
+        burn: burnAttachmentView(attachment.burn),
         assetUrl: assetUrl(attachment.assetUrl),
         thumbnailAssetUrl: assetUrl(attachment.thumbnailAssetUrl),
         videoThumbnailAssetUrl: assetUrl(attachment.videoProcessing?.thumbnailAssetUrl),
@@ -196,7 +280,8 @@ function roomFileAttachment(
     height: value?.height ?? 0,
     assetUrl: assetUrl(value?.assetUrl),
     thumbnailAssetUrl: assetUrl(value?.thumbnailAssetUrl),
-    videoProcessing: videoProcessing(value?.videoProcessing)
+    videoProcessing: videoProcessing(value?.videoProcessing),
+    burn: burnAttachmentView(value?.burn)
   };
 }
 
@@ -250,4 +335,9 @@ function assetUrl(value?: MessageAssetUrl): ExpiringAssetUrl | null {
 
 function timestampToISO(timestamp: { toDate(): Date } | undefined): string {
   return timestamp ? timestamp.toDate().toISOString() : '';
+}
+
+function requiredAsset(value?: Asset): MessageAttachmentView {
+  if (!value) throw new Error('Asset metadata unavailable');
+  return attachmentView(value);
 }

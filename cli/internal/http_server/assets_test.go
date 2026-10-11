@@ -295,7 +295,7 @@ func (env *assetTestEnv) postAssetMessageWithAttachment(t *testing.T, roomID, bo
 	return env.postAssetMessageWithAttachmentContentType(t, roomID, body, fileData, fileName, "image/png")
 }
 
-func (env *assetTestEnv) postAssetMessageWithAttachmentContentType(t *testing.T, roomID, body string, fileData []byte, fileName, contentType string) (string, *apiv1.MessageAttachment) {
+func (env *assetTestEnv) postAssetMessageWithAttachmentContentType(t *testing.T, roomID, body string, fileData []byte, fileName, contentType string, burn ...bool) (string, *apiv1.MessageAttachment) {
 	t.Helper()
 
 	assetUploadClient := apiv1connect.NewAssetUploadServiceClient(env.client, env.server.URL+connectAPIPrefix)
@@ -335,6 +335,9 @@ func (env *assetTestEnv) postAssetMessageWithAttachmentContentType(t *testing.T,
 		Body:               body,
 		AttachmentAssetIds: []string{assetID},
 	})
+	if len(burn) > 0 && burn[0] {
+		req.Msg.BurnAttachmentAssetIds = []string{assetID}
+	}
 	resp, err := client.CreateMessage(env.ctx, req)
 	if err != nil {
 		t.Fatalf("Failed to post message with attachment: %v", err)

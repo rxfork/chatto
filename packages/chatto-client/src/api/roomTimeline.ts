@@ -8,6 +8,8 @@ import {
 } from '../timeline/timelineEvents.js';
 import type { SocialPostPreviewView } from '../timeline/linkPreviews.js';
 import { VideoProcessingStatus } from '../timeline/messageAttachments.js';
+import { burnAttachmentView } from './burnAttachments.js';
+import type { BurnAttachment } from '@chatto/api-types/api/v1/message_types_pb';
 import { MessageService } from '@chatto/api-types/api/v1/messages_connect';
 import { RoomService } from '@chatto/api-types/api/v1/rooms_connect';
 import { ThreadService } from '@chatto/api-types/api/v1/threads_connect';
@@ -417,7 +419,7 @@ function userView(userId: string, users: Record<string, User>) {
   };
 }
 
-function attachmentView(attachment: {
+export function attachmentView(attachment: {
   id: string;
   filename: string;
   contentType: string;
@@ -427,6 +429,7 @@ function attachmentView(attachment: {
   assetUrl?: MessageAssetUrl;
   thumbnailAssetUrl?: MessageAssetUrl;
   videoProcessing?: MessageVideoProcessing;
+  burn?: BurnAttachment;
 }) {
   return {
     id: attachment.id,
@@ -437,7 +440,8 @@ function attachmentView(attachment: {
     height: attachment.height,
     assetUrl: assetUrlView(attachment.assetUrl),
     thumbnailAssetUrl: assetUrlView(attachment.thumbnailAssetUrl),
-    videoProcessing: videoProcessingView(attachment.videoProcessing)
+    videoProcessing: videoProcessingView(attachment.videoProcessing),
+    burn: burnAttachmentView(attachment.burn)
   };
 }
 

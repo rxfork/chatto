@@ -1,8 +1,9 @@
 import { toast } from '$lib/ui/toast';
 import { m } from '$lib/i18n/messages';
 import { prepareFiles } from '$lib/attachments/prepareFiles';
+import { supportsBurnAttachment } from '@chatto/client/timeline/messageAttachments';
 
-export type FileWithUrl = { file: File; url: string; description: string };
+export type FileWithUrl = { file: File; url: string; description: string; burn?: boolean };
 
 export type AttachmentLimits = {
   videoProcessingEnabled: boolean;
@@ -24,6 +25,10 @@ export class AttachmentsState {
 
   get selectedFiles(): File[] {
     return this.filesWithUrls.map((f) => f.file);
+  }
+
+  get burnFiles(): File[] {
+    return this.filesWithUrls.filter(({ burn }) => burn).map(({ file }) => file);
   }
 
   get descriptions() {
@@ -98,6 +103,13 @@ export class AttachmentsState {
     const attachment = this.filesWithUrls[index];
     if (!attachment) return;
     attachment.description = description.trim();
+  }
+
+  /** The selection stays with this file when its draft moves between rooms. */
+  setBurn(index: number, burn: boolean): void {
+    const attachment = this.filesWithUrls[index];
+    if (!attachment || !supportsBurnAttachment(attachment.file.type, attachment.file.name)) return;
+    attachment.burn = burn;
   }
 
   clear(): void {

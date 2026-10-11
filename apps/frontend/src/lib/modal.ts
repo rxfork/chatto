@@ -24,6 +24,11 @@ export type ChatModal =
     })
   | (RoomModalTarget & { type: 'deleteLinkPreview'; eventId: string; previewUrl: string })
   | (RoomModalTarget & {
+      type: 'burnAttachmentViewer';
+      eventId: string;
+      attachment: MessageAttachmentView;
+    })
+  | (RoomModalTarget & {
       type: 'attachmentViewer';
       eventId: string;
       items: MessageAttachmentView[];
@@ -52,3 +57,6 @@ export type HtmlViewerModalState = Extract<ChatModal, { type: 'htmlViewer' }>;
 
 /** One opening of the shared file viewer, including an optional image gallery. */
 export type AttachmentViewerModalState = Extract<ChatModal, { type: 'attachmentViewer' }>;
+
+/** Burn viewer history holds metadata only; its session ID stays in memory. */
+export type BurnAttachmentViewerModalState = Extract<ChatModal, { type: 'burnAttachmentViewer' }>;

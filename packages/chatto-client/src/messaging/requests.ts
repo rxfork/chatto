@@ -13,7 +13,10 @@ import { RoomService } from '@chatto/api-types/api/v1/rooms_connect';
 import { ThreadService } from '@chatto/api-types/api/v1/threads_connect';
 import { AssetService } from '@chatto/api-types/api/v1/attachments_connect';
 import { ImageFitMode, ImageTransformOptions } from '@chatto/api-types/api/v1/common_pb';
-import type { MessageAttachment } from '@chatto/api-types/api/v1/message_types_pb';
+import {
+  BurnAttachmentViewerStatus,
+  type MessageAttachment
+} from '@chatto/api-types/api/v1/message_types_pb';
 import type { RoomTimelinePage } from '@chatto/api-types/api/v1/room_timeline_pb';
 import { RoomKind } from '@chatto/api-types/api/v1/rooms_pb';
 import type { RealtimeEvent } from '@chatto/api-types/realtime/v1/realtime_pb';
@@ -377,6 +380,8 @@ export class MessagingRequests {
     );
     const asset = assets.find((entry) => entry.id === attachmentId);
     if (!asset) throw new Error('Attachment not found');
+    if (asset.burn && asset.burn.viewerStatus !== BurnAttachmentViewerStatus.PERMANENT)
+      throw new Error('View-once attachments require a deliberate viewing session');
     const resized = Boolean(size && asset.contentType.startsWith('image/'));
     if (!resized && Number(asset.size) > maxBytes) throw new Error('Attachment is too large');
     const path = resized ? asset.thumbnailAssetUrl?.url : asset.assetUrl?.url;

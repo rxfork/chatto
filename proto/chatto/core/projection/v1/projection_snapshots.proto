@@ -2,16 +2,16 @@ syntax = "proto3";
 
 package chatto.core.projection.v1;
 
-import "google/protobuf/timestamp.proto";
 import "chatto/core/evt/v1/asset_events.proto";
 import "chatto/core/evt/v1/event.proto";
 import "chatto/core/evt/v1/models.proto";
 import "chatto/core/evt/v1/notification_policy.proto";
-import "chatto/core/notification/v1/notification.proto";
 import "chatto/core/evt/v1/rbac_events.proto";
 import "chatto/core/evt/v1/room_events.proto";
 import "chatto/core/evt/v1/user_events.proto";
 import "chatto/core/evt/v1/user_preferences.proto";
+import "chatto/core/notification/v1/notification.proto";
+import "google/protobuf/timestamp.proto";
 
 option go_package = "hmans.de/chatto/internal/pb/chatto/core/projection/v1;projectionv1";
 
@@ -355,6 +355,7 @@ message AssetProjectionSnapshot {
   ProjectionReplayGuardSnapshot replay_guard = 5;
   repeated AssetMessageOwnerSnapshot message_owners = 6;
   repeated string public_link_preview_asset_ids = 7;
+  repeated chatto.core.evt.v1.AssetBurnState burn_states = 8;
 }
 
 message AssetChildrenSnapshot {
@@ -399,8 +400,14 @@ message UserReactionSnapshot {
   string source_event_id = 3;
 }
 
-message StringUint64Snapshot { string key = 1; uint64 value = 2; }
-message StringStringSnapshot { string key = 1; string value = 2; }
+message StringUint64Snapshot {
+  string key = 1;
+  uint64 value = 2;
+}
+message StringStringSnapshot {
+  string key = 1;
+  string value = 2;
+}
 
 message MentionablesProjectionSnapshot {
   repeated chatto.core.evt.v1.Event user_login_sources = 1;

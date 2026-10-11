@@ -39,6 +39,7 @@ function attachmentState(item: RoomFileItem) {
     description: attachment.description ?? null,
     width: attachment.width,
     height: attachment.height,
+    burn: attachment.burn ?? null,
     processing: processing
       ? {
           status: processing.status,

@@ -52,6 +52,21 @@ describe('AttachmentsState', () => {
     expect(state.selectedFiles).toEqual([file]);
   });
 
+  it('keeps burn selection with its file and rejects unsupported burn formats', async () => {
+    const image = imageFile(),
+      archive = new File(['zip'], 'archive.zip', { type: 'application/zip' });
+    await state.stageFiles([image, archive]);
+    state.setBurn(0, true);
+    state.setBurn(1, true);
+    expect(state.burnFiles).toEqual([image]);
+    const saved = state.filesWithUrls;
+    state.restore([]);
+    state.restore(saved);
+    expect(state.burnFiles).toEqual([image]);
+    state.setBurn(0, false);
+    expect(state.burnFiles).toEqual([]);
+  });
+
   it('stages prepared files and appends subsequent files', async () => {
     const first = imageFile('first.png');
     const second = imageFile('second.png');

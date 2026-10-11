@@ -1336,6 +1336,9 @@ func TestServerServiceGetMotdAndRuntimeConfig(t *testing.T) {
 	if !runtime.GetVideoProcessingEnabled() {
 		t.Fatal("VideoProcessingEnabled = false, want true")
 	}
+	if !runtime.GetBurnAttachmentsEnabled() {
+		t.Fatal("BurnAttachmentsEnabled = false, want explicit support before client upload")
+	}
 	if runtime.GetLivekitUrl() != "wss://livekit.example.test" {
 		t.Fatalf("LivekitUrl = %q, want configured URL", runtime.GetLivekitUrl())
 	}

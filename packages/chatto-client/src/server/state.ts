@@ -159,6 +159,11 @@ export class ServerInfoState {
     return this.#runtime?.videoProcessingEnabled ?? false;
   }
 
+  /** Whether the server enforces burn-after-reading attachment sessions. */
+  get burnAttachmentsEnabled(): boolean {
+    return this.#runtime?.burnAttachmentsEnabled ?? false;
+  }
+
   /** Largest upload in bytes. Default: 25 MB. */
   get maxUploadSize(): number {
     const runtime = this.#runtime;

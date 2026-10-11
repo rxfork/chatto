@@ -83,6 +83,22 @@ Read the message resource for current attachments and processed video data.
 
 
 
+<a id="chatto-realtime-v1-AttachmentChangedEvent"></a>
+
+### AttachmentChangedEvent
+
+AttachmentChangedEvent invalidates current attachment access metadata.
+Read the message or asset for the viewer-specific state. It does not expose
+the audience, session capabilities, or who has viewed an attachment.
+
+| Field | Type | Description |
+| --- | --- | --- |
+| `asset_id` | `string` | Source attachment asset ID. |
+| `room_id` | `string` | Room containing the owning message. |
+| `message_event_id` | `string` | Message to reconcile with a viewer-specific resource read. |
+
+
+
 <a id="chatto-realtime-v1-DirectUserMention"></a>
 
 ### DirectUserMention
@@ -801,6 +817,7 @@ a snapshot or a ConnectRPC resource.
 | `event.role_permissions_changed` | [`RolePermissionsChangedEvent`](#chatto-realtime-v1-RolePermissionsChangedEvent) | No field description provided. |
 | `event.viewer_permissions_changed` | [`ViewerPermissionsChangedEvent`](#chatto-realtime-v1-ViewerPermissionsChangedEvent) | No field description provided. |
 | `event.viewer_presence_preference_changed` | [`ViewerPresencePreferenceChangedEvent`](#chatto-realtime-v1-ViewerPresencePreferenceChangedEvent) | No field description provided. |
+| `event.attachment_changed` | [`AttachmentChangedEvent`](#chatto-realtime-v1-AttachmentChangedEvent) | No field description provided. |
 
 
 

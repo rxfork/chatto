@@ -133,6 +133,15 @@ export class CreateMessageRequest extends Message<CreateMessageRequest> {
    */
   attachmentDescriptions: MessageAttachmentDescriptionInput[] = [];
 
+  /**
+   * IDs from attachment_asset_ids to send as view-once attachments. Each
+   * current room member gets one session. Later members do not get a session.
+   * Only types with a supported inline preview are accepted.
+   *
+   * @generated from field: repeated string burn_attachment_asset_ids = 13;
+   */
+  burnAttachmentAssetIds: string[] = [];
+
   constructor(data?: PartialMessage<CreateMessageRequest>) {
     super();
     proto3.util.initPartial(data, this);
@@ -150,6 +159,7 @@ export class CreateMessageRequest extends Message<CreateMessageRequest> {
     { no: 10, name: "link_preview_token", kind: "scalar", T: 9 /* ScalarType.STRING */ },
     { no: 11, name: "create_thread", kind: "scalar", T: 8 /* ScalarType.BOOL */ },
     { no: 12, name: "attachment_descriptions", kind: "message", T: MessageAttachmentDescriptionInput, repeated: true },
+    { no: 13, name: "burn_attachment_asset_ids", kind: "scalar", T: 9 /* ScalarType.STRING */, repeated: true },
   ]);
 
   static fromBinary(bytes: Uint8Array, options?: Partial<BinaryReadOptions>): CreateMessageRequest {

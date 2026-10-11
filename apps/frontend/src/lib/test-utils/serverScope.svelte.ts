@@ -162,6 +162,7 @@ function buildStore(
       onAuthorityChanged: subscribe,
       onPermissionsChanged: subscribe,
       onDispose: subscribe,
+      onSessionEnded: subscribe,
       currentUser: t.currentUser,
       get accountId() {
         return t.currentUser.user?.id ?? null;

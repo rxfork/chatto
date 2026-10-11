@@ -127,6 +127,7 @@ Request to create a message in a room or thread.
 | `link_preview_token` | `string` | Short-lived token returned by FetchLinkPreview for the selected URL. The server resolves the token to cached, server-fetched metadata during post. |
 | `create_thread` | `bool` | True to establish the new root message as a thread immediately. Requires message.post (which includes thread posting). Cannot be combined with thread_root_event_id. |
 | `attachment_descriptions` | repeated [`MessageAttachmentDescriptionInput`](/reference/connectrpc-api/types/#chatto-api-v1-MessageAttachmentDescriptionInput) | Optional descriptions for assets in attachment_asset_ids. Asset IDs must be unique in this list. At most one description can target each asset. |
+| `burn_attachment_asset_ids` | `repeated string` | IDs from attachment_asset_ids to send as view-once attachments. Each current room member gets one session. Later members do not get a session. Only types with a supported inline preview are accepted. |
 
 
 <a id="chatto-api-v1-CreateMessageResponse"></a>

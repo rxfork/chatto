@@ -7,6 +7,7 @@ import (
 	"net/url"
 	"path/filepath"
 	"strings"
+	"time"
 
 	"hmans.de/chatto/pkg/appconfig"
 	"hmans.de/chatto/pkg/natsauth"
@@ -94,6 +95,11 @@ func embeddedNATSClientURL(cfg EmbeddedNATSConfig) string {
 
 // Validate checks the configuration for errors and returns a descriptive error if any are found.
 func (c *ChattoConfig) Validate() error {
+	for _, lifetime := range []Duration{c.Core.Assets.Burn.UnopenedTTL, c.Core.Assets.Burn.RecoveryTTL, c.Core.Assets.Burn.ViewTTL} {
+		if lifetime.Duration() < 0 || (lifetime.Duration() > 0 && lifetime.Duration() < time.Millisecond) {
+			return fmt.Errorf("core.assets.burn lifetimes must be zero (default) or at least 1ms")
+		}
+	}
 	var errs []string
 	if err := c.Core.Log.Validate(); err != nil {
 		errs = append(errs, err.Error())

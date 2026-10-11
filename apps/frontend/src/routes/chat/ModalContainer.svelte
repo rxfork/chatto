@@ -6,6 +6,7 @@
   import MotdModal from './modals/MotdModal.svelte';
   import DeleteMessageContentModal from './modals/DeleteMessageContentModal.svelte';
   import AttachmentViewerModal from './modals/AttachmentViewerModal.svelte';
+  import BurnAttachmentViewerModal from './modals/BurnAttachmentViewerModal.svelte';
   import EditAttachmentDescriptionModal from './modals/EditAttachmentDescriptionModal.svelte';
   import HtmlViewerModal from './modals/HtmlViewerModal.svelte';
   import LeaveRoomModal from './modals/LeaveRoomModal.svelte';
@@ -40,6 +41,8 @@
       <DeleteMessageContentModal {modal} onclose={closeModal} />
     {:else if modal.type === 'attachmentViewer'}
       <AttachmentViewerModal {modal} onclose={closeModal} />
+    {:else if modal.type === 'burnAttachmentViewer'}
+      <BurnAttachmentViewerModal {modal} onclose={closeModal} />
     {:else if modal.type === 'editAttachmentDescription'}
       <EditAttachmentDescriptionModal {modal} onclose={closeModal} />
     {:else if modal.type === 'htmlViewer'}

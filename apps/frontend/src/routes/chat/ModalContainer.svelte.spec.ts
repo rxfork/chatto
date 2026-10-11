@@ -214,6 +214,7 @@ vi.mock('$lib/ui', async () => {
   ]);
   return {
     MarkdownHtml: (await import('$lib/ui/MarkdownHtml.svelte')).default,
+    LoadingFog: (await import('$lib/ui/LoadingFog.svelte')).default,
     ConfirmDialog,
     Dialog
   };

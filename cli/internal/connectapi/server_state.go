@@ -59,6 +59,7 @@ func serverRuntimeConfig(api *API) *apiv1.ServerRuntimeConfig {
 		maxVideoUploadSize = int64(api.config.Video.MaxUploadSizeOrDefault())
 	}
 	runtime := &apiv1.ServerRuntimeConfig{
+		BurnAttachmentsEnabled:   true,
 		PushNotificationsEnabled: api.config.Push.IsConfigured(),
 		VideoProcessingEnabled:   api.config.Video.Enabled,
 		MaxUploadSize:            maxUploadSize,

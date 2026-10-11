@@ -197,6 +197,7 @@ describe('ServerInfoState.init()', () => {
 
     expect(state.motd).toBeNull();
     expect(state.livekitUrl).toBeNull();
+    expect(state.burnAttachmentsEnabled).toBe(false);
     expect(state.maxUploadSize).toBe(25 * 1024 * 1024);
     expect(state.messageEditWindowSeconds).toBe(3 * 60 * 60);
 
@@ -205,6 +206,7 @@ describe('ServerInfoState.init()', () => {
       runtime: new ServerRuntimeConfig({
         livekitUrl: 'wss://livekit.acme.test',
         videoProcessingEnabled: true,
+        burnAttachmentsEnabled: true,
         maxUploadSize: 1024n,
         maxVideoUploadSize: 2048n,
         messageEditWindowSeconds: 60
@@ -214,6 +216,7 @@ describe('ServerInfoState.init()', () => {
     expect(state.motd).toBe('Hello');
     expect(state.livekitUrl).toBe('wss://livekit.acme.test');
     expect(state.videoProcessingEnabled).toBe(true);
+    expect(state.burnAttachmentsEnabled).toBe(true);
     expect(state.maxUploadSize).toBe(1024);
     expect(state.maxVideoUploadSize).toBe(2048);
     expect(state.messageEditWindowSeconds).toBe(60);
@@ -222,6 +225,7 @@ describe('ServerInfoState.init()', () => {
     projected = null;
 
     expect(state.livekitUrl).toBeNull();
+    expect(state.burnAttachmentsEnabled).toBe(false);
     expect(state.maxUploadSize).toBe(25 * 1024 * 1024);
   });
 });

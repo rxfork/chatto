@@ -210,6 +210,15 @@ export class ServerRuntimeConfig extends Message<ServerRuntimeConfig> {
    */
   messageEditWindowSeconds = 0;
 
+  /**
+   * Whether view-once attachment commands and binary enforcement are supported.
+   * Check this before uploading or posting a burn attachment. Older servers
+   * leave it false and can ignore unknown CreateMessage fields.
+   *
+   * @generated from field: bool burn_attachments_enabled = 9;
+   */
+  burnAttachmentsEnabled = false;
+
   constructor(data?: PartialMessage<ServerRuntimeConfig>) {
     super();
     proto3.util.initPartial(data, this);
@@ -225,6 +234,7 @@ export class ServerRuntimeConfig extends Message<ServerRuntimeConfig> {
     { no: 6, name: "max_upload_size", kind: "scalar", T: 3 /* ScalarType.INT64 */ },
     { no: 7, name: "max_video_upload_size", kind: "scalar", T: 3 /* ScalarType.INT64 */ },
     { no: 8, name: "message_edit_window_seconds", kind: "scalar", T: 5 /* ScalarType.INT32 */ },
+    { no: 9, name: "burn_attachments_enabled", kind: "scalar", T: 8 /* ScalarType.BOOL */ },
   ]);
 
   static fromBinary(bytes: Uint8Array, options?: Partial<BinaryReadOptions>): ServerRuntimeConfig {

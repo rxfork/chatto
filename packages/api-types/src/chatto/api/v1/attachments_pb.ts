@@ -5,7 +5,7 @@
 
 import type { BinaryReadOptions, FieldList, JsonReadOptions, JsonValue, PartialMessage, PlainMessage } from "@bufbuild/protobuf";
 import { Message, proto3, protoInt64, Timestamp } from "@bufbuild/protobuf";
-import { MessageAssetUrl, MessageVideoProcessing } from "./message_types_pb.js";
+import { BurnAttachment, MessageAssetUrl, MessageVideoProcessing } from "./message_types_pb.js";
 import { ImageTransformOptions } from "./common_pb.js";
 
 /**
@@ -77,6 +77,13 @@ export class Asset extends Message<Asset> {
    */
   videoProcessing?: MessageVideoProcessing;
 
+  /**
+   * Viewer-specific view-once policy. Absent on ordinary attachments.
+   *
+   * @generated from field: chatto.api.v1.BurnAttachment burn = 10;
+   */
+  burn?: BurnAttachment;
+
   constructor(data?: PartialMessage<Asset>) {
     super();
     proto3.util.initPartial(data, this);
@@ -94,6 +101,7 @@ export class Asset extends Message<Asset> {
     { no: 7, name: "asset_url", kind: "message", T: MessageAssetUrl },
     { no: 8, name: "thumbnail_asset_url", kind: "message", T: MessageAssetUrl },
     { no: 9, name: "video_processing", kind: "message", T: MessageVideoProcessing },
+    { no: 10, name: "burn", kind: "message", T: BurnAttachment },
   ]);
 
   static fromBinary(bytes: Uint8Array, options?: Partial<BinaryReadOptions>): Asset {
@@ -110,6 +118,525 @@ export class Asset extends Message<Asset> {
 
   static equals(a: Asset | PlainMessage<Asset> | undefined, b: Asset | PlainMessage<Asset> | undefined): boolean {
     return proto3.util.equals(Asset, a, b);
+  }
+}
+
+/**
+ * Starts or retries one logical session. Generate a random session_id before
+ * the first attempt and reuse it only for retries of that opening. Closing,
+ * expiry, or an attempt with a different ID cannot restore a consumed session.
+ *
+ * @generated from message chatto.api.v1.OpenBurnAttachmentRequest
+ */
+export class OpenBurnAttachmentRequest extends Message<OpenBurnAttachmentRequest> {
+  /**
+   * Required. Room containing the owning message.
+   *
+   * @generated from field: string room_id = 1;
+   */
+  roomId = "";
+
+  /**
+   * Required. The burn attachment's source asset ID.
+   *
+   * @generated from field: string asset_id = 2;
+   */
+  assetId = "";
+
+  /**
+   * Random capability for this opening. Reuse only to retry the same session.
+   *
+   * @generated from field: string session_id = 3;
+   */
+  sessionId = "";
+
+  constructor(data?: PartialMessage<OpenBurnAttachmentRequest>) {
+    super();
+    proto3.util.initPartial(data, this);
+  }
+
+  static readonly runtime: typeof proto3 = proto3;
+  static readonly typeName = "chatto.api.v1.OpenBurnAttachmentRequest";
+  static readonly fields: FieldList = proto3.util.newFieldList(() => [
+    { no: 1, name: "room_id", kind: "scalar", T: 9 /* ScalarType.STRING */ },
+    { no: 2, name: "asset_id", kind: "scalar", T: 9 /* ScalarType.STRING */ },
+    { no: 3, name: "session_id", kind: "scalar", T: 9 /* ScalarType.STRING */ },
+  ]);
+
+  static fromBinary(bytes: Uint8Array, options?: Partial<BinaryReadOptions>): OpenBurnAttachmentRequest {
+    return new OpenBurnAttachmentRequest().fromBinary(bytes, options);
+  }
+
+  static fromJson(jsonValue: JsonValue, options?: Partial<JsonReadOptions>): OpenBurnAttachmentRequest {
+    return new OpenBurnAttachmentRequest().fromJson(jsonValue, options);
+  }
+
+  static fromJsonString(jsonString: string, options?: Partial<JsonReadOptions>): OpenBurnAttachmentRequest {
+    return new OpenBurnAttachmentRequest().fromJsonString(jsonString, options);
+  }
+
+  static equals(a: OpenBurnAttachmentRequest | PlainMessage<OpenBurnAttachmentRequest> | undefined, b: OpenBurnAttachmentRequest | PlainMessage<OpenBurnAttachmentRequest> | undefined): boolean {
+    return proto3.util.equals(OpenBurnAttachmentRequest, a, b);
+  }
+}
+
+/**
+ * Metadata and byte URLs after the session is committed.
+ *
+ * @generated from message chatto.api.v1.OpenBurnAttachmentResponse
+ */
+export class OpenBurnAttachmentResponse extends Message<OpenBurnAttachmentResponse> {
+  /**
+   * Session-bound URLs. Do not persist, prefetch, or share them.
+   *
+   * @generated from field: chatto.api.v1.Asset asset = 1;
+   */
+  asset?: Asset;
+
+  /**
+   * Clear displayed content at this deadline, even while offline.
+   *
+   * @generated from field: google.protobuf.Timestamp view_expires_at = 2;
+   */
+  viewExpiresAt?: Timestamp;
+
+  constructor(data?: PartialMessage<OpenBurnAttachmentResponse>) {
+    super();
+    proto3.util.initPartial(data, this);
+  }
+
+  static readonly runtime: typeof proto3 = proto3;
+  static readonly typeName = "chatto.api.v1.OpenBurnAttachmentResponse";
+  static readonly fields: FieldList = proto3.util.newFieldList(() => [
+    { no: 1, name: "asset", kind: "message", T: Asset },
+    { no: 2, name: "view_expires_at", kind: "message", T: Timestamp },
+  ]);
+
+  static fromBinary(bytes: Uint8Array, options?: Partial<BinaryReadOptions>): OpenBurnAttachmentResponse {
+    return new OpenBurnAttachmentResponse().fromBinary(bytes, options);
+  }
+
+  static fromJson(jsonValue: JsonValue, options?: Partial<JsonReadOptions>): OpenBurnAttachmentResponse {
+    return new OpenBurnAttachmentResponse().fromJson(jsonValue, options);
+  }
+
+  static fromJsonString(jsonString: string, options?: Partial<JsonReadOptions>): OpenBurnAttachmentResponse {
+    return new OpenBurnAttachmentResponse().fromJsonString(jsonString, options);
+  }
+
+  static equals(a: OpenBurnAttachmentResponse | PlainMessage<OpenBurnAttachmentResponse> | undefined, b: OpenBurnAttachmentResponse | PlainMessage<OpenBurnAttachmentResponse> | undefined): boolean {
+    return proto3.util.equals(OpenBurnAttachmentResponse, a, b);
+  }
+}
+
+/**
+ * Ends a logical session. Repeated closes with the same ID are safe.
+ *
+ * @generated from message chatto.api.v1.CloseBurnAttachmentRequest
+ */
+export class CloseBurnAttachmentRequest extends Message<CloseBurnAttachmentRequest> {
+  /**
+   * Required. Room containing the owning message.
+   *
+   * @generated from field: string room_id = 1;
+   */
+  roomId = "";
+
+  /**
+   * Required. Source asset ID.
+   *
+   * @generated from field: string asset_id = 2;
+   */
+  assetId = "";
+
+  /**
+   * Capability used to open this session.
+   *
+   * @generated from field: string session_id = 3;
+   */
+  sessionId = "";
+
+  constructor(data?: PartialMessage<CloseBurnAttachmentRequest>) {
+    super();
+    proto3.util.initPartial(data, this);
+  }
+
+  static readonly runtime: typeof proto3 = proto3;
+  static readonly typeName = "chatto.api.v1.CloseBurnAttachmentRequest";
+  static readonly fields: FieldList = proto3.util.newFieldList(() => [
+    { no: 1, name: "room_id", kind: "scalar", T: 9 /* ScalarType.STRING */ },
+    { no: 2, name: "asset_id", kind: "scalar", T: 9 /* ScalarType.STRING */ },
+    { no: 3, name: "session_id", kind: "scalar", T: 9 /* ScalarType.STRING */ },
+  ]);
+
+  static fromBinary(bytes: Uint8Array, options?: Partial<BinaryReadOptions>): CloseBurnAttachmentRequest {
+    return new CloseBurnAttachmentRequest().fromBinary(bytes, options);
+  }
+
+  static fromJson(jsonValue: JsonValue, options?: Partial<JsonReadOptions>): CloseBurnAttachmentRequest {
+    return new CloseBurnAttachmentRequest().fromJson(jsonValue, options);
+  }
+
+  static fromJsonString(jsonString: string, options?: Partial<JsonReadOptions>): CloseBurnAttachmentRequest {
+    return new CloseBurnAttachmentRequest().fromJsonString(jsonString, options);
+  }
+
+  static equals(a: CloseBurnAttachmentRequest | PlainMessage<CloseBurnAttachmentRequest> | undefined, b: CloseBurnAttachmentRequest | PlainMessage<CloseBurnAttachmentRequest> | undefined): boolean {
+    return proto3.util.equals(CloseBurnAttachmentRequest, a, b);
+  }
+}
+
+/**
+ * Current metadata after closing; no burn byte URLs.
+ *
+ * @generated from message chatto.api.v1.CloseBurnAttachmentResponse
+ */
+export class CloseBurnAttachmentResponse extends Message<CloseBurnAttachmentResponse> {
+  /**
+   * Current viewer-specific metadata.
+   *
+   * @generated from field: chatto.api.v1.Asset asset = 1;
+   */
+  asset?: Asset;
+
+  constructor(data?: PartialMessage<CloseBurnAttachmentResponse>) {
+    super();
+    proto3.util.initPartial(data, this);
+  }
+
+  static readonly runtime: typeof proto3 = proto3;
+  static readonly typeName = "chatto.api.v1.CloseBurnAttachmentResponse";
+  static readonly fields: FieldList = proto3.util.newFieldList(() => [
+    { no: 1, name: "asset", kind: "message", T: Asset },
+  ]);
+
+  static fromBinary(bytes: Uint8Array, options?: Partial<BinaryReadOptions>): CloseBurnAttachmentResponse {
+    return new CloseBurnAttachmentResponse().fromBinary(bytes, options);
+  }
+
+  static fromJson(jsonValue: JsonValue, options?: Partial<JsonReadOptions>): CloseBurnAttachmentResponse {
+    return new CloseBurnAttachmentResponse().fromJson(jsonValue, options);
+  }
+
+  static fromJsonString(jsonString: string, options?: Partial<JsonReadOptions>): CloseBurnAttachmentResponse {
+    return new CloseBurnAttachmentResponse().fromJsonString(jsonString, options);
+  }
+
+  static equals(a: CloseBurnAttachmentResponse | PlainMessage<CloseBurnAttachmentResponse> | undefined, b: CloseBurnAttachmentResponse | PlainMessage<CloseBurnAttachmentResponse> | undefined): boolean {
+    return proto3.util.equals(CloseBurnAttachmentResponse, a, b);
+  }
+}
+
+/**
+ * Creates or cancels the viewer's request for attachment-wide normal access.
+ * A request alone never extends file retention or grants viewing access.
+ *
+ * @generated from message chatto.api.v1.RequestAttachmentPermanenceRequest
+ */
+export class RequestAttachmentPermanenceRequest extends Message<RequestAttachmentPermanenceRequest> {
+  /**
+   * Required. Room containing the owning message.
+   *
+   * @generated from field: string room_id = 1;
+   */
+  roomId = "";
+
+  /**
+   * Required. Source asset ID.
+   *
+   * @generated from field: string asset_id = 2;
+   */
+  assetId = "";
+
+  /**
+   * True to request permanent access; false to cancel the existing request.
+   *
+   * @generated from field: bool requested = 3;
+   */
+  requested = false;
+
+  constructor(data?: PartialMessage<RequestAttachmentPermanenceRequest>) {
+    super();
+    proto3.util.initPartial(data, this);
+  }
+
+  static readonly runtime: typeof proto3 = proto3;
+  static readonly typeName = "chatto.api.v1.RequestAttachmentPermanenceRequest";
+  static readonly fields: FieldList = proto3.util.newFieldList(() => [
+    { no: 1, name: "room_id", kind: "scalar", T: 9 /* ScalarType.STRING */ },
+    { no: 2, name: "asset_id", kind: "scalar", T: 9 /* ScalarType.STRING */ },
+    { no: 3, name: "requested", kind: "scalar", T: 8 /* ScalarType.BOOL */ },
+  ]);
+
+  static fromBinary(bytes: Uint8Array, options?: Partial<BinaryReadOptions>): RequestAttachmentPermanenceRequest {
+    return new RequestAttachmentPermanenceRequest().fromBinary(bytes, options);
+  }
+
+  static fromJson(jsonValue: JsonValue, options?: Partial<JsonReadOptions>): RequestAttachmentPermanenceRequest {
+    return new RequestAttachmentPermanenceRequest().fromJson(jsonValue, options);
+  }
+
+  static fromJsonString(jsonString: string, options?: Partial<JsonReadOptions>): RequestAttachmentPermanenceRequest {
+    return new RequestAttachmentPermanenceRequest().fromJsonString(jsonString, options);
+  }
+
+  static equals(a: RequestAttachmentPermanenceRequest | PlainMessage<RequestAttachmentPermanenceRequest> | undefined, b: RequestAttachmentPermanenceRequest | PlainMessage<RequestAttachmentPermanenceRequest> | undefined): boolean {
+    return proto3.util.equals(RequestAttachmentPermanenceRequest, a, b);
+  }
+}
+
+/**
+ * Current metadata after creating or cancelling a request.
+ *
+ * @generated from message chatto.api.v1.RequestAttachmentPermanenceResponse
+ */
+export class RequestAttachmentPermanenceResponse extends Message<RequestAttachmentPermanenceResponse> {
+  /**
+   * Current viewer-specific metadata.
+   *
+   * @generated from field: chatto.api.v1.Asset asset = 1;
+   */
+  asset?: Asset;
+
+  constructor(data?: PartialMessage<RequestAttachmentPermanenceResponse>) {
+    super();
+    proto3.util.initPartial(data, this);
+  }
+
+  static readonly runtime: typeof proto3 = proto3;
+  static readonly typeName = "chatto.api.v1.RequestAttachmentPermanenceResponse";
+  static readonly fields: FieldList = proto3.util.newFieldList(() => [
+    { no: 1, name: "asset", kind: "message", T: Asset },
+  ]);
+
+  static fromBinary(bytes: Uint8Array, options?: Partial<BinaryReadOptions>): RequestAttachmentPermanenceResponse {
+    return new RequestAttachmentPermanenceResponse().fromBinary(bytes, options);
+  }
+
+  static fromJson(jsonValue: JsonValue, options?: Partial<JsonReadOptions>): RequestAttachmentPermanenceResponse {
+    return new RequestAttachmentPermanenceResponse().fromJson(jsonValue, options);
+  }
+
+  static fromJsonString(jsonString: string, options?: Partial<JsonReadOptions>): RequestAttachmentPermanenceResponse {
+    return new RequestAttachmentPermanenceResponse().fromJsonString(jsonString, options);
+  }
+
+  static equals(a: RequestAttachmentPermanenceResponse | PlainMessage<RequestAttachmentPermanenceResponse> | undefined, b: RequestAttachmentPermanenceResponse | PlainMessage<RequestAttachmentPermanenceResponse> | undefined): boolean {
+    return proto3.util.equals(RequestAttachmentPermanenceResponse, a, b);
+  }
+}
+
+/**
+ * Converts the whole attachment to normal access. Only the sender can do this.
+ * First use in each room requires acknowledge=true. Subsequent calls do not.
+ *
+ * @generated from message chatto.api.v1.MakeAttachmentPermanentRequest
+ */
+export class MakeAttachmentPermanentRequest extends Message<MakeAttachmentPermanentRequest> {
+  /**
+   * Required. Room containing the owning message.
+   *
+   * @generated from field: string room_id = 1;
+   */
+  roomId = "";
+
+  /**
+   * Required. Source asset ID.
+   *
+   * @generated from field: string asset_id = 2;
+   */
+  assetId = "";
+
+  /**
+   * Acknowledge that normal access includes current and future members.
+   *
+   * @generated from field: bool acknowledge = 3;
+   */
+  acknowledge = false;
+
+  constructor(data?: PartialMessage<MakeAttachmentPermanentRequest>) {
+    super();
+    proto3.util.initPartial(data, this);
+  }
+
+  static readonly runtime: typeof proto3 = proto3;
+  static readonly typeName = "chatto.api.v1.MakeAttachmentPermanentRequest";
+  static readonly fields: FieldList = proto3.util.newFieldList(() => [
+    { no: 1, name: "room_id", kind: "scalar", T: 9 /* ScalarType.STRING */ },
+    { no: 2, name: "asset_id", kind: "scalar", T: 9 /* ScalarType.STRING */ },
+    { no: 3, name: "acknowledge", kind: "scalar", T: 8 /* ScalarType.BOOL */ },
+  ]);
+
+  static fromBinary(bytes: Uint8Array, options?: Partial<BinaryReadOptions>): MakeAttachmentPermanentRequest {
+    return new MakeAttachmentPermanentRequest().fromBinary(bytes, options);
+  }
+
+  static fromJson(jsonValue: JsonValue, options?: Partial<JsonReadOptions>): MakeAttachmentPermanentRequest {
+    return new MakeAttachmentPermanentRequest().fromJson(jsonValue, options);
+  }
+
+  static fromJsonString(jsonString: string, options?: Partial<JsonReadOptions>): MakeAttachmentPermanentRequest {
+    return new MakeAttachmentPermanentRequest().fromJsonString(jsonString, options);
+  }
+
+  static equals(a: MakeAttachmentPermanentRequest | PlainMessage<MakeAttachmentPermanentRequest> | undefined, b: MakeAttachmentPermanentRequest | PlainMessage<MakeAttachmentPermanentRequest> | undefined): boolean {
+    return proto3.util.equals(MakeAttachmentPermanentRequest, a, b);
+  }
+}
+
+/**
+ * Normal attachment access and the bounded Undo capability.
+ *
+ * @generated from message chatto.api.v1.MakeAttachmentPermanentResponse
+ */
+export class MakeAttachmentPermanentResponse extends Message<MakeAttachmentPermanentResponse> {
+  /**
+   * Current metadata and ordinary attachment URLs.
+   *
+   * @generated from field: chatto.api.v1.Asset asset = 1;
+   */
+  asset?: Asset;
+
+  /**
+   * Opaque token for this exact conversion, valid only for the sender.
+   *
+   * @generated from field: string undo_token = 2;
+   */
+  undoToken = "";
+
+  /**
+   * Server-owned undo deadline. Undo does not reset prior burn deadlines.
+   *
+   * @generated from field: google.protobuf.Timestamp undo_expires_at = 3;
+   */
+  undoExpiresAt?: Timestamp;
+
+  constructor(data?: PartialMessage<MakeAttachmentPermanentResponse>) {
+    super();
+    proto3.util.initPartial(data, this);
+  }
+
+  static readonly runtime: typeof proto3 = proto3;
+  static readonly typeName = "chatto.api.v1.MakeAttachmentPermanentResponse";
+  static readonly fields: FieldList = proto3.util.newFieldList(() => [
+    { no: 1, name: "asset", kind: "message", T: Asset },
+    { no: 2, name: "undo_token", kind: "scalar", T: 9 /* ScalarType.STRING */ },
+    { no: 3, name: "undo_expires_at", kind: "message", T: Timestamp },
+  ]);
+
+  static fromBinary(bytes: Uint8Array, options?: Partial<BinaryReadOptions>): MakeAttachmentPermanentResponse {
+    return new MakeAttachmentPermanentResponse().fromBinary(bytes, options);
+  }
+
+  static fromJson(jsonValue: JsonValue, options?: Partial<JsonReadOptions>): MakeAttachmentPermanentResponse {
+    return new MakeAttachmentPermanentResponse().fromJson(jsonValue, options);
+  }
+
+  static fromJsonString(jsonString: string, options?: Partial<JsonReadOptions>): MakeAttachmentPermanentResponse {
+    return new MakeAttachmentPermanentResponse().fromJsonString(jsonString, options);
+  }
+
+  static equals(a: MakeAttachmentPermanentResponse | PlainMessage<MakeAttachmentPermanentResponse> | undefined, b: MakeAttachmentPermanentResponse | PlainMessage<MakeAttachmentPermanentResponse> | undefined): boolean {
+    return proto3.util.equals(MakeAttachmentPermanentResponse, a, b);
+  }
+}
+
+/**
+ * Restores the previous burn policy, original audience and consumed sessions.
+ * Already viewed or downloaded copies cannot be recalled.
+ *
+ * @generated from message chatto.api.v1.UndoAttachmentPermanenceRequest
+ */
+export class UndoAttachmentPermanenceRequest extends Message<UndoAttachmentPermanenceRequest> {
+  /**
+   * Required. Room containing the owning message.
+   *
+   * @generated from field: string room_id = 1;
+   */
+  roomId = "";
+
+  /**
+   * Required. Source asset ID.
+   *
+   * @generated from field: string asset_id = 2;
+   */
+  assetId = "";
+
+  /**
+   * Token returned by the exact conversion being undone.
+   *
+   * @generated from field: string undo_token = 3;
+   */
+  undoToken = "";
+
+  constructor(data?: PartialMessage<UndoAttachmentPermanenceRequest>) {
+    super();
+    proto3.util.initPartial(data, this);
+  }
+
+  static readonly runtime: typeof proto3 = proto3;
+  static readonly typeName = "chatto.api.v1.UndoAttachmentPermanenceRequest";
+  static readonly fields: FieldList = proto3.util.newFieldList(() => [
+    { no: 1, name: "room_id", kind: "scalar", T: 9 /* ScalarType.STRING */ },
+    { no: 2, name: "asset_id", kind: "scalar", T: 9 /* ScalarType.STRING */ },
+    { no: 3, name: "undo_token", kind: "scalar", T: 9 /* ScalarType.STRING */ },
+  ]);
+
+  static fromBinary(bytes: Uint8Array, options?: Partial<BinaryReadOptions>): UndoAttachmentPermanenceRequest {
+    return new UndoAttachmentPermanenceRequest().fromBinary(bytes, options);
+  }
+
+  static fromJson(jsonValue: JsonValue, options?: Partial<JsonReadOptions>): UndoAttachmentPermanenceRequest {
+    return new UndoAttachmentPermanenceRequest().fromJson(jsonValue, options);
+  }
+
+  static fromJsonString(jsonString: string, options?: Partial<JsonReadOptions>): UndoAttachmentPermanenceRequest {
+    return new UndoAttachmentPermanenceRequest().fromJsonString(jsonString, options);
+  }
+
+  static equals(a: UndoAttachmentPermanenceRequest | PlainMessage<UndoAttachmentPermanenceRequest> | undefined, b: UndoAttachmentPermanenceRequest | PlainMessage<UndoAttachmentPermanenceRequest> | undefined): boolean {
+    return proto3.util.equals(UndoAttachmentPermanenceRequest, a, b);
+  }
+}
+
+/**
+ * Restored burn metadata after Undo; no byte URLs.
+ *
+ * @generated from message chatto.api.v1.UndoAttachmentPermanenceResponse
+ */
+export class UndoAttachmentPermanenceResponse extends Message<UndoAttachmentPermanenceResponse> {
+  /**
+   * Current viewer-specific metadata.
+   *
+   * @generated from field: chatto.api.v1.Asset asset = 1;
+   */
+  asset?: Asset;
+
+  constructor(data?: PartialMessage<UndoAttachmentPermanenceResponse>) {
+    super();
+    proto3.util.initPartial(data, this);
+  }
+
+  static readonly runtime: typeof proto3 = proto3;
+  static readonly typeName = "chatto.api.v1.UndoAttachmentPermanenceResponse";
+  static readonly fields: FieldList = proto3.util.newFieldList(() => [
+    { no: 1, name: "asset", kind: "message", T: Asset },
+  ]);
+
+  static fromBinary(bytes: Uint8Array, options?: Partial<BinaryReadOptions>): UndoAttachmentPermanenceResponse {
+    return new UndoAttachmentPermanenceResponse().fromBinary(bytes, options);
+  }
+
+  static fromJson(jsonValue: JsonValue, options?: Partial<JsonReadOptions>): UndoAttachmentPermanenceResponse {
+    return new UndoAttachmentPermanenceResponse().fromJson(jsonValue, options);
+  }
+
+  static fromJsonString(jsonString: string, options?: Partial<JsonReadOptions>): UndoAttachmentPermanenceResponse {
+    return new UndoAttachmentPermanenceResponse().fromJsonString(jsonString, options);
+  }
+
+  static equals(a: UndoAttachmentPermanenceResponse | PlainMessage<UndoAttachmentPermanenceResponse> | undefined, b: UndoAttachmentPermanenceResponse | PlainMessage<UndoAttachmentPermanenceResponse> | undefined): boolean {
+    return proto3.util.equals(UndoAttachmentPermanenceResponse, a, b);
   }
 }
 

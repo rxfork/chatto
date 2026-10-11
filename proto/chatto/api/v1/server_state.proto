@@ -40,6 +40,10 @@ message ServerRuntimeConfig {
   int64 max_video_upload_size = 7;
   // Message edit window in seconds.
   int32 message_edit_window_seconds = 8;
+  // Whether view-once attachment commands and binary enforcement are supported.
+  // Check this before uploading or posting a burn attachment. Older servers
+  // leave it false and can ignore unknown CreateMessage fields.
+  bool burn_attachments_enabled = 9;
 }
 
 // Request for authenticated server runtime configuration.

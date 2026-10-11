@@ -39,6 +39,7 @@ func (s *messageService) CreateMessage(ctx context.Context, req *connect.Request
 		RoomID:                 req.Msg.RoomId,
 		Body:                   req.Msg.Body,
 		AttachmentAssetIDs:     append([]string(nil), req.Msg.GetAttachmentAssetIds()...),
+		BurnAttachmentAssetIDs: append([]string(nil), req.Msg.GetBurnAttachmentAssetIds()...),
 		AttachmentDescriptions: descriptions,
 		ThreadRootEventID:      req.Msg.ThreadRootEventId,
 		InReplyTo:              req.Msg.InReplyTo,

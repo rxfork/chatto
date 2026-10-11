@@ -605,6 +605,7 @@ export class MessageComposerState {
       bodyToSend,
       filesToSend,
       attachmentDescriptions: this.attachments.descriptions,
+      burnAttachments: [...this.attachments.burnFiles],
       threadRootEventId: this.#dependencies.getThreadRootEventId() ?? null,
       inReplyTo: this.#dependencies.context.replyState.messageEventId,
       linkPreviewToken: this.linkPreviews.buildToken(),

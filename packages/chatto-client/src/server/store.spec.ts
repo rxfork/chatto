@@ -50,6 +50,7 @@ import {
   AssetProcessingSucceededEvent,
   AssetProcessingFailedEvent,
   AssetDeletedEvent,
+  AttachmentChangedEvent,
   VoiceCallParticipantJoinedEvent,
   RoomThreadingModeChangedEvent,
   UserJoinedRoomEvent,
@@ -3105,6 +3106,10 @@ describe('ServerStateStore unified realtime resources', () => {
   });
 
   it.each([
+    {
+      case: 'attachmentChanged',
+      value: new AttachmentChangedEvent({ assetId: 'A1', roomId: 'R1', messageEventId: 'M1' })
+    },
     {
       case: 'assetProcessingStarted',
       value: new AssetProcessingStartedEvent({ assetId: 'A1', roomId: 'R1', messageEventId: 'M1' })

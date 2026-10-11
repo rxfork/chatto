@@ -5,6 +5,8 @@ import (
 	"errors"
 	"fmt"
 
+	"golang.org/x/sync/errgroup"
+
 	"github.com/nats-io/nats.go/jetstream"
 	"hmans.de/chatto/internal/evtstream"
 	evtv1 "hmans.de/chatto/internal/pb/chatto/core/evt/v1"
@@ -43,7 +45,10 @@ func (s *AssetModel) Run(ctx context.Context) error {
 	if s == nil || s.cleanupWorker == nil {
 		return fmt.Errorf("asset cleanup worker is not configured")
 	}
-	return s.cleanupWorker.Run(ctx)
+	g, groupCtx := errgroup.WithContext(ctx)
+	g.Go(func() error { return s.cleanupWorker.Run(groupCtx) })
+	g.Go(func() error { return s.runBurnExpiry(groupCtx) })
+	return g.Wait()
 }
 
 func (s *AssetModel) processCleanupDelivery(ctx context.Context, delivery events.DurableDelivery) error {
@@ -93,6 +98,15 @@ func (s *AssetModel) cleanupDeletedAsset(ctx context.Context, subjectEvent *evts
 	}
 	if err := s.reconcileDeletedAssetHLSDerivatives(ctx, event, deleted.GetAssetId()); err != nil {
 		return err
+	}
+	// Child creation facts retain their parent IDs after a root tombstone.
+	// Reconstruct direct children so a crash before derivative deletion does
+	// not leave retained thumbnails or media. Each child's durable worker
+	// recursively does the same before deleting its own backing bytes.
+	for _, childID := range s.assets.Projection().derivativeAssetIDs(deleted.GetAssetId()) {
+		if err := s.DeleteAsset(ctx, SystemActorID, childID); err != nil {
+			return err
+		}
 	}
 	created := createdEvents[len(createdEvents)-1].GetAssetCreated()
 	if created.GetAsset().GetId() != deleted.GetAssetId() {

@@ -24,12 +24,15 @@ type AssetProjection struct {
 	deletedAssetRoom        map[string]string
 	messageOwners           map[string]assetMessageRef
 	publicLinkPreviewAssets map[string]struct{}
+	burnStates              map[string]*evtv1.AssetBurnState
 }
 
 // AssetState is one detached, generation-consistent view of projected asset
 // lifecycle state. Callers cannot observe a declaration from one projection
 // generation and room or processing state from another.
 type AssetState struct {
+	// Burn is retained through deletion and undo; it never grants binary access.
+	Burn *evtv1.AssetBurnState
 	// Creation is the current declaration, or nil after deletion.
 	Creation *evtv1.AssetCreatedEvent
 	// RoomID remains available for a projected tombstone.
@@ -52,6 +55,7 @@ func NewAssetProjection() *AssetProjection {
 		deletedAssetRoom:        make(map[string]string),
 		messageOwners:           make(map[string]assetMessageRef),
 		publicLinkPreviewAssets: make(map[string]struct{}),
+		burnStates:              make(map[string]*evtv1.AssetBurnState),
 	}
 }
 
@@ -108,6 +112,9 @@ func (p *AssetProjection) Apply(event *evtv1.Event, seq uint64) error {
 	case *evtv1.Event_AssetAttached:
 		attached := ev.AssetAttached
 		assetID := attached.GetAssetId()
+		if attached.GetBurn() != nil && p.burnStates[assetID] == nil {
+			p.burnStates[assetID] = proto.Clone(attached.GetBurn()).(*evtv1.AssetBurnState)
+		}
 		if assetID != "" {
 			if _, exists := p.messageOwners[assetID]; !exists {
 				p.messageOwners[assetID] = assetMessageRef{
@@ -115,6 +122,13 @@ func (p *AssetProjection) Apply(event *evtv1.Event, seq uint64) error {
 					messageEventID: attached.GetMessageEventId(),
 					authorID:       attached.GetUserId(),
 				}
+			}
+		}
+	case *evtv1.Event_AssetBurnUpdated:
+		state := ev.AssetBurnUpdated.GetState()
+		if state != nil && state.GetAssetId() != "" {
+			if _, deleted := p.deletedAssets[state.GetAssetId()]; !deleted {
+				p.burnStates[state.GetAssetId()] = proto.Clone(state).(*evtv1.AssetBurnState)
 			}
 		}
 	case *evtv1.Event_AssetProcessingStarted:
@@ -252,6 +266,9 @@ func (p *AssetProjection) AssetState(assetID string) AssetState {
 	}
 
 	state := AssetState{RoomID: p.assetRoomIDLocked(assetID)}
+	if burn := p.burnStates[assetID]; burn != nil {
+		state.Burn = proto.Clone(burn).(*evtv1.AssetBurnState)
+	}
 	if declared := p.assetCreations[assetID]; declared != nil {
 		state.Creation = proto.Clone(declared).(*evtv1.AssetCreatedEvent)
 	}

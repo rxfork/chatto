@@ -641,6 +641,7 @@ type RealtimeEvent struct {
 	//	*RealtimeEvent_RolePermissionsChanged
 	//	*RealtimeEvent_ViewerPermissionsChanged
 	//	*RealtimeEvent_ViewerPresencePreferenceChanged
+	//	*RealtimeEvent_AttachmentChanged
 	Event         isRealtimeEvent_Event `protobuf_oneof:"event"`
 	unknownFields protoimpl.UnknownFields
 	sizeCache     protoimpl.SizeCache
@@ -1143,6 +1144,15 @@ func (x *RealtimeEvent) GetViewerPresencePreferenceChanged() *ViewerPresencePref
 	return nil
 }
 
+func (x *RealtimeEvent) GetAttachmentChanged() *AttachmentChangedEvent {
+	if x != nil {
+		if x, ok := x.Event.(*RealtimeEvent_AttachmentChanged); ok {
+			return x.AttachmentChanged
+		}
+	}
+	return nil
+}
+
 type isRealtimeEvent_Event interface {
 	isRealtimeEvent_Event()
 }
@@ -1339,6 +1349,10 @@ type RealtimeEvent_ViewerPresencePreferenceChanged struct {
 	ViewerPresencePreferenceChanged *ViewerPresencePreferenceChangedEvent `protobuf:"bytes,68,opt,name=viewer_presence_preference_changed,json=viewerPresencePreferenceChanged,proto3,oneof"`
 }
 
+type RealtimeEvent_AttachmentChanged struct {
+	AttachmentChanged *AttachmentChangedEvent `protobuf:"bytes,69,opt,name=attachment_changed,json=attachmentChanged,proto3,oneof"`
+}
+
 func (*RealtimeEvent_RoomCreated) isRealtimeEvent_Event() {}
 
 func (*RealtimeEvent_RoomUpdated) isRealtimeEvent_Event() {}
@@ -1434,6 +1448,8 @@ func (*RealtimeEvent_RolePermissionsChanged) isRealtimeEvent_Event() {}
 func (*RealtimeEvent_ViewerPermissionsChanged) isRealtimeEvent_Event() {}
 
 func (*RealtimeEvent_ViewerPresencePreferenceChanged) isRealtimeEvent_Event() {}
+
+func (*RealtimeEvent_AttachmentChanged) isRealtimeEvent_Event() {}
 
 // Application-level heartbeat.
 type RealtimeHeartbeat struct {
@@ -1584,7 +1600,7 @@ const file_chatto_realtime_v1_realtime_proto_rawDesc = "" +
 	"\factive_calls\x18\x05 \x03(\v2\x19.chatto.api.v1.ActiveCallR\vactiveCalls\"l\n" +
 	"\x10RealtimeCaughtUp\x12\x16\n" +
 	"\x06cursor\x18\x01 \x01(\tR\x06cursor\x12@\n" +
-	"\brecovery\x18\x02 \x01(\x0e2$.chatto.realtime.v1.RealtimeRecoveryR\brecovery\"\x81'\n" +
+	"\brecovery\x18\x02 \x01(\x0e2$.chatto.realtime.v1.RealtimeRecoveryR\brecovery\"\xde'\n" +
 	"\rRealtimeEvent\x12\x0e\n" +
 	"\x02id\x18\x01 \x01(\tR\x02id\x129\n" +
 	"\n" +
@@ -1640,7 +1656,8 @@ const file_chatto_realtime_v1_realtime_proto_rawDesc = "" +
 	"\frole_revoked\x18A \x01(\v2$.chatto.realtime.v1.RoleRevokedEventH\x00R\vroleRevoked\x12k\n" +
 	"\x18role_permissions_changed\x18B \x01(\v2/.chatto.realtime.v1.RolePermissionsChangedEventH\x00R\x16rolePermissionsChanged\x12q\n" +
 	"\x1aviewer_permissions_changed\x18C \x01(\v21.chatto.realtime.v1.ViewerPermissionsChangedEventH\x00R\x18viewerPermissionsChanged\x12\x87\x01\n" +
-	"\"viewer_presence_preference_changed\x18D \x01(\v28.chatto.realtime.v1.ViewerPresencePreferenceChangedEventH\x00R\x1fviewerPresencePreferenceChangedB\a\n" +
+	"\"viewer_presence_preference_changed\x18D \x01(\v28.chatto.realtime.v1.ViewerPresencePreferenceChangedEventH\x00R\x1fviewerPresencePreferenceChanged\x12[\n" +
+	"\x12attachment_changed\x18E \x01(\v2*.chatto.realtime.v1.AttachmentChangedEventH\x00R\x11attachmentChangedB\a\n" +
 	"\x05eventB\v\n" +
 	"\t_actor_idB\t\n" +
 	"\a_cursorJ\x04\b#\x10.R\x12room_group_createdR\x12room_group_updatedR\x12room_group_deletedR\x13room_added_to_groupR\x17room_removed_from_groupR\x18rooms_in_group_reorderedR\x1bsidebar_link_added_to_groupR\x14sidebar_link_updatedR\x1fsidebar_link_removed_from_groupR\x1fsidebar_group_entries_reorderedR\x15room_groups_reordered\";\n" +
@@ -1753,7 +1770,8 @@ var file_chatto_realtime_v1_realtime_proto_goTypes = []any{
 	(*RolePermissionsChangedEvent)(nil),          // 61: chatto.realtime.v1.RolePermissionsChangedEvent
 	(*ViewerPermissionsChangedEvent)(nil),        // 62: chatto.realtime.v1.ViewerPermissionsChangedEvent
 	(*ViewerPresencePreferenceChangedEvent)(nil), // 63: chatto.realtime.v1.ViewerPresencePreferenceChangedEvent
-	(*durationpb.Duration)(nil),                  // 64: google.protobuf.Duration
+	(*AttachmentChangedEvent)(nil),               // 64: chatto.realtime.v1.AttachmentChangedEvent
+	(*durationpb.Duration)(nil),                  // 65: google.protobuf.Duration
 }
 var file_chatto_realtime_v1_realtime_proto_depIdxs = []int32{
 	0,  // 0: chatto.realtime.v1.RealtimeSubscribe.initial_state:type_name -> chatto.realtime.v1.RealtimeInitialState
@@ -1817,13 +1835,14 @@ var file_chatto_realtime_v1_realtime_proto_depIdxs = []int32{
 	61, // 58: chatto.realtime.v1.RealtimeEvent.role_permissions_changed:type_name -> chatto.realtime.v1.RolePermissionsChangedEvent
 	62, // 59: chatto.realtime.v1.RealtimeEvent.viewer_permissions_changed:type_name -> chatto.realtime.v1.ViewerPermissionsChangedEvent
 	63, // 60: chatto.realtime.v1.RealtimeEvent.viewer_presence_preference_changed:type_name -> chatto.realtime.v1.ViewerPresencePreferenceChangedEvent
-	2,  // 61: chatto.realtime.v1.RealtimeClose.code:type_name -> chatto.realtime.v1.RealtimeCloseCode
-	64, // 62: chatto.realtime.v1.RealtimeClose.retry_after:type_name -> google.protobuf.Duration
-	63, // [63:63] is the sub-list for method output_type
-	63, // [63:63] is the sub-list for method input_type
-	63, // [63:63] is the sub-list for extension type_name
-	63, // [63:63] is the sub-list for extension extendee
-	0,  // [0:63] is the sub-list for field type_name
+	64, // 61: chatto.realtime.v1.RealtimeEvent.attachment_changed:type_name -> chatto.realtime.v1.AttachmentChangedEvent
+	2,  // 62: chatto.realtime.v1.RealtimeClose.code:type_name -> chatto.realtime.v1.RealtimeCloseCode
+	65, // 63: chatto.realtime.v1.RealtimeClose.retry_after:type_name -> google.protobuf.Duration
+	64, // [64:64] is the sub-list for method output_type
+	64, // [64:64] is the sub-list for method input_type
+	64, // [64:64] is the sub-list for extension type_name
+	64, // [64:64] is the sub-list for extension extendee
+	0,  // [0:64] is the sub-list for field type_name
 }
 
 func init() { file_chatto_realtime_v1_realtime_proto_init() }
@@ -1889,6 +1908,7 @@ func file_chatto_realtime_v1_realtime_proto_init() {
 		(*RealtimeEvent_RolePermissionsChanged)(nil),
 		(*RealtimeEvent_ViewerPermissionsChanged)(nil),
 		(*RealtimeEvent_ViewerPresencePreferenceChanged)(nil),
+		(*RealtimeEvent_AttachmentChanged)(nil),
 	}
 	file_chatto_realtime_v1_realtime_proto_msgTypes[5].OneofWrappers = []any{}
 	type x struct{}

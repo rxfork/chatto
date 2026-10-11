@@ -63,6 +63,7 @@
   const connection = {} as ServerConnection;
   const users = untrack(() => userStore ?? new UserStore());
   const store = {
+    onUpdate: () => () => {},
     projection: { users },
     notifications: { hasThreadNotification: () => false },
     readViews: { covers: () => false },

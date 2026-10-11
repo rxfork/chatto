@@ -2,11 +2,11 @@ syntax = "proto3";
 
 package chatto.api.v1;
 
-import "google/protobuf/field_mask.proto";
 import "buf/validate/validate.proto";
 import "chatto/api/v1/link_previews.proto";
 import "chatto/api/v1/message_types.proto";
 import "chatto/api/v1/reactions.proto";
+import "google/protobuf/field_mask.proto";
 
 // Description supplied for one attachment in a new message.
 message MessageAttachmentDescriptionInput {
@@ -68,9 +68,11 @@ message CreateMessageRequest {
   bool create_thread = 11;
   // Optional descriptions for assets in attachment_asset_ids. Asset IDs must
   // be unique in this list. At most one description can target each asset.
-  repeated MessageAttachmentDescriptionInput attachment_descriptions = 12 [(buf.validate.field).repeated = {
-    max_items: 10
-  }];
+  repeated MessageAttachmentDescriptionInput attachment_descriptions = 12 [(buf.validate.field).repeated = {max_items: 10}];
+  // IDs from attachment_asset_ids to send as view-once attachments. Each
+  // current room member gets one session. Later members do not get a session.
+  // Only types with a supported inline preview are accepted.
+  repeated string burn_attachment_asset_ids = 13 [(buf.validate.field).repeated.max_items = 10];
 }
 
 // Result of creating a message.

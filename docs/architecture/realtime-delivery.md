@@ -58,6 +58,11 @@ are `event`, `heartbeat`, and `close`. All terminal protocol results use
 
 ## Public events
 
+`AssetBurnUpdatedEvent` maps to the compact `AttachmentChangedEvent`. It
+contains only asset, room, and message IDs; the mapper omits the actor to avoid
+revealing viewing activity. The client refetches viewer-specific metadata for
+the affected message. Cleanup uses the existing `AssetDeletedEvent` signal.
+
 `chatto.core.evt.v1.Event` contains durable EVT facts.
 `chatto.core.pubsub.v1.PubSubEvent` contains a restricted set of NATS Core
 pubsub events. Client-facing variants reference the public payload messages

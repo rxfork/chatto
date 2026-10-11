@@ -16,10 +16,12 @@ import {
 } from '@chatto/api-types/api/v1/asset_uploads_pb';
 import { Asset } from '@chatto/api-types/api/v1/attachments_pb';
 import { Message } from '@chatto/api-types/api/v1/message_types_pb';
+import { ServerService } from '@chatto/api-types/api/v1/server_state_connect';
 
 const messages = mockService(MessageService);
 const users = mockService(UserService);
 const uploads = mockService(AssetUploadService);
+const server = mockService(ServerService);
 
 function messageAPI() {
   return createMessageAPI(
@@ -28,6 +30,7 @@ function messageAPI() {
         .service(MessageService, messages)
         .service(UserService, users)
         .service(AssetUploadService, uploads)
+        .service(ServerService, server)
     )
   );
 }
@@ -36,6 +39,64 @@ describe('createMessageAPI', () => {
   beforeEach(() => {
     vi.resetAllMocks();
     users.batchGetUsers.mockReturnValue({ users: [] });
+    server.getRuntimeConfig.mockReturnValue({ runtime: { burnAttachmentsEnabled: true } });
+  });
+
+  it.each([{}, { runtime: {} }, { runtime: { burnAttachmentsEnabled: false } }])(
+    'refuses burn uploads and pre-uploaded writes when runtime capability is absent: %j',
+    async (runtimeConfig) => {
+      server.getRuntimeConfig.mockReturnValue(runtimeConfig);
+      const api = messageAPI();
+      const file = new File(['private'], 'secret.txt', { type: 'text/plain' });
+      await expect(
+        api.createMessage({
+          roomId: 'room-1',
+          body: '',
+          attachments: [file],
+          burnAttachments: [file]
+        })
+      ).rejects.toMatchObject({ code: Code.FailedPrecondition });
+      await expect(
+        api.createMessage({
+          roomId: 'room-1',
+          body: '',
+          attachmentAssetIds: ['secret'],
+          burnAttachmentAssetIds: ['secret']
+        })
+      ).rejects.toMatchObject({ code: Code.FailedPrecondition });
+      expect(uploads.createUpload).not.toHaveBeenCalled();
+      expect(messages.createMessage).not.toHaveBeenCalled();
+    }
+  );
+
+  it('refuses burn mode when the runtime capability request fails before upload or write', async () => {
+    server.getRuntimeConfig.mockRejectedValue(
+      new ConnectError('method missing', Code.Unimplemented)
+    );
+    const file = new File(['private'], 'secret.txt', { type: 'text/plain' });
+    await expect(
+      messageAPI().createMessage({
+        roomId: 'room-1',
+        body: '',
+        attachments: [file],
+        burnAttachments: [file]
+      })
+    ).rejects.toMatchObject({ code: Code.Unimplemented });
+    expect(uploads.createUpload).not.toHaveBeenCalled();
+    expect(messages.createMessage).not.toHaveBeenCalled();
+  });
+
+  it('rejects a burn file missing from selected uploads without uploading or posting', async () => {
+    await expect(
+      messageAPI().createMessage({
+        roomId: 'room-1',
+        body: '',
+        attachments: [new File(['public'], 'public.txt')],
+        burnAttachments: [new File(['private'], 'secret.txt')]
+      })
+    ).rejects.toMatchObject({ code: Code.InvalidArgument });
+    expect(uploads.createUpload).not.toHaveBeenCalled();
+    expect(messages.createMessage).not.toHaveBeenCalled();
   });
 
   it('trims descriptions before create and edit requests reach schema validation', async () => {
@@ -55,6 +116,20 @@ describe('createMessageAPI', () => {
     expect(receivedRequest(messages.setAttachmentDescription)).toMatchObject({ description });
     await api.setAttachmentDescription('room-1', 'event-1', 'asset-1', ' \n ');
     expect(messages.setAttachmentDescription.mock.lastCall?.[0]).toMatchObject({ description: '' });
+  });
+
+  it('posts pre-uploaded burn choices without changing ordinary attachment choices', async () => {
+    messages.createMessage.mockReturnValue(new CreateMessageResponse());
+    await messageAPI().createMessage({
+      roomId: 'room-1',
+      body: '',
+      attachmentAssetIds: ['ordinary', 'secret'],
+      burnAttachmentAssetIds: ['secret']
+    });
+    expect(receivedRequest(messages.createMessage)).toMatchObject({
+      attachmentAssetIds: ['ordinary', 'secret'],
+      burnAttachmentAssetIds: ['secret']
+    });
   });
 
   it('posts a message and maps the renderable event response', async () => {
@@ -110,6 +185,7 @@ describe('createMessageAPI', () => {
         event: { kind: 'messagePosted', body: 'hello' }
       }
     });
+    expect(server.getRuntimeConfig).not.toHaveBeenCalled();
   });
 
   it('uploads browser files through AssetUploadService and posts attachment asset IDs', async () => {
@@ -172,6 +248,7 @@ describe('createMessageAPI', () => {
       roomId: 'room-1',
       body: 'with file',
       attachments: [file],
+      burnAttachments: [file],
       threadRootEventId: 'root-1',
       alsoSendToChannel: true
     });
@@ -194,6 +271,7 @@ describe('createMessageAPI', () => {
     expect(receivedRequest(uploads.completeUpload)).toMatchObject({ uploadId: 'upload-note' });
     const request = messages.createMessage.mock.calls[0][0];
     expect(request.attachmentAssetIds).toEqual(['asset-note']);
+    expect(request.burnAttachmentAssetIds).toEqual(['asset-note']);
     expect(request.threadRootEventId).toBe('root-1');
     expect(request.alsoSendToChannel).toBe(true);
   });

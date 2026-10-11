@@ -44,8 +44,10 @@ type Asset struct {
 	ThumbnailAssetUrl *MessageAssetUrl `protobuf:"bytes,8,opt,name=thumbnail_asset_url,json=thumbnailAssetUrl,proto3" json:"thumbnail_asset_url,omitempty"`
 	// Video processing state when this asset is a video attachment.
 	VideoProcessing *MessageVideoProcessing `protobuf:"bytes,9,opt,name=video_processing,json=videoProcessing,proto3" json:"video_processing,omitempty"`
-	unknownFields   protoimpl.UnknownFields
-	sizeCache       protoimpl.SizeCache
+	// Viewer-specific view-once policy. Absent on ordinary attachments.
+	Burn          *BurnAttachment `protobuf:"bytes,10,opt,name=burn,proto3" json:"burn,omitempty"`
+	unknownFields protoimpl.UnknownFields
+	sizeCache     protoimpl.SizeCache
 }
 
 func (x *Asset) Reset() {
@@ -141,6 +143,595 @@ func (x *Asset) GetVideoProcessing() *MessageVideoProcessing {
 	return nil
 }
 
+func (x *Asset) GetBurn() *BurnAttachment {
+	if x != nil {
+		return x.Burn
+	}
+	return nil
+}
+
+// Starts or retries one logical session. Generate a random session_id before
+// the first attempt and reuse it only for retries of that opening. Closing,
+// expiry, or an attempt with a different ID cannot restore a consumed session.
+type OpenBurnAttachmentRequest struct {
+	state protoimpl.MessageState `protogen:"open.v1"`
+	// Required. Room containing the owning message.
+	RoomId string `protobuf:"bytes,1,opt,name=room_id,json=roomId,proto3" json:"room_id,omitempty"`
+	// Required. The burn attachment's source asset ID.
+	AssetId string `protobuf:"bytes,2,opt,name=asset_id,json=assetId,proto3" json:"asset_id,omitempty"`
+	// Random capability for this opening. Reuse only to retry the same session.
+	SessionId     string `protobuf:"bytes,3,opt,name=session_id,json=sessionId,proto3" json:"session_id,omitempty"`
+	unknownFields protoimpl.UnknownFields
+	sizeCache     protoimpl.SizeCache
+}
+
+func (x *OpenBurnAttachmentRequest) Reset() {
+	*x = OpenBurnAttachmentRequest{}
+	mi := &file_chatto_api_v1_attachments_proto_msgTypes[1]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *OpenBurnAttachmentRequest) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*OpenBurnAttachmentRequest) ProtoMessage() {}
+
+func (x *OpenBurnAttachmentRequest) ProtoReflect() protoreflect.Message {
+	mi := &file_chatto_api_v1_attachments_proto_msgTypes[1]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use OpenBurnAttachmentRequest.ProtoReflect.Descriptor instead.
+func (*OpenBurnAttachmentRequest) Descriptor() ([]byte, []int) {
+	return file_chatto_api_v1_attachments_proto_rawDescGZIP(), []int{1}
+}
+
+func (x *OpenBurnAttachmentRequest) GetRoomId() string {
+	if x != nil {
+		return x.RoomId
+	}
+	return ""
+}
+
+func (x *OpenBurnAttachmentRequest) GetAssetId() string {
+	if x != nil {
+		return x.AssetId
+	}
+	return ""
+}
+
+func (x *OpenBurnAttachmentRequest) GetSessionId() string {
+	if x != nil {
+		return x.SessionId
+	}
+	return ""
+}
+
+// Metadata and byte URLs after the session is committed.
+type OpenBurnAttachmentResponse struct {
+	state protoimpl.MessageState `protogen:"open.v1"`
+	// Session-bound URLs. Do not persist, prefetch, or share them.
+	Asset *Asset `protobuf:"bytes,1,opt,name=asset,proto3" json:"asset,omitempty"`
+	// Clear displayed content at this deadline, even while offline.
+	ViewExpiresAt *timestamppb.Timestamp `protobuf:"bytes,2,opt,name=view_expires_at,json=viewExpiresAt,proto3" json:"view_expires_at,omitempty"`
+	unknownFields protoimpl.UnknownFields
+	sizeCache     protoimpl.SizeCache
+}
+
+func (x *OpenBurnAttachmentResponse) Reset() {
+	*x = OpenBurnAttachmentResponse{}
+	mi := &file_chatto_api_v1_attachments_proto_msgTypes[2]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *OpenBurnAttachmentResponse) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*OpenBurnAttachmentResponse) ProtoMessage() {}
+
+func (x *OpenBurnAttachmentResponse) ProtoReflect() protoreflect.Message {
+	mi := &file_chatto_api_v1_attachments_proto_msgTypes[2]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use OpenBurnAttachmentResponse.ProtoReflect.Descriptor instead.
+func (*OpenBurnAttachmentResponse) Descriptor() ([]byte, []int) {
+	return file_chatto_api_v1_attachments_proto_rawDescGZIP(), []int{2}
+}
+
+func (x *OpenBurnAttachmentResponse) GetAsset() *Asset {
+	if x != nil {
+		return x.Asset
+	}
+	return nil
+}
+
+func (x *OpenBurnAttachmentResponse) GetViewExpiresAt() *timestamppb.Timestamp {
+	if x != nil {
+		return x.ViewExpiresAt
+	}
+	return nil
+}
+
+// Ends a logical session. Repeated closes with the same ID are safe.
+type CloseBurnAttachmentRequest struct {
+	state protoimpl.MessageState `protogen:"open.v1"`
+	// Required. Room containing the owning message.
+	RoomId string `protobuf:"bytes,1,opt,name=room_id,json=roomId,proto3" json:"room_id,omitempty"`
+	// Required. Source asset ID.
+	AssetId string `protobuf:"bytes,2,opt,name=asset_id,json=assetId,proto3" json:"asset_id,omitempty"`
+	// Capability used to open this session.
+	SessionId     string `protobuf:"bytes,3,opt,name=session_id,json=sessionId,proto3" json:"session_id,omitempty"`
+	unknownFields protoimpl.UnknownFields
+	sizeCache     protoimpl.SizeCache
+}
+
+func (x *CloseBurnAttachmentRequest) Reset() {
+	*x = CloseBurnAttachmentRequest{}
+	mi := &file_chatto_api_v1_attachments_proto_msgTypes[3]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *CloseBurnAttachmentRequest) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*CloseBurnAttachmentRequest) ProtoMessage() {}
+
+func (x *CloseBurnAttachmentRequest) ProtoReflect() protoreflect.Message {
+	mi := &file_chatto_api_v1_attachments_proto_msgTypes[3]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use CloseBurnAttachmentRequest.ProtoReflect.Descriptor instead.
+func (*CloseBurnAttachmentRequest) Descriptor() ([]byte, []int) {
+	return file_chatto_api_v1_attachments_proto_rawDescGZIP(), []int{3}
+}
+
+func (x *CloseBurnAttachmentRequest) GetRoomId() string {
+	if x != nil {
+		return x.RoomId
+	}
+	return ""
+}
+
+func (x *CloseBurnAttachmentRequest) GetAssetId() string {
+	if x != nil {
+		return x.AssetId
+	}
+	return ""
+}
+
+func (x *CloseBurnAttachmentRequest) GetSessionId() string {
+	if x != nil {
+		return x.SessionId
+	}
+	return ""
+}
+
+// Current metadata after closing; no burn byte URLs.
+type CloseBurnAttachmentResponse struct {
+	state protoimpl.MessageState `protogen:"open.v1"`
+	// Current viewer-specific metadata.
+	Asset         *Asset `protobuf:"bytes,1,opt,name=asset,proto3" json:"asset,omitempty"`
+	unknownFields protoimpl.UnknownFields
+	sizeCache     protoimpl.SizeCache
+}
+
+func (x *CloseBurnAttachmentResponse) Reset() {
+	*x = CloseBurnAttachmentResponse{}
+	mi := &file_chatto_api_v1_attachments_proto_msgTypes[4]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *CloseBurnAttachmentResponse) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*CloseBurnAttachmentResponse) ProtoMessage() {}
+
+func (x *CloseBurnAttachmentResponse) ProtoReflect() protoreflect.Message {
+	mi := &file_chatto_api_v1_attachments_proto_msgTypes[4]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use CloseBurnAttachmentResponse.ProtoReflect.Descriptor instead.
+func (*CloseBurnAttachmentResponse) Descriptor() ([]byte, []int) {
+	return file_chatto_api_v1_attachments_proto_rawDescGZIP(), []int{4}
+}
+
+func (x *CloseBurnAttachmentResponse) GetAsset() *Asset {
+	if x != nil {
+		return x.Asset
+	}
+	return nil
+}
+
+// Creates or cancels the viewer's request for attachment-wide normal access.
+// A request alone never extends file retention or grants viewing access.
+type RequestAttachmentPermanenceRequest struct {
+	state protoimpl.MessageState `protogen:"open.v1"`
+	// Required. Room containing the owning message.
+	RoomId string `protobuf:"bytes,1,opt,name=room_id,json=roomId,proto3" json:"room_id,omitempty"`
+	// Required. Source asset ID.
+	AssetId string `protobuf:"bytes,2,opt,name=asset_id,json=assetId,proto3" json:"asset_id,omitempty"`
+	// True to request permanent access; false to cancel the existing request.
+	Requested     bool `protobuf:"varint,3,opt,name=requested,proto3" json:"requested,omitempty"`
+	unknownFields protoimpl.UnknownFields
+	sizeCache     protoimpl.SizeCache
+}
+
+func (x *RequestAttachmentPermanenceRequest) Reset() {
+	*x = RequestAttachmentPermanenceRequest{}
+	mi := &file_chatto_api_v1_attachments_proto_msgTypes[5]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *RequestAttachmentPermanenceRequest) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*RequestAttachmentPermanenceRequest) ProtoMessage() {}
+
+func (x *RequestAttachmentPermanenceRequest) ProtoReflect() protoreflect.Message {
+	mi := &file_chatto_api_v1_attachments_proto_msgTypes[5]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use RequestAttachmentPermanenceRequest.ProtoReflect.Descriptor instead.
+func (*RequestAttachmentPermanenceRequest) Descriptor() ([]byte, []int) {
+	return file_chatto_api_v1_attachments_proto_rawDescGZIP(), []int{5}
+}
+
+func (x *RequestAttachmentPermanenceRequest) GetRoomId() string {
+	if x != nil {
+		return x.RoomId
+	}
+	return ""
+}
+
+func (x *RequestAttachmentPermanenceRequest) GetAssetId() string {
+	if x != nil {
+		return x.AssetId
+	}
+	return ""
+}
+
+func (x *RequestAttachmentPermanenceRequest) GetRequested() bool {
+	if x != nil {
+		return x.Requested
+	}
+	return false
+}
+
+// Current metadata after creating or cancelling a request.
+type RequestAttachmentPermanenceResponse struct {
+	state protoimpl.MessageState `protogen:"open.v1"`
+	// Current viewer-specific metadata.
+	Asset         *Asset `protobuf:"bytes,1,opt,name=asset,proto3" json:"asset,omitempty"`
+	unknownFields protoimpl.UnknownFields
+	sizeCache     protoimpl.SizeCache
+}
+
+func (x *RequestAttachmentPermanenceResponse) Reset() {
+	*x = RequestAttachmentPermanenceResponse{}
+	mi := &file_chatto_api_v1_attachments_proto_msgTypes[6]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *RequestAttachmentPermanenceResponse) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*RequestAttachmentPermanenceResponse) ProtoMessage() {}
+
+func (x *RequestAttachmentPermanenceResponse) ProtoReflect() protoreflect.Message {
+	mi := &file_chatto_api_v1_attachments_proto_msgTypes[6]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use RequestAttachmentPermanenceResponse.ProtoReflect.Descriptor instead.
+func (*RequestAttachmentPermanenceResponse) Descriptor() ([]byte, []int) {
+	return file_chatto_api_v1_attachments_proto_rawDescGZIP(), []int{6}
+}
+
+func (x *RequestAttachmentPermanenceResponse) GetAsset() *Asset {
+	if x != nil {
+		return x.Asset
+	}
+	return nil
+}
+
+// Converts the whole attachment to normal access. Only the sender can do this.
+// First use in each room requires acknowledge=true. Subsequent calls do not.
+type MakeAttachmentPermanentRequest struct {
+	state protoimpl.MessageState `protogen:"open.v1"`
+	// Required. Room containing the owning message.
+	RoomId string `protobuf:"bytes,1,opt,name=room_id,json=roomId,proto3" json:"room_id,omitempty"`
+	// Required. Source asset ID.
+	AssetId string `protobuf:"bytes,2,opt,name=asset_id,json=assetId,proto3" json:"asset_id,omitempty"`
+	// Acknowledge that normal access includes current and future members.
+	Acknowledge   bool `protobuf:"varint,3,opt,name=acknowledge,proto3" json:"acknowledge,omitempty"`
+	unknownFields protoimpl.UnknownFields
+	sizeCache     protoimpl.SizeCache
+}
+
+func (x *MakeAttachmentPermanentRequest) Reset() {
+	*x = MakeAttachmentPermanentRequest{}
+	mi := &file_chatto_api_v1_attachments_proto_msgTypes[7]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *MakeAttachmentPermanentRequest) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*MakeAttachmentPermanentRequest) ProtoMessage() {}
+
+func (x *MakeAttachmentPermanentRequest) ProtoReflect() protoreflect.Message {
+	mi := &file_chatto_api_v1_attachments_proto_msgTypes[7]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use MakeAttachmentPermanentRequest.ProtoReflect.Descriptor instead.
+func (*MakeAttachmentPermanentRequest) Descriptor() ([]byte, []int) {
+	return file_chatto_api_v1_attachments_proto_rawDescGZIP(), []int{7}
+}
+
+func (x *MakeAttachmentPermanentRequest) GetRoomId() string {
+	if x != nil {
+		return x.RoomId
+	}
+	return ""
+}
+
+func (x *MakeAttachmentPermanentRequest) GetAssetId() string {
+	if x != nil {
+		return x.AssetId
+	}
+	return ""
+}
+
+func (x *MakeAttachmentPermanentRequest) GetAcknowledge() bool {
+	if x != nil {
+		return x.Acknowledge
+	}
+	return false
+}
+
+// Normal attachment access and the bounded Undo capability.
+type MakeAttachmentPermanentResponse struct {
+	state protoimpl.MessageState `protogen:"open.v1"`
+	// Current metadata and ordinary attachment URLs.
+	Asset *Asset `protobuf:"bytes,1,opt,name=asset,proto3" json:"asset,omitempty"`
+	// Opaque token for this exact conversion, valid only for the sender.
+	UndoToken string `protobuf:"bytes,2,opt,name=undo_token,json=undoToken,proto3" json:"undo_token,omitempty"`
+	// Server-owned undo deadline. Undo does not reset prior burn deadlines.
+	UndoExpiresAt *timestamppb.Timestamp `protobuf:"bytes,3,opt,name=undo_expires_at,json=undoExpiresAt,proto3" json:"undo_expires_at,omitempty"`
+	unknownFields protoimpl.UnknownFields
+	sizeCache     protoimpl.SizeCache
+}
+
+func (x *MakeAttachmentPermanentResponse) Reset() {
+	*x = MakeAttachmentPermanentResponse{}
+	mi := &file_chatto_api_v1_attachments_proto_msgTypes[8]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *MakeAttachmentPermanentResponse) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*MakeAttachmentPermanentResponse) ProtoMessage() {}
+
+func (x *MakeAttachmentPermanentResponse) ProtoReflect() protoreflect.Message {
+	mi := &file_chatto_api_v1_attachments_proto_msgTypes[8]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use MakeAttachmentPermanentResponse.ProtoReflect.Descriptor instead.
+func (*MakeAttachmentPermanentResponse) Descriptor() ([]byte, []int) {
+	return file_chatto_api_v1_attachments_proto_rawDescGZIP(), []int{8}
+}
+
+func (x *MakeAttachmentPermanentResponse) GetAsset() *Asset {
+	if x != nil {
+		return x.Asset
+	}
+	return nil
+}
+
+func (x *MakeAttachmentPermanentResponse) GetUndoToken() string {
+	if x != nil {
+		return x.UndoToken
+	}
+	return ""
+}
+
+func (x *MakeAttachmentPermanentResponse) GetUndoExpiresAt() *timestamppb.Timestamp {
+	if x != nil {
+		return x.UndoExpiresAt
+	}
+	return nil
+}
+
+// Restores the previous burn policy, original audience and consumed sessions.
+// Already viewed or downloaded copies cannot be recalled.
+type UndoAttachmentPermanenceRequest struct {
+	state protoimpl.MessageState `protogen:"open.v1"`
+	// Required. Room containing the owning message.
+	RoomId string `protobuf:"bytes,1,opt,name=room_id,json=roomId,proto3" json:"room_id,omitempty"`
+	// Required. Source asset ID.
+	AssetId string `protobuf:"bytes,2,opt,name=asset_id,json=assetId,proto3" json:"asset_id,omitempty"`
+	// Token returned by the exact conversion being undone.
+	UndoToken     string `protobuf:"bytes,3,opt,name=undo_token,json=undoToken,proto3" json:"undo_token,omitempty"`
+	unknownFields protoimpl.UnknownFields
+	sizeCache     protoimpl.SizeCache
+}
+
+func (x *UndoAttachmentPermanenceRequest) Reset() {
+	*x = UndoAttachmentPermanenceRequest{}
+	mi := &file_chatto_api_v1_attachments_proto_msgTypes[9]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *UndoAttachmentPermanenceRequest) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*UndoAttachmentPermanenceRequest) ProtoMessage() {}
+
+func (x *UndoAttachmentPermanenceRequest) ProtoReflect() protoreflect.Message {
+	mi := &file_chatto_api_v1_attachments_proto_msgTypes[9]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use UndoAttachmentPermanenceRequest.ProtoReflect.Descriptor instead.
+func (*UndoAttachmentPermanenceRequest) Descriptor() ([]byte, []int) {
+	return file_chatto_api_v1_attachments_proto_rawDescGZIP(), []int{9}
+}
+
+func (x *UndoAttachmentPermanenceRequest) GetRoomId() string {
+	if x != nil {
+		return x.RoomId
+	}
+	return ""
+}
+
+func (x *UndoAttachmentPermanenceRequest) GetAssetId() string {
+	if x != nil {
+		return x.AssetId
+	}
+	return ""
+}
+
+func (x *UndoAttachmentPermanenceRequest) GetUndoToken() string {
+	if x != nil {
+		return x.UndoToken
+	}
+	return ""
+}
+
+// Restored burn metadata after Undo; no byte URLs.
+type UndoAttachmentPermanenceResponse struct {
+	state protoimpl.MessageState `protogen:"open.v1"`
+	// Current viewer-specific metadata.
+	Asset         *Asset `protobuf:"bytes,1,opt,name=asset,proto3" json:"asset,omitempty"`
+	unknownFields protoimpl.UnknownFields
+	sizeCache     protoimpl.SizeCache
+}
+
+func (x *UndoAttachmentPermanenceResponse) Reset() {
+	*x = UndoAttachmentPermanenceResponse{}
+	mi := &file_chatto_api_v1_attachments_proto_msgTypes[10]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *UndoAttachmentPermanenceResponse) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*UndoAttachmentPermanenceResponse) ProtoMessage() {}
+
+func (x *UndoAttachmentPermanenceResponse) ProtoReflect() protoreflect.Message {
+	mi := &file_chatto_api_v1_attachments_proto_msgTypes[10]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use UndoAttachmentPermanenceResponse.ProtoReflect.Descriptor instead.
+func (*UndoAttachmentPermanenceResponse) Descriptor() ([]byte, []int) {
+	return file_chatto_api_v1_attachments_proto_rawDescGZIP(), []int{10}
+}
+
+func (x *UndoAttachmentPermanenceResponse) GetAsset() *Asset {
+	if x != nil {
+		return x.Asset
+	}
+	return nil
+}
+
 // One current room attachment and its message anchor.
 type RoomAttachmentListItem struct {
 	state protoimpl.MessageState `protogen:"open.v1"`
@@ -161,7 +752,7 @@ type RoomAttachmentListItem struct {
 
 func (x *RoomAttachmentListItem) Reset() {
 	*x = RoomAttachmentListItem{}
-	mi := &file_chatto_api_v1_attachments_proto_msgTypes[1]
+	mi := &file_chatto_api_v1_attachments_proto_msgTypes[11]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -173,7 +764,7 @@ func (x *RoomAttachmentListItem) String() string {
 func (*RoomAttachmentListItem) ProtoMessage() {}
 
 func (x *RoomAttachmentListItem) ProtoReflect() protoreflect.Message {
-	mi := &file_chatto_api_v1_attachments_proto_msgTypes[1]
+	mi := &file_chatto_api_v1_attachments_proto_msgTypes[11]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -186,7 +777,7 @@ func (x *RoomAttachmentListItem) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use RoomAttachmentListItem.ProtoReflect.Descriptor instead.
 func (*RoomAttachmentListItem) Descriptor() ([]byte, []int) {
-	return file_chatto_api_v1_attachments_proto_rawDescGZIP(), []int{1}
+	return file_chatto_api_v1_attachments_proto_rawDescGZIP(), []int{11}
 }
 
 func (x *RoomAttachmentListItem) GetAttachment() *Asset {
@@ -239,7 +830,7 @@ type GetAssetRequest struct {
 
 func (x *GetAssetRequest) Reset() {
 	*x = GetAssetRequest{}
-	mi := &file_chatto_api_v1_attachments_proto_msgTypes[2]
+	mi := &file_chatto_api_v1_attachments_proto_msgTypes[12]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -251,7 +842,7 @@ func (x *GetAssetRequest) String() string {
 func (*GetAssetRequest) ProtoMessage() {}
 
 func (x *GetAssetRequest) ProtoReflect() protoreflect.Message {
-	mi := &file_chatto_api_v1_attachments_proto_msgTypes[2]
+	mi := &file_chatto_api_v1_attachments_proto_msgTypes[12]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -264,7 +855,7 @@ func (x *GetAssetRequest) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use GetAssetRequest.ProtoReflect.Descriptor instead.
 func (*GetAssetRequest) Descriptor() ([]byte, []int) {
-	return file_chatto_api_v1_attachments_proto_rawDescGZIP(), []int{2}
+	return file_chatto_api_v1_attachments_proto_rawDescGZIP(), []int{12}
 }
 
 func (x *GetAssetRequest) GetRoomId() string {
@@ -299,7 +890,7 @@ type GetAssetResponse struct {
 
 func (x *GetAssetResponse) Reset() {
 	*x = GetAssetResponse{}
-	mi := &file_chatto_api_v1_attachments_proto_msgTypes[3]
+	mi := &file_chatto_api_v1_attachments_proto_msgTypes[13]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -311,7 +902,7 @@ func (x *GetAssetResponse) String() string {
 func (*GetAssetResponse) ProtoMessage() {}
 
 func (x *GetAssetResponse) ProtoReflect() protoreflect.Message {
-	mi := &file_chatto_api_v1_attachments_proto_msgTypes[3]
+	mi := &file_chatto_api_v1_attachments_proto_msgTypes[13]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -324,7 +915,7 @@ func (x *GetAssetResponse) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use GetAssetResponse.ProtoReflect.Descriptor instead.
 func (*GetAssetResponse) Descriptor() ([]byte, []int) {
-	return file_chatto_api_v1_attachments_proto_rawDescGZIP(), []int{3}
+	return file_chatto_api_v1_attachments_proto_rawDescGZIP(), []int{13}
 }
 
 func (x *GetAssetResponse) GetAsset() *Asset {
@@ -349,7 +940,7 @@ type BatchGetAssetsRequest struct {
 
 func (x *BatchGetAssetsRequest) Reset() {
 	*x = BatchGetAssetsRequest{}
-	mi := &file_chatto_api_v1_attachments_proto_msgTypes[4]
+	mi := &file_chatto_api_v1_attachments_proto_msgTypes[14]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -361,7 +952,7 @@ func (x *BatchGetAssetsRequest) String() string {
 func (*BatchGetAssetsRequest) ProtoMessage() {}
 
 func (x *BatchGetAssetsRequest) ProtoReflect() protoreflect.Message {
-	mi := &file_chatto_api_v1_attachments_proto_msgTypes[4]
+	mi := &file_chatto_api_v1_attachments_proto_msgTypes[14]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -374,7 +965,7 @@ func (x *BatchGetAssetsRequest) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use BatchGetAssetsRequest.ProtoReflect.Descriptor instead.
 func (*BatchGetAssetsRequest) Descriptor() ([]byte, []int) {
-	return file_chatto_api_v1_attachments_proto_rawDescGZIP(), []int{4}
+	return file_chatto_api_v1_attachments_proto_rawDescGZIP(), []int{14}
 }
 
 func (x *BatchGetAssetsRequest) GetRoomId() string {
@@ -409,7 +1000,7 @@ type BatchGetAssetsResponse struct {
 
 func (x *BatchGetAssetsResponse) Reset() {
 	*x = BatchGetAssetsResponse{}
-	mi := &file_chatto_api_v1_attachments_proto_msgTypes[5]
+	mi := &file_chatto_api_v1_attachments_proto_msgTypes[15]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -421,7 +1012,7 @@ func (x *BatchGetAssetsResponse) String() string {
 func (*BatchGetAssetsResponse) ProtoMessage() {}
 
 func (x *BatchGetAssetsResponse) ProtoReflect() protoreflect.Message {
-	mi := &file_chatto_api_v1_attachments_proto_msgTypes[5]
+	mi := &file_chatto_api_v1_attachments_proto_msgTypes[15]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -434,7 +1025,7 @@ func (x *BatchGetAssetsResponse) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use BatchGetAssetsResponse.ProtoReflect.Descriptor instead.
 func (*BatchGetAssetsResponse) Descriptor() ([]byte, []int) {
-	return file_chatto_api_v1_attachments_proto_rawDescGZIP(), []int{5}
+	return file_chatto_api_v1_attachments_proto_rawDescGZIP(), []int{15}
 }
 
 func (x *BatchGetAssetsResponse) GetAssets() []*Asset {
@@ -448,7 +1039,7 @@ var File_chatto_api_v1_attachments_proto protoreflect.FileDescriptor
 
 const file_chatto_api_v1_attachments_proto_rawDesc = "" +
 	"\n" +
-	"\x1fchatto/api/v1/attachments.proto\x12\rchatto.api.v1\x1a\x1bbuf/validate/validate.proto\x1a\x1achatto/api/v1/common.proto\x1a!chatto/api/v1/message_types.proto\x1a\x1fgoogle/protobuf/timestamp.proto\"\xf7\x02\n" +
+	"\x1fchatto/api/v1/attachments.proto\x12\rchatto.api.v1\x1a\x1bbuf/validate/validate.proto\x1a\x1achatto/api/v1/common.proto\x1a!chatto/api/v1/message_types.proto\x1a\x1fgoogle/protobuf/timestamp.proto\"\xaa\x03\n" +
 	"\x05Asset\x12\x0e\n" +
 	"\x02id\x18\x01 \x01(\tR\x02id\x12\x1a\n" +
 	"\bfilename\x18\x02 \x01(\tR\bfilename\x12!\n" +
@@ -458,7 +1049,48 @@ const file_chatto_api_v1_attachments_proto_rawDesc = "" +
 	"\x06height\x18\x06 \x01(\x05R\x06height\x12;\n" +
 	"\tasset_url\x18\a \x01(\v2\x1e.chatto.api.v1.MessageAssetUrlR\bassetUrl\x12N\n" +
 	"\x13thumbnail_asset_url\x18\b \x01(\v2\x1e.chatto.api.v1.MessageAssetUrlR\x11thumbnailAssetUrl\x12P\n" +
-	"\x10video_processing\x18\t \x01(\v2%.chatto.api.v1.MessageVideoProcessingR\x0fvideoProcessing\"\x9b\x02\n" +
+	"\x10video_processing\x18\t \x01(\v2%.chatto.api.v1.MessageVideoProcessingR\x0fvideoProcessing\x121\n" +
+	"\x04burn\x18\n" +
+	" \x01(\v2\x1d.chatto.api.v1.BurnAttachmentR\x04burn\"\x8c\x01\n" +
+	"\x19OpenBurnAttachmentRequest\x12 \n" +
+	"\aroom_id\x18\x01 \x01(\tB\a\xbaH\x04r\x02\x10\x01R\x06roomId\x12\"\n" +
+	"\basset_id\x18\x02 \x01(\tB\a\xbaH\x04r\x02\x10\x01R\aassetId\x12)\n" +
+	"\n" +
+	"session_id\x18\x03 \x01(\tB\n" +
+	"\xbaH\ar\x05\x10\x10\x18\x80\x01R\tsessionId\"\x8c\x01\n" +
+	"\x1aOpenBurnAttachmentResponse\x12*\n" +
+	"\x05asset\x18\x01 \x01(\v2\x14.chatto.api.v1.AssetR\x05asset\x12B\n" +
+	"\x0fview_expires_at\x18\x02 \x01(\v2\x1a.google.protobuf.TimestampR\rviewExpiresAt\"\x8d\x01\n" +
+	"\x1aCloseBurnAttachmentRequest\x12 \n" +
+	"\aroom_id\x18\x01 \x01(\tB\a\xbaH\x04r\x02\x10\x01R\x06roomId\x12\"\n" +
+	"\basset_id\x18\x02 \x01(\tB\a\xbaH\x04r\x02\x10\x01R\aassetId\x12)\n" +
+	"\n" +
+	"session_id\x18\x03 \x01(\tB\n" +
+	"\xbaH\ar\x05\x10\x10\x18\x80\x01R\tsessionId\"I\n" +
+	"\x1bCloseBurnAttachmentResponse\x12*\n" +
+	"\x05asset\x18\x01 \x01(\v2\x14.chatto.api.v1.AssetR\x05asset\"\x88\x01\n" +
+	"\"RequestAttachmentPermanenceRequest\x12 \n" +
+	"\aroom_id\x18\x01 \x01(\tB\a\xbaH\x04r\x02\x10\x01R\x06roomId\x12\"\n" +
+	"\basset_id\x18\x02 \x01(\tB\a\xbaH\x04r\x02\x10\x01R\aassetId\x12\x1c\n" +
+	"\trequested\x18\x03 \x01(\bR\trequested\"Q\n" +
+	"#RequestAttachmentPermanenceResponse\x12*\n" +
+	"\x05asset\x18\x01 \x01(\v2\x14.chatto.api.v1.AssetR\x05asset\"\x88\x01\n" +
+	"\x1eMakeAttachmentPermanentRequest\x12 \n" +
+	"\aroom_id\x18\x01 \x01(\tB\a\xbaH\x04r\x02\x10\x01R\x06roomId\x12\"\n" +
+	"\basset_id\x18\x02 \x01(\tB\a\xbaH\x04r\x02\x10\x01R\aassetId\x12 \n" +
+	"\vacknowledge\x18\x03 \x01(\bR\vacknowledge\"\xb0\x01\n" +
+	"\x1fMakeAttachmentPermanentResponse\x12*\n" +
+	"\x05asset\x18\x01 \x01(\v2\x14.chatto.api.v1.AssetR\x05asset\x12\x1d\n" +
+	"\n" +
+	"undo_token\x18\x02 \x01(\tR\tundoToken\x12B\n" +
+	"\x0fundo_expires_at\x18\x03 \x01(\v2\x1a.google.protobuf.TimestampR\rundoExpiresAt\"\x8f\x01\n" +
+	"\x1fUndoAttachmentPermanenceRequest\x12 \n" +
+	"\aroom_id\x18\x01 \x01(\tB\a\xbaH\x04r\x02\x10\x01R\x06roomId\x12\"\n" +
+	"\basset_id\x18\x02 \x01(\tB\a\xbaH\x04r\x02\x10\x01R\aassetId\x12&\n" +
+	"\n" +
+	"undo_token\x18\x03 \x01(\tB\a\xbaH\x04r\x02\x10\x01R\tundoToken\"N\n" +
+	" UndoAttachmentPermanenceResponse\x12*\n" +
+	"\x05asset\x18\x01 \x01(\v2\x14.chatto.api.v1.AssetR\x05asset\"\x9b\x02\n" +
 	"\x16RoomAttachmentListItem\x124\n" +
 	"\n" +
 	"attachment\x18\x01 \x01(\v2\x14.chatto.api.v1.AssetR\n" +
@@ -481,8 +1113,13 @@ const file_chatto_api_v1_attachments_proto_rawDesc = "" +
 	"\b\x01\x10d\"\x04r\x02\x10\x01R\bassetIds\x12B\n" +
 	"\tthumbnail\x18\x03 \x01(\v2$.chatto.api.v1.ImageTransformOptionsR\tthumbnail\"F\n" +
 	"\x16BatchGetAssetsResponse\x12,\n" +
-	"\x06assets\x18\x01 \x03(\v2\x14.chatto.api.v1.AssetR\x06assets2\xba\x01\n" +
-	"\fAssetService\x12K\n" +
+	"\x06assets\x18\x01 \x03(\v2\x14.chatto.api.v1.AssetR\x06assets2\x91\x06\n" +
+	"\fAssetService\x12i\n" +
+	"\x12OpenBurnAttachment\x12(.chatto.api.v1.OpenBurnAttachmentRequest\x1a).chatto.api.v1.OpenBurnAttachmentResponse\x12l\n" +
+	"\x13CloseBurnAttachment\x12).chatto.api.v1.CloseBurnAttachmentRequest\x1a*.chatto.api.v1.CloseBurnAttachmentResponse\x12\x84\x01\n" +
+	"\x1bRequestAttachmentPermanence\x121.chatto.api.v1.RequestAttachmentPermanenceRequest\x1a2.chatto.api.v1.RequestAttachmentPermanenceResponse\x12x\n" +
+	"\x17MakeAttachmentPermanent\x12-.chatto.api.v1.MakeAttachmentPermanentRequest\x1a..chatto.api.v1.MakeAttachmentPermanentResponse\x12{\n" +
+	"\x18UndoAttachmentPermanence\x12..chatto.api.v1.UndoAttachmentPermanenceRequest\x1a/.chatto.api.v1.UndoAttachmentPermanenceResponse\x12K\n" +
 	"\bGetAsset\x12\x1e.chatto.api.v1.GetAssetRequest\x1a\x1f.chatto.api.v1.GetAssetResponse\x12]\n" +
 	"\x0eBatchGetAssets\x12$.chatto.api.v1.BatchGetAssetsRequest\x1a%.chatto.api.v1.BatchGetAssetsResponseB\xac\x01\n" +
 	"\x11com.chatto.api.v1B\x10AttachmentsProtoP\x01Z/hmans.de/chatto/internal/pb/chatto/api/v1;apiv1\xa2\x02\x03CAX\xaa\x02\rChatto.Api.V1\xca\x02\rChatto\\Api\\V1\xe2\x02\x19Chatto\\Api\\V1\\GPBMetadata\xea\x02\x0fChatto::Api::V1b\x06proto3"
@@ -499,38 +1136,67 @@ func file_chatto_api_v1_attachments_proto_rawDescGZIP() []byte {
 	return file_chatto_api_v1_attachments_proto_rawDescData
 }
 
-var file_chatto_api_v1_attachments_proto_msgTypes = make([]protoimpl.MessageInfo, 6)
+var file_chatto_api_v1_attachments_proto_msgTypes = make([]protoimpl.MessageInfo, 16)
 var file_chatto_api_v1_attachments_proto_goTypes = []any{
-	(*Asset)(nil),                  // 0: chatto.api.v1.Asset
-	(*RoomAttachmentListItem)(nil), // 1: chatto.api.v1.RoomAttachmentListItem
-	(*GetAssetRequest)(nil),        // 2: chatto.api.v1.GetAssetRequest
-	(*GetAssetResponse)(nil),       // 3: chatto.api.v1.GetAssetResponse
-	(*BatchGetAssetsRequest)(nil),  // 4: chatto.api.v1.BatchGetAssetsRequest
-	(*BatchGetAssetsResponse)(nil), // 5: chatto.api.v1.BatchGetAssetsResponse
-	(*MessageAssetUrl)(nil),        // 6: chatto.api.v1.MessageAssetUrl
-	(*MessageVideoProcessing)(nil), // 7: chatto.api.v1.MessageVideoProcessing
-	(*timestamppb.Timestamp)(nil),  // 8: google.protobuf.Timestamp
-	(*ImageTransformOptions)(nil),  // 9: chatto.api.v1.ImageTransformOptions
+	(*Asset)(nil),                               // 0: chatto.api.v1.Asset
+	(*OpenBurnAttachmentRequest)(nil),           // 1: chatto.api.v1.OpenBurnAttachmentRequest
+	(*OpenBurnAttachmentResponse)(nil),          // 2: chatto.api.v1.OpenBurnAttachmentResponse
+	(*CloseBurnAttachmentRequest)(nil),          // 3: chatto.api.v1.CloseBurnAttachmentRequest
+	(*CloseBurnAttachmentResponse)(nil),         // 4: chatto.api.v1.CloseBurnAttachmentResponse
+	(*RequestAttachmentPermanenceRequest)(nil),  // 5: chatto.api.v1.RequestAttachmentPermanenceRequest
+	(*RequestAttachmentPermanenceResponse)(nil), // 6: chatto.api.v1.RequestAttachmentPermanenceResponse
+	(*MakeAttachmentPermanentRequest)(nil),      // 7: chatto.api.v1.MakeAttachmentPermanentRequest
+	(*MakeAttachmentPermanentResponse)(nil),     // 8: chatto.api.v1.MakeAttachmentPermanentResponse
+	(*UndoAttachmentPermanenceRequest)(nil),     // 9: chatto.api.v1.UndoAttachmentPermanenceRequest
+	(*UndoAttachmentPermanenceResponse)(nil),    // 10: chatto.api.v1.UndoAttachmentPermanenceResponse
+	(*RoomAttachmentListItem)(nil),              // 11: chatto.api.v1.RoomAttachmentListItem
+	(*GetAssetRequest)(nil),                     // 12: chatto.api.v1.GetAssetRequest
+	(*GetAssetResponse)(nil),                    // 13: chatto.api.v1.GetAssetResponse
+	(*BatchGetAssetsRequest)(nil),               // 14: chatto.api.v1.BatchGetAssetsRequest
+	(*BatchGetAssetsResponse)(nil),              // 15: chatto.api.v1.BatchGetAssetsResponse
+	(*MessageAssetUrl)(nil),                     // 16: chatto.api.v1.MessageAssetUrl
+	(*MessageVideoProcessing)(nil),              // 17: chatto.api.v1.MessageVideoProcessing
+	(*BurnAttachment)(nil),                      // 18: chatto.api.v1.BurnAttachment
+	(*timestamppb.Timestamp)(nil),               // 19: google.protobuf.Timestamp
+	(*ImageTransformOptions)(nil),               // 20: chatto.api.v1.ImageTransformOptions
 }
 var file_chatto_api_v1_attachments_proto_depIdxs = []int32{
-	6,  // 0: chatto.api.v1.Asset.asset_url:type_name -> chatto.api.v1.MessageAssetUrl
-	6,  // 1: chatto.api.v1.Asset.thumbnail_asset_url:type_name -> chatto.api.v1.MessageAssetUrl
-	7,  // 2: chatto.api.v1.Asset.video_processing:type_name -> chatto.api.v1.MessageVideoProcessing
-	0,  // 3: chatto.api.v1.RoomAttachmentListItem.attachment:type_name -> chatto.api.v1.Asset
-	8,  // 4: chatto.api.v1.RoomAttachmentListItem.created_at:type_name -> google.protobuf.Timestamp
-	9,  // 5: chatto.api.v1.GetAssetRequest.thumbnail:type_name -> chatto.api.v1.ImageTransformOptions
-	0,  // 6: chatto.api.v1.GetAssetResponse.asset:type_name -> chatto.api.v1.Asset
-	9,  // 7: chatto.api.v1.BatchGetAssetsRequest.thumbnail:type_name -> chatto.api.v1.ImageTransformOptions
-	0,  // 8: chatto.api.v1.BatchGetAssetsResponse.assets:type_name -> chatto.api.v1.Asset
-	2,  // 9: chatto.api.v1.AssetService.GetAsset:input_type -> chatto.api.v1.GetAssetRequest
-	4,  // 10: chatto.api.v1.AssetService.BatchGetAssets:input_type -> chatto.api.v1.BatchGetAssetsRequest
-	3,  // 11: chatto.api.v1.AssetService.GetAsset:output_type -> chatto.api.v1.GetAssetResponse
-	5,  // 12: chatto.api.v1.AssetService.BatchGetAssets:output_type -> chatto.api.v1.BatchGetAssetsResponse
-	11, // [11:13] is the sub-list for method output_type
-	9,  // [9:11] is the sub-list for method input_type
-	9,  // [9:9] is the sub-list for extension type_name
-	9,  // [9:9] is the sub-list for extension extendee
-	0,  // [0:9] is the sub-list for field type_name
+	16, // 0: chatto.api.v1.Asset.asset_url:type_name -> chatto.api.v1.MessageAssetUrl
+	16, // 1: chatto.api.v1.Asset.thumbnail_asset_url:type_name -> chatto.api.v1.MessageAssetUrl
+	17, // 2: chatto.api.v1.Asset.video_processing:type_name -> chatto.api.v1.MessageVideoProcessing
+	18, // 3: chatto.api.v1.Asset.burn:type_name -> chatto.api.v1.BurnAttachment
+	0,  // 4: chatto.api.v1.OpenBurnAttachmentResponse.asset:type_name -> chatto.api.v1.Asset
+	19, // 5: chatto.api.v1.OpenBurnAttachmentResponse.view_expires_at:type_name -> google.protobuf.Timestamp
+	0,  // 6: chatto.api.v1.CloseBurnAttachmentResponse.asset:type_name -> chatto.api.v1.Asset
+	0,  // 7: chatto.api.v1.RequestAttachmentPermanenceResponse.asset:type_name -> chatto.api.v1.Asset
+	0,  // 8: chatto.api.v1.MakeAttachmentPermanentResponse.asset:type_name -> chatto.api.v1.Asset
+	19, // 9: chatto.api.v1.MakeAttachmentPermanentResponse.undo_expires_at:type_name -> google.protobuf.Timestamp
+	0,  // 10: chatto.api.v1.UndoAttachmentPermanenceResponse.asset:type_name -> chatto.api.v1.Asset
+	0,  // 11: chatto.api.v1.RoomAttachmentListItem.attachment:type_name -> chatto.api.v1.Asset
+	19, // 12: chatto.api.v1.RoomAttachmentListItem.created_at:type_name -> google.protobuf.Timestamp
+	20, // 13: chatto.api.v1.GetAssetRequest.thumbnail:type_name -> chatto.api.v1.ImageTransformOptions
+	0,  // 14: chatto.api.v1.GetAssetResponse.asset:type_name -> chatto.api.v1.Asset
+	20, // 15: chatto.api.v1.BatchGetAssetsRequest.thumbnail:type_name -> chatto.api.v1.ImageTransformOptions
+	0,  // 16: chatto.api.v1.BatchGetAssetsResponse.assets:type_name -> chatto.api.v1.Asset
+	1,  // 17: chatto.api.v1.AssetService.OpenBurnAttachment:input_type -> chatto.api.v1.OpenBurnAttachmentRequest
+	3,  // 18: chatto.api.v1.AssetService.CloseBurnAttachment:input_type -> chatto.api.v1.CloseBurnAttachmentRequest
+	5,  // 19: chatto.api.v1.AssetService.RequestAttachmentPermanence:input_type -> chatto.api.v1.RequestAttachmentPermanenceRequest
+	7,  // 20: chatto.api.v1.AssetService.MakeAttachmentPermanent:input_type -> chatto.api.v1.MakeAttachmentPermanentRequest
+	9,  // 21: chatto.api.v1.AssetService.UndoAttachmentPermanence:input_type -> chatto.api.v1.UndoAttachmentPermanenceRequest
+	12, // 22: chatto.api.v1.AssetService.GetAsset:input_type -> chatto.api.v1.GetAssetRequest
+	14, // 23: chatto.api.v1.AssetService.BatchGetAssets:input_type -> chatto.api.v1.BatchGetAssetsRequest
+	2,  // 24: chatto.api.v1.AssetService.OpenBurnAttachment:output_type -> chatto.api.v1.OpenBurnAttachmentResponse
+	4,  // 25: chatto.api.v1.AssetService.CloseBurnAttachment:output_type -> chatto.api.v1.CloseBurnAttachmentResponse
+	6,  // 26: chatto.api.v1.AssetService.RequestAttachmentPermanence:output_type -> chatto.api.v1.RequestAttachmentPermanenceResponse
+	8,  // 27: chatto.api.v1.AssetService.MakeAttachmentPermanent:output_type -> chatto.api.v1.MakeAttachmentPermanentResponse
+	10, // 28: chatto.api.v1.AssetService.UndoAttachmentPermanence:output_type -> chatto.api.v1.UndoAttachmentPermanenceResponse
+	13, // 29: chatto.api.v1.AssetService.GetAsset:output_type -> chatto.api.v1.GetAssetResponse
+	15, // 30: chatto.api.v1.AssetService.BatchGetAssets:output_type -> chatto.api.v1.BatchGetAssetsResponse
+	24, // [24:31] is the sub-list for method output_type
+	17, // [17:24] is the sub-list for method input_type
+	17, // [17:17] is the sub-list for extension type_name
+	17, // [17:17] is the sub-list for extension extendee
+	0,  // [0:17] is the sub-list for field type_name
 }
 
 func init() { file_chatto_api_v1_attachments_proto_init() }
@@ -540,14 +1206,14 @@ func file_chatto_api_v1_attachments_proto_init() {
 	}
 	file_chatto_api_v1_common_proto_init()
 	file_chatto_api_v1_message_types_proto_init()
-	file_chatto_api_v1_attachments_proto_msgTypes[1].OneofWrappers = []any{}
+	file_chatto_api_v1_attachments_proto_msgTypes[11].OneofWrappers = []any{}
 	type x struct{}
 	out := protoimpl.TypeBuilder{
 		File: protoimpl.DescBuilder{
 			GoPackagePath: reflect.TypeOf(x{}).PkgPath(),
 			RawDescriptor: unsafe.Slice(unsafe.StringData(file_chatto_api_v1_attachments_proto_rawDesc), len(file_chatto_api_v1_attachments_proto_rawDesc)),
 			NumEnums:      0,
-			NumMessages:   6,
+			NumMessages:   16,
 			NumExtensions: 0,
 			NumServices:   1,
 		},

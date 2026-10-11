@@ -4,11 +4,17 @@ import type { TimelineEventView } from '../timeline/timelineEvents.js';
 import { MessageService } from '@chatto/api-types/api/v1/messages_connect';
 import { messageToTimelineEvent, timelineUsersForMessages } from './roomTimeline.js';
 import { createAssetUploadAPI } from './assetUploads.js';
+import { ServerService } from '@chatto/api-types/api/v1/server_state_connect';
+import { Code, ConnectError } from '@connectrpc/connect';
 
 export type CreateMessageInput = {
   roomId: string;
   body: string;
   attachmentAssetIds?: string[];
+  /** Existing uploaded assets that must require one viewing session per recipient. */
+  burnAttachmentAssetIds?: string[];
+  /** Selected uploaded files that must use burn-after-reading access. */
+  burnAttachments?: File[];
   attachments?: File[] | null;
   attachmentDescriptions?: AttachmentDescriptionInput[];
   threadRootEventId?: string | null;
@@ -52,6 +58,24 @@ export function createMessageAPI(config: ConnectAPIConfig) {
   const client = createChattoClient(MessageService, config);
   return {
     async createMessage(input: CreateMessageInput): Promise<CreateMessageResult> {
+      if (input.burnAttachments?.length || input.burnAttachmentAssetIds?.length) {
+        // Additive protobuf fields are ignored by older servers. Refuse the
+        // operation before uploading or posting rather than exposing an
+        // attachment whose sender selected restricted access.
+        const response = await createChattoClient(ServerService, config).getRuntimeConfig({});
+        if (!response.runtime?.burnAttachmentsEnabled) {
+          throw new ConnectError(
+            'Burn-after-reading attachments are unavailable on this server',
+            Code.FailedPrecondition
+          );
+        }
+        if (input.burnAttachments?.some((file) => !input.attachments?.includes(file))) {
+          throw new ConnectError(
+            'Burn attachment is not selected for upload',
+            Code.InvalidArgument
+          );
+        }
+      }
       const uploadedAttachments = await uploadMessageAttachments(config, input);
       const uploadedAttachmentAssetIds = uploadedAttachments.map(({ assetId }) => assetId);
       const uploadedAssetIDByFile = new Map(
@@ -65,6 +89,13 @@ export function createMessageAPI(config: ConnectAPIConfig) {
         roomId: input.roomId,
         body: input.body,
         attachmentAssetIds: [...(input.attachmentAssetIds ?? []), ...uploadedAttachmentAssetIds],
+        burnAttachmentAssetIds: [
+          ...(input.burnAttachmentAssetIds ?? []),
+          ...(input.burnAttachments ?? []).flatMap((file) => {
+            const assetId = uploadedAssetIDByFile.get(file);
+            return assetId ? [assetId] : [];
+          })
+        ],
         attachmentDescriptions,
         threadRootEventId: input.threadRootEventId ?? '',
         inReplyTo: input.inReplyTo ?? '',

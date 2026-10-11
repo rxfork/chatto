@@ -14,6 +14,7 @@ import { ThreadService } from '@chatto/api-types/api/v1/threads_connect';
 import type { CreateMessageRequest } from '@chatto/api-types/api/v1/messages_pb';
 import type { GetThreadEventsRequest } from '@chatto/api-types/api/v1/room_timeline_pb';
 import { RoomKind } from '@chatto/api-types/api/v1/rooms_pb';
+import { BurnAttachmentViewerStatus } from '@chatto/api-types/api/v1/message_types_pb';
 import { RealtimeEvent } from '@chatto/api-types/realtime/v1/realtime_pb';
 import {
   conversationKey,
@@ -299,7 +300,7 @@ describe('attachments', () => {
 
   /** Request helpers with one asset, `a`, and a fetch that answers its addresses. */
   function withAsset(
-    asset: { contentType: string; size: number },
+    asset: { contentType: string; size: number; burnStatus?: BurnAttachmentViewerStatus },
     respond: (url: URL) => Response = () => new Response('content')
   ) {
     const lookups: BatchGetAssetsRequest[] = [];
@@ -316,6 +317,9 @@ describe('attachments', () => {
                   filename: 'file',
                   contentType: asset.contentType,
                   size: BigInt(asset.size),
+                  ...(asset.burnStatus !== undefined
+                    ? { burn: { viewerStatus: asset.burnStatus } }
+                    : {}),
                   assetUrl: { url: '/assets/files/a?t=1' },
                   thumbnailAssetUrl: { url: '/assets/files/a/image/1600x1600/contain?t=2' }
                 }
@@ -356,6 +360,28 @@ describe('attachments', () => {
     expect(String(fetch.mock.calls[0]![0])).toBe(
       'https://chat.example/assets/files/a?t=1&download=1'
     );
+  });
+
+  test('refuses automatic reads of view-once files even if an address is present', async () => {
+    const { api, fetch } = withAsset({
+      contentType: 'image/png',
+      size: 7,
+      burnStatus: BurnAttachmentViewerStatus.AVAILABLE
+    });
+    await expect(api.readAttachment({ roomId: 'room', attachmentId: 'a' })).rejects.toThrow(
+      'deliberate viewing session'
+    );
+    expect(fetch).not.toHaveBeenCalled();
+  });
+
+  test('reads a file after the owner makes it permanent', async () => {
+    const { api, fetch } = withAsset({
+      contentType: 'text/plain',
+      size: 7,
+      burnStatus: BurnAttachmentViewerStatus.PERMANENT
+    });
+    await api.readAttachment({ roomId: 'room', attachmentId: 'a' });
+    expect(fetch).toHaveBeenCalledOnce();
   });
 
   test('rejects content above the limit, declared or streamed', async () => {

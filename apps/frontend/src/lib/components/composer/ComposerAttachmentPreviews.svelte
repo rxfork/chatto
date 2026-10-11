@@ -2,16 +2,21 @@
   import { m } from '$lib/i18n/messages';
   import { formatFileSize, type AttachmentsState } from './attachments.svelte';
   import { uploadPercentage, type AttachmentSubmissionStatus } from './submission.svelte';
+  import { Checkbox } from '$lib/ui/form';
+  import { supportsBurnAttachment } from '@chatto/client/timeline/messageAttachments';
+  const id = $props.id();
 
   let {
     attachments,
     disabled,
+    burnEnabled,
     getSubmissionStatus,
     onremove,
     ondescription
   }: {
     attachments: AttachmentsState;
     disabled: boolean;
+    burnEnabled: boolean;
     getSubmissionStatus: (file: File) => AttachmentSubmissionStatus | null;
     onremove: (index: number) => void;
     ondescription: (index: number) => void;
@@ -27,7 +32,7 @@
 
 {#if attachments.filesWithUrls.length > 0}
   <div class="flex flex-wrap gap-2">
-    {#each attachments.filesWithUrls as { file, url, description }, index (url)}
+    {#each attachments.filesWithUrls as { file, url, description, burn }, index (url)}
       {@const submissionStatus = getSubmissionStatus(file)}
       {@const percentage = submissionStatus ? uploadPercentage(submissionStatus) : null}
       {@const descriptionActionLabel = description
@@ -127,6 +132,21 @@
                 style:width={`${percentage}%`}
               ></div>
             {/if}
+          </div>
+          <div class="mt-2">
+            <Checkbox
+              id={`${id}-burn-${index}`}
+              checked={burn ?? false}
+              disabled={disabled || !burnEnabled || !supportsBurnAttachment(file.type, file.name)}
+              label={m('room.attachment.burn.composer_label')}
+              description={!burnEnabled
+                ? m('room.attachment.burn.server_unavailable')
+                : !supportsBurnAttachment(file.type, file.name)
+                  ? m('room.attachment.burn.unsupported')
+                  : undefined}
+              onchange={(event) =>
+                attachments.setBurn(index, (event.currentTarget as HTMLInputElement).checked)}
+            />
           </div>
         </div>
       </div>
