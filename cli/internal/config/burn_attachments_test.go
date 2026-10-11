@@ -12,8 +12,8 @@ import (
 
 func TestBurnAttachmentConfigDefaultsAndTOML(t *testing.T) {
 	unopened, recovery, view := (BurnAttachmentsConfig{}).Lifetimes()
-	require.Equal(t, 24*time.Hour, unopened)
-	require.Equal(t, time.Hour, recovery)
+	require.Equal(t, 7*24*time.Hour, unopened)
+	require.Equal(t, 48*time.Hour, recovery)
 	require.Equal(t, 5*time.Minute, view)
 	path := filepath.Join(t.TempDir(), "chatto.toml")
 	require.NoError(t, os.WriteFile(path, []byte("[core.assets.burn]\nunopened_ttl = '2h'\nrecovery_ttl = '30m'\nview_ttl = '90s'\n"), 0600))

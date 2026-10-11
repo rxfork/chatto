@@ -222,3 +222,14 @@ func (c *ChattoCore) AssetMessageTarget(assetID string) (roomID, messageEventID 
 	}
 	return "", "", false
 }
+
+func (c *ChattoCore) AuthorizeBurnPreview(ctx context.Context, assetID, userID string) (*evtv1.Attachment, error) {
+	return c.assetModel.AuthorizeBurnPreview(ctx, assetID, userID)
+}
+func (c *ChattoCore) GetStableBurnPreviewAssetURL(assetID, userID string) StableAssetURL {
+	return c.mediaModel.GetStableBurnPreviewAssetURL(assetID, userID)
+}
+
+func (c *ChattoCore) RecordAssetAudioDuration(ctx context.Context, actorID, roomID, messageEventID, assetID string, durationMs int64) error {
+	return c.assetModel.RecordAssetAudioDuration(ctx, actorID, roomID, messageEventID, assetID, durationMs)
+}

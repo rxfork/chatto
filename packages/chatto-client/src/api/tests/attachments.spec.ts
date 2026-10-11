@@ -118,6 +118,37 @@ describe('createAttachmentAPI', () => {
     ).rejects.toMatchObject({ code: Code.Canceled });
   });
 
+  it('refreshes a blurred preview independently of original file access without opening a session', async () => {
+    assets.batchGetAssets.mockReturnValue({
+      assets: [
+        new Asset({
+          id: 'burn',
+          burn: {
+            viewerStatus: BurnAttachmentViewerStatus.BURNED,
+            previewAssetUrl: assetUrl('/assets/files/burn/burn-preview?access=preview-ticket')
+          }
+        })
+      ]
+    });
+    const urls = await attachmentAPI().refreshAssetUrls('room', ['burn'], {
+      width: 120,
+      height: 120,
+      fit: ImageFitMode.CONTAIN
+    });
+    expect(urls.get('burn')).toMatchObject({
+      burn: {
+        viewerStatus: 'burned',
+        previewAssetUrl: {
+          url: '/assets/files/burn/burn-preview?access=preview-ticket',
+          expiresAt: '2026-06-01T13:00:00.000Z'
+        }
+      },
+      assetUrl: null,
+      thumbnailAssetUrl: null
+    });
+    expect(assets.openBurnAttachment).not.toHaveBeenCalled();
+  });
+
   it('reads file size metadata and forwards cancellation', async () => {
     assets.getAsset.mockReturnValue(
       new GetAssetResponse({ asset: new Asset({ id: 'html', size: 1536n }) })

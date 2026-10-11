@@ -87,6 +87,7 @@ func TestHandlerOptionsMapCoreErrors(t *testing.T) {
 		err  error
 		want connect.Code
 	}{
+		{name: "burn video processing pending", err: core.ErrBurnMediaNotReady, want: connect.CodeFailedPrecondition},
 		{name: "core sentinel", err: fmt.Errorf("load room: %w", core.ErrNotFound), want: connect.CodeNotFound},
 		{name: "existing connect error", err: connect.NewError(connect.CodeUnavailable, errors.New("busy")), want: connect.CodeUnavailable},
 	}

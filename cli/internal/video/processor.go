@@ -20,7 +20,7 @@ import (
 	evtv1 "hmans.de/chatto/internal/pb/chatto/core/evt/v1"
 )
 
-// ProbeResult contains metadata extracted from a video file via ffprobe.
+// ProbeResult contains metadata extracted from a media file via ffprobe.
 type ProbeResult struct {
 	DurationMs int64
 	Width      int32
@@ -72,6 +72,10 @@ func (s *Service) probe(ctx context.Context, inputPath string, contentType strin
 	if contentType != "image/gif" {
 		args = append(args, "-show_format")
 	}
+	// Uploaded audio must not fetch network references while probing.
+	if strings.HasPrefix(strings.ToLower(contentType), "audio/") {
+		args = append(args, "-protocol_whitelist", "file,pipe")
+	}
 	args = append(args, inputPath)
 
 	cmd := exec.CommandContext(probeCtx, s.ffprobePath, args...)
@@ -115,6 +119,11 @@ func (s *Service) probe(ctx context.Context, inputPath string, contentType strin
 			}
 		case "audio":
 			result.AudioCodec = stream.CodecName
+			if result.DurationMs == 0 {
+				if seconds, err := strconv.ParseFloat(stream.Duration, 64); err == nil {
+					result.DurationMs = int64(seconds * 1000)
+				}
+			}
 			codecParts = append(codecParts, strings.ToUpper(stream.CodecName))
 		}
 	}

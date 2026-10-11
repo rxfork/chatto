@@ -70,6 +70,7 @@
     attachmentRevision++;
   });
   const failedAssetRefreshKeys = new SvelteSet<string>();
+  const failedBurnPreviewUrls = new SvelteSet<string>();
   // Retain only the latest settled URL per attachment as signed URLs rotate.
   const settledImageUrls = new SvelteMap<string, string>();
   const retainAssetUrl = createAssetUrlRetainer();
@@ -116,6 +117,13 @@
         withRetrySalt(normalizeAssetUrl(value), attachment.id, retryRole),
         refreshed !== undefined || assetRetrySalts.has(`${attachment.id}:${retryRole}`)
       );
+    // Only a server-generated blurred still may load before an explicit Open.
+    const burnPreviewAssetUrl = resolveUrl(
+      'burn-preview',
+      restricted && !['ineligible', 'purged', 'unavailable'].includes(burn.viewerStatus)
+        ? burn.previewAssetUrl
+        : null
+    );
     const assetUrl = resolveUrl(
       'asset',
       restricted ? null : refreshed ? refreshed.assetUrl : attachment.assetUrl
@@ -145,7 +153,7 @@
 
     return {
       ...attachment,
-      burn,
+      burn: burn ? { ...burn, previewAssetUrl: burnPreviewAssetUrl } : burn,
       assetUrl,
       url: assetUrl?.url ?? null,
       thumbnailAssetUrl,
@@ -301,6 +309,13 @@
         return;
       const assetId = event.event.value.assetId;
       if (!rawAttachments.some((attachment) => attachment.id === assetId)) return;
+      if (event.event.case === 'assetDeleted') {
+        const attachment = attachments.find((item) => item.id === assetId);
+        if (attachment && isBurnAttachment(attachment)) {
+          expireAttachment(attachment, 'purged');
+          return;
+        }
+      }
       attachmentRevision++;
       changedAttachments.delete(assetId);
       refreshedAttachmentUrls = new Map();
@@ -347,6 +362,7 @@
 
   function attachmentAssetUrls(attachment: Attachment) {
     return [
+      attachment.burn?.previewAssetUrl,
       attachment.assetUrl,
       attachment.thumbnailAssetUrl,
       attachment.videoProcessing?.thumbnailAssetUrl,
@@ -454,6 +470,7 @@
           eventId,
           attachment: {
             ...attachment,
+            burn: attachment.burn ? { ...attachment.burn, previewAssetUrl: null } : null,
             assetUrl: null,
             thumbnailAssetUrl: null,
             videoProcessing: null
@@ -654,8 +671,24 @@
           class="group/attachment embed-frame attachment-card min-w-[min(18rem,100%)] flex-wrap"
           data-testid="burn-attachment-card"
         >
-          <span class="iconify icon-[uil--fire] shrink-0 text-xl text-muted" aria-hidden="true"
-          ></span>
+          {#if attachment.burn?.previewAssetUrl && !failedBurnPreviewUrls.has(attachment.burn.previewAssetUrl.url)}
+            <img
+              src={attachment.burn.previewAssetUrl.url}
+              alt=""
+              aria-hidden="true"
+              class="h-16 w-16 shrink-0 rounded-md object-cover"
+              loading="lazy"
+              referrerpolicy="no-referrer"
+              data-testid="burn-attachment-preview"
+              onerror={(event) => {
+                const url = event.currentTarget.getAttribute('src');
+                if (url) failedBurnPreviewUrls.add(url);
+              }}
+            />
+          {:else}
+            <span class="iconify icon-[uil--fire] shrink-0 text-xl text-muted" aria-hidden="true"
+            ></span>
+          {/if}
           <div class="min-w-0 flex-1 text-sm">
             <bdi class="block truncate font-medium">{attachment.filename}</bdi>
             <span class="block text-muted">{burnStatus(attachment)}</span>

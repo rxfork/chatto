@@ -132,6 +132,10 @@ message AssetBurnState {
   google.protobuf.Timestamp undo_expires_at = 13;
   // Successful first-use explanation, retained across undo and deletion.
   bool permanence_acknowledged = 14;
+  // Resolve the verified processed video duration when claiming a session.
+  bool use_video_duration = 15;
+  // Resolve verified audio duration when claiming a session.
+  bool use_audio_duration = 16;
 }
 
 // AssetBurnView reserves a single logical viewing session for one recipient.
@@ -165,13 +169,15 @@ message AssetProcessingStartedEvent {
 }
 
 // AssetProcessingSucceededEvent records a durable, displayable processing
-// outcome. Only video-shaped processing exists today; if additional kinds
-// are added in the future they will become new fields on this message.
+// outcome. Video derivatives and audio duration use separate result fields.
 message AssetProcessingSucceededEvent {
   string asset_id = 1;
 
   // Video/GIF derivative manifest. Set for video and animated-GIF assets.
   AssetProcessedVideo video = 2;
+
+  // Verified duration for an audio-only asset. No transcoding or derivatives.
+  int64 audio_duration_ms = 4;
 
   // Event id of the owning message, stamped at publish time (see
   // AssetProcessingStartedEvent.message_event_id). Empty only for one-shot

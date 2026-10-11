@@ -3,9 +3,12 @@ import { ImageFitMode } from '@chatto/api-types/api/v1/common_pb';
 import { tick } from 'svelte';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 import { render } from 'vitest-browser-svelte';
+import { RealtimeEvent } from '@chatto/api-types/realtime/v1/realtime_pb';
+import { RealtimeProjectionUpdate } from '@chatto/client/realtime/eventBus';
 import MessageAttachments from './MessageAttachments.svelte';
 import {
   VideoProcessingStatus,
+  type BurnAttachmentView,
   type MessageAttachmentView
 } from '@chatto/client/timeline/messageAttachments';
 import type { RefreshedAttachmentUrls } from '@chatto/client/attachments/attachmentUrls';
@@ -14,6 +17,7 @@ import { createTestServerScope } from '$lib/test-utils/serverScope.svelte';
 const attachmentMocks = vi.hoisted(() => ({
   pushState: vi.fn(),
   refreshAssetUrls: vi.fn(),
+  openBurnAttachment: vi.fn(),
   videoPlayerModuleLoaded: vi.fn()
 }));
 
@@ -26,7 +30,8 @@ vi.mock('$app/navigation', () => ({
 vi.mock('@chatto/client/api/attachments', async (importActual) => ({
   ...(await importActual<typeof import('@chatto/client/api/attachments')>()),
   createAttachmentAPI: vi.fn(() => ({
-    refreshAssetUrls: attachmentMocks.refreshAssetUrls
+    refreshAssetUrls: attachmentMocks.refreshAssetUrls,
+    openBurnAttachment: attachmentMocks.openBurnAttachment
   }))
 }));
 
@@ -43,6 +48,22 @@ vi.mock(
 );
 
 const transparentGif = 'data:image/gif;base64,R0lGODlhAQABAIAAAAAAAP///ywAAAAAAQABAAACAUwAOw==';
+
+function burnState(overrides: Partial<BurnAttachmentView> = {}): BurnAttachmentView {
+  return {
+    viewerStatus: 'available',
+    previewAssetUrl: null,
+    unopenedExpiresAt: '2099-01-01',
+    deleteAt: null,
+    viewExpiresAt: null,
+    canMakePermanent: false,
+    canRequestPermanent: false,
+    permanenceRequested: false,
+    requesterIds: [],
+    requiresPermanenceConfirmation: false,
+    ...overrides
+  };
+}
 
 function emptyRefreshedUrls(): RefreshedAttachmentUrls {
   return {
@@ -152,6 +173,7 @@ describe('MessageAttachments', () => {
     createTestServerScope({ serverId: 'server_1' });
     attachmentMocks.pushState.mockReset();
     attachmentMocks.refreshAssetUrls.mockReset();
+    attachmentMocks.openBurnAttachment.mockReset();
     attachmentMocks.videoPlayerModuleLoaded.mockReset();
     attachmentMocks.refreshAssetUrls.mockResolvedValue(new Map());
   });
@@ -161,6 +183,7 @@ describe('MessageAttachments', () => {
       imageAttachment({
         burn: {
           viewerStatus: 'available',
+          previewAssetUrl: null,
           unopenedExpiresAt: '2099-01-01',
           deleteAt: null,
           viewExpiresAt: null,
@@ -187,6 +210,161 @@ describe('MessageAttachments', () => {
     expect(attachmentMocks.refreshAssetUrls).not.toHaveBeenCalled();
   });
 
+  it.each(['available', 'viewing', 'burned', 'expired'] as const)(
+    'renders only the server blurred burn preview in state %s without opening a session',
+    async (viewerStatus) => {
+      const previewUrl = `${transparentGif}#blurred-preview`;
+      const view = renderAttachment(
+        imageAttachment({
+          burn: burnState({
+            viewerStatus,
+            previewAssetUrl: { url: previewUrl, expiresAt: '2099-01-01' }
+          })
+        })
+      );
+      const image = view.container.querySelector<HTMLImageElement>(
+        '[data-testid="burn-attachment-preview"]'
+      );
+      expect(image?.getAttribute('src')).toBe(previewUrl);
+      expect(image?.loading).toBe('lazy');
+      expect(image?.referrerPolicy).toBe('no-referrer');
+      expect(view.container.querySelectorAll('img')).toHaveLength(1);
+      expect(view.container.querySelector('video, audio, a[download]')).toBeNull();
+      expect(attachmentMocks.pushState).not.toHaveBeenCalled();
+      expect(attachmentMocks.openBurnAttachment).not.toHaveBeenCalled();
+      expect(attachmentMocks.refreshAssetUrls).not.toHaveBeenCalled();
+      if (viewerStatus === 'available') {
+        await view.getByRole('button', { name: 'Open', exact: true }).click();
+        expect(attachmentMocks.pushState).toHaveBeenCalledWith('', {
+          modal: expect.objectContaining({
+            attachment: expect.objectContaining({
+              assetUrl: null,
+              thumbnailAssetUrl: null,
+              burn: expect.objectContaining({ previewAssetUrl: null })
+            })
+          })
+        });
+      }
+    }
+  );
+
+  it.each(['ineligible', 'purged', 'unavailable'] as const)(
+    'does not load a burn preview in inaccessible state %s',
+    (viewerStatus) => {
+      const view = renderAttachment(
+        imageAttachment({
+          burn: burnState({
+            viewerStatus,
+            previewAssetUrl: { url: transparentGif, expiresAt: '2099-01-01' }
+          })
+        })
+      );
+      expect(view.container.querySelector('img, video, audio')).toBeNull();
+      expect(
+        view.container.querySelector('span.iconify')?.classList.contains('icon-[uil--fire]')
+      ).toBe(true);
+      expect(attachmentMocks.openBurnAttachment).not.toHaveBeenCalled();
+    }
+  );
+
+  it('falls back to the burn icon if the blurred burn preview fails', async () => {
+    const view = renderAttachment(
+      imageAttachment({
+        burn: burnState({
+          previewAssetUrl: { url: transparentGif, expiresAt: '2099-01-01' }
+        })
+      })
+    );
+    const image = view.container.querySelector<HTMLImageElement>(
+      '[data-testid="burn-attachment-preview"]'
+    )!;
+    image.dispatchEvent(new Event('error'));
+    await expect.poll(() => view.container.querySelector('img')).toBeNull();
+    expect(
+      view.container.querySelector('span.iconify')?.classList.contains('icon-[uil--fire]')
+    ).toBe(true);
+    expect(attachmentMocks.openBurnAttachment).not.toHaveBeenCalled();
+    expect(attachmentMocks.refreshAssetUrls).not.toHaveBeenCalled();
+  });
+
+  it('refreshes an expired blurred burn preview without obtaining original media or a session', async () => {
+    const refreshedPreviewUrl = `${transparentGif}#renewed-preview`;
+    attachmentMocks.refreshAssetUrls.mockResolvedValue(
+      new Map([
+        [
+          'att_1',
+          {
+            ...emptyRefreshedUrls(),
+            burn: burnState({
+              previewAssetUrl: { url: refreshedPreviewUrl, expiresAt: '2099-01-01' }
+            })
+          }
+        ]
+      ])
+    );
+    const view = renderAttachment(
+      imageAttachment({
+        burn: burnState({
+          previewAssetUrl: { url: `${transparentGif}#expired-preview`, expiresAt: '2020-01-01' }
+        })
+      })
+    );
+    await expect
+      .poll(() => view.container.querySelector('img')?.getAttribute('src'))
+      .toBe(refreshedPreviewUrl);
+    expect(view.container.querySelectorAll('img')).toHaveLength(1);
+    expect(attachmentMocks.refreshAssetUrls).toHaveBeenCalledOnce();
+    expect(attachmentMocks.openBurnAttachment).not.toHaveBeenCalled();
+    expect(attachmentMocks.pushState).not.toHaveBeenCalled();
+  });
+
+  it('removes a blurred burn preview at the byte deletion deadline', async () => {
+    const view = renderAttachment(
+      imageAttachment({
+        burn: burnState({
+          viewerStatus: 'burned',
+          deleteAt: new Date(Date.now() - 1000).toISOString(),
+          previewAssetUrl: { url: transparentGif, expiresAt: '2099-01-01' }
+        })
+      })
+    );
+    await expect.poll(() => view.container.textContent).toContain('Attachment deleted');
+    expect(view.container.querySelector('img, video, audio')).toBeNull();
+    expect(attachmentMocks.openBurnAttachment).not.toHaveBeenCalled();
+  });
+
+  it('removes a blurred burn preview immediately on deletion while a refresh is pending', async () => {
+    let update!: (event: RealtimeProjectionUpdate) => void;
+    createTestServerScope({
+      serverId: 'server_1',
+      store: {
+        onUpdate: (callback: typeof update) => {
+          update = callback;
+          return () => {};
+        }
+      }
+    });
+    attachmentMocks.refreshAssetUrls.mockReturnValue(new Promise(() => {}));
+    const view = renderAttachment(
+      imageAttachment({
+        burn: burnState({
+          previewAssetUrl: { url: transparentGif, expiresAt: '2099-01-01' }
+        })
+      })
+    );
+    expect(view.container.querySelector('img')).not.toBeNull();
+    update(
+      new RealtimeProjectionUpdate({
+        event: new RealtimeEvent({
+          event: { case: 'assetDeleted', value: { assetId: 'att_1', roomId: 'room_1' } }
+        })
+      })
+    );
+    await expect.poll(() => view.container.querySelector('img')).toBeNull();
+    expect(view.container.textContent).toContain('Attachment deleted');
+    expect(attachmentMocks.openBurnAttachment).not.toHaveBeenCalled();
+  });
+
   it('does not offer another opening to a burned or ineligible recipient', async () => {
     const view = renderAttachments(
       ['burned', 'ineligible'].map((viewerStatus, index) =>
@@ -194,6 +372,7 @@ describe('MessageAttachments', () => {
           id: String(index),
           burn: {
             viewerStatus: viewerStatus as 'burned' | 'ineligible',
+            previewAssetUrl: null,
             unopenedExpiresAt: null,
             deleteAt: null,
             viewExpiresAt: null,
@@ -217,6 +396,7 @@ describe('MessageAttachments', () => {
       imageAttachment({
         burn: {
           viewerStatus: 'viewing',
+          previewAssetUrl: null,
           unopenedExpiresAt: null,
           viewExpiresAt: new Date(Date.now() - 1000).toISOString(),
           deleteAt: null,

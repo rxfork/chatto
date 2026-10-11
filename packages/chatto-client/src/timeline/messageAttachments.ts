@@ -58,9 +58,11 @@ export type BurnAttachmentViewerState =
   | 'permanent'
   | 'unavailable';
 
-/** Burn metadata contains no file URL and never grants access by itself. */
+/** Burn metadata never grants access to the original file by itself. */
 export type BurnAttachmentView = {
   viewerStatus: BurnAttachmentViewerState;
+  /** Optional server-generated blurred still image; never an original or normal thumbnail. */
+  previewAssetUrl: ExpiringAssetUrl | null;
   unopenedExpiresAt: string | null;
   deleteAt: string | null;
   viewExpiresAt: string | null;

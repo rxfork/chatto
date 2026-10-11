@@ -19,8 +19,17 @@ export function burnAttachmentView(value?: BurnAttachment): BurnAttachmentView |
     [BurnAttachmentViewerStatus.PURGED]: 'purged',
     [BurnAttachmentViewerStatus.PERMANENT]: 'permanent'
   };
+  const viewerStatus = states[value.viewerStatus] ?? 'unavailable';
+  const preview = value.previewAssetUrl;
   return {
-    viewerStatus: states[value.viewerStatus] ?? 'unavailable',
+    viewerStatus,
+    previewAssetUrl:
+      preview?.url && !['ineligible', 'purged', 'unavailable'].includes(viewerStatus)
+        ? {
+            url: preview.url,
+            expiresAt: preview.expiresAt?.toDate().toISOString() ?? new Date(0).toISOString()
+          }
+        : null,
     unopenedExpiresAt: value.unopenedExpiresAt?.toDate().toISOString() ?? null,
     deleteAt: value.deleteAt?.toDate().toISOString() ?? null,
     viewExpiresAt: value.viewExpiresAt?.toDate().toISOString() ?? null,

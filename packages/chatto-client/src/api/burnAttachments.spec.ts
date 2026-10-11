@@ -2,7 +2,8 @@ import { describe, expect, it } from 'vitest';
 import { Timestamp } from '@bufbuild/protobuf';
 import {
   BurnAttachment,
-  BurnAttachmentViewerStatus
+  BurnAttachmentViewerStatus,
+  MessageAssetUrl
 } from '@chatto/api-types/api/v1/message_types_pb';
 import { burnAttachmentView } from './burnAttachments.js';
 import { attachmentView } from './roomTimeline.js';
@@ -30,6 +31,7 @@ describe('burn attachment metadata', () => {
     });
     expect(mapped.burn).toEqual({
       viewerStatus: 'burned',
+      previewAssetUrl: null,
       unopenedExpiresAt: '2026-10-11T12:00:00.000Z',
       deleteAt: '2026-10-12T12:00:00.000Z',
       viewExpiresAt: null,
@@ -48,6 +50,50 @@ describe('burn attachment metadata', () => {
       burnAttachmentView(new BurnAttachment({ viewerStatus: 999 as BurnAttachmentViewerStatus }))
         ?.viewerStatus
     ).toBe('unavailable');
+  });
+  it.each([
+    BurnAttachmentViewerStatus.AVAILABLE,
+    BurnAttachmentViewerStatus.VIEWING,
+    BurnAttachmentViewerStatus.BURNED,
+    BurnAttachmentViewerStatus.EXPIRED
+  ])('maps the separate blurred preview for an original recipient in state %s', (viewerStatus) => {
+    const previewAssetUrl = new MessageAssetUrl({
+      url: '/assets/files/image/burn-preview?access=preview-ticket',
+      expiresAt: Timestamp.fromDate(new Date('2026-10-12T12:00:00Z'))
+    });
+    const burn = new BurnAttachment({ viewerStatus, previewAssetUrl });
+    const mapped = burnAttachmentView(burn);
+    expect(mapped?.previewAssetUrl).toEqual({
+      url: previewAssetUrl.url,
+      expiresAt: '2026-10-12T12:00:00.000Z'
+    });
+    previewAssetUrl.url = '/changed';
+    expect(mapped?.previewAssetUrl?.url).toContain('burn-preview');
+  });
+  it.each([
+    BurnAttachmentViewerStatus.INELIGIBLE,
+    BurnAttachmentViewerStatus.PURGED,
+    999 as BurnAttachmentViewerStatus
+  ])('denies a preview for inaccessible state %s even if supplied', (viewerStatus) => {
+    expect(
+      burnAttachmentView(
+        new BurnAttachment({
+          viewerStatus,
+          previewAssetUrl: { url: '/assets/files/image/burn-preview' }
+        })
+      )?.previewAssetUrl
+    ).toBeNull();
+  });
+  it('handles missing or empty preview metadata without exposing a URL', () => {
+    expect(burnAttachmentView(new BurnAttachment())?.previewAssetUrl).toBeNull();
+    expect(
+      burnAttachmentView(
+        new BurnAttachment({
+          viewerStatus: BurnAttachmentViewerStatus.AVAILABLE,
+          previewAssetUrl: {}
+        })
+      )?.previewAssetUrl
+    ).toBeNull();
   });
   it('renders permanent conversions as ordinary attachments', () => {
     const burn = burnAttachmentView(

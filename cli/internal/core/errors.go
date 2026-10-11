@@ -8,6 +8,9 @@ import (
 
 // Sentinel errors for common error conditions in ChattoCore.
 var (
+	// ErrBurnMediaNotReady leaves the viewing session unclaimed until duration is verified.
+	ErrBurnMediaNotReady = errors.New("media duration must be verified before opening")
+
 	// ErrNotFound is returned when a requested resource does not exist.
 	ErrNotFound = errors.New("not found")
 
